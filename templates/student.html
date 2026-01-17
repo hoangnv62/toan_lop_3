@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Góc Học Tập Thông Minh</title>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Nunito", sans-serif;
+        background: linear-gradient(135deg, #f0f4ff 0%, #e6e9ff 100%);
+        color: #2d3748;
+        min-height: 100vh;
+        padding: 1.5rem 1rem;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      /* Header */
+      .student-header {
+        margin-bottom: 1.8rem;
+      }
+
+      .header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .welcome {
+        font-size: 2rem;
+        font-weight: 800;
+        background: linear-gradient(to right, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .btn-logout {
+        background: #f56565;
+        color: white;
+        border: none;
+        padding: 0.7rem 1.3rem;
+        border-radius: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-logout:hover {
+        background: #e53e3e;
+        transform: translateY(-2px);
+      }
+
+      /* Main title (cùng cấp với grid) */
+      .main-title {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #4c51bf;
+        margin-bottom: 1.2rem;
+        padding-bottom: 0.8rem;
+        border-bottom: 3px solid #e2e8f0;
+      }
+
+      /* Dashboard grid */
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.8rem;
+      }
+
+      @media (max-width: 900px) {
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        padding: 1.6rem;
+        overflow: hidden;
+      }
+      .calendar-card {
+        margin-bottom: 30px;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        padding: 1.6rem;
+        overflow: hidden;
+      }
+
+      .card-title {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #4c51bf;
+        margin-bottom: 1.2rem;
+        padding-bottom: 0.8rem;
+        border-bottom: 3px solid #e2e8f0;
+      }
+
+      /* Lessons (bên trái) */
+      .lessons-section {
+        max-height: 150vh;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+      }
+
+      .lessons-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.3rem;
+      }
+
+      .lesson-item {
+        background: #f8fafc;
+        border-radius: 0.9rem;
+        overflow: hidden;
+        border: 2px solid #e2e8f0;
+        transition: all 0.25s ease;
+      }
+
+      .lesson-item:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.18);
+        border-color: #a3bffa;
+      }
+
+      .lesson-title {
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        color: white;
+        padding: 1rem 1.3rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+      }
+
+      .lesson-content {
+        padding: 1.2rem 1.3rem;
+        min-height: 140px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+      }
+
+      .test-btn {
+        background: #ebf4ff;
+        border: 2px solid #a3bffa;
+        color: #4c51bf;
+        padding: 0.8rem 1.2rem;
+        border-radius: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+      }
+
+      .test-btn:hover {
+        background: #c3dafe;
+        border-color: #7f9cf5;
+        transform: translateX(6px);
+      }
+
+      /* Right side */
+      .progress-section {
+        display: flex;
+        flex-direction: column;
+        gap: 1.8rem;
+      }
+
+      .chart-card {
+        flex: 1;
+        min-height: 380px;
+      }
+
+      #progressChart {
+        width: 100% !important;
+        height: 100% !important;
+      }
+
+      /* Calendar */
+      .week-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0.6rem;
+        text-align: center;
+      }
+
+      .day {
+        background: #edf2f7;
+        border-radius: 0.7rem;
+        padding: 0.9rem 0.5rem;
+        font-weight: 700;
+        color: #4a5568;
+      }
+
+      .day.today {
+        background: #667eea;
+        color: white;
+        box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
+      }
+
+      /* History */
+      .history-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+      }
+
+      .history-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f7fafc;
+        padding: 0.9rem 1.2rem;
+        border-radius: 0.8rem;
+        border-left: 5px solid #cbd5e0;
+      }
+
+      .score-circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 800;
+        font-size: 1.25rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      }
+
+      /* Exam view */
+      #exam-view {
+        display: none;
+      }
+
+      .exam-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 1rem 1.5rem;
+        border-radius: 1rem;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 1.8rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      #timer {
+        font-size: 1.3rem;
+        font-weight: bold;
+      }
+
+      .btn-submit-exam {
+        display: block;
+        margin: 2.5rem auto 0;
+        background: linear-gradient(90deg, #48bb78, #38a169);
+        color: white;
+        border: none;
+        padding: 1rem 3rem;
+        font-size: 1.25rem;
+        font-weight: 800;
+        border-radius: 999px;
+        cursor: pointer;
+        box-shadow: 0 8px 25px rgba(72, 187, 120, 0.35);
+        transition: all 0.25s;
+      }
+
+      .btn-submit-exam:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 14px 35px rgba(72, 187, 120, 0.45);
+      }
+
+      .question-item {
+        background: white;
+        padding: 1.6rem;
+        border-radius: 1rem;
+        margin-bottom: 1.6rem;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+      }
+
+      .option {
+        background: #f7fafc;
+        border: 2px solid #e2e8f0;
+        padding: 1rem 1.3rem;
+        border-radius: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+      }
+
+      .option:hover {
+        background: #edf2f7;
+        border-color: #a0aec0;
+      }
+
+      .option.selected {
+        background: #e9f5ff;
+        border-color: #4299e1;
+        box-shadow: 0 0 0 4px rgba(66, 153, 225, 0.2);
+      }
+      #questions-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        font-family: "Segoe UI", sans-serif;
+      }
+
+      .exam-header {
+        background: #1e293b;
+        color: #fff;
+        padding: 1.5rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+      }
+
+      .exam-header h2 {
+        margin: 0;
+        font-size: 1.8rem;
+      }
+
+      .exam-desc {
+        margin: 0.5rem 0;
+        opacity: 0.9;
+      }
+
+      .exam-date {
+        font-size: 0.9rem;
+        opacity: 0.7;
+      }
+
+      .question-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transition: 0.2s;
+      }
+
+      .question-card:hover {
+        transform: translateY(-2px);
+      }
+
+      .question-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+        color: #0f172a;
+      }
+
+      .question-media {
+        margin: 1rem 0;
+        text-align: center;
+      }
+
+      .answers-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem 1.5rem;
+      }
+
+      .answer-item {
+        background: #f8fafc;
+        padding: 0.6rem 0.8rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: 1px solid #e2e8f0;
+      }
+
+      .answer-item.correct {
+        background: #dcfce7;
+        border-color: #22c55e;
+        font-weight: 600;
+      }
+
+      .answer-item input {
+        accent-color: #22c55e;
+      }
+
+      .explanation {
+        margin-top: 1rem;
+        background: #f1f5f9;
+        border-left: 4px solid #3b82f6;
+        padding: 0.75rem 1rem;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        color: #1e293b;
+      }
+      .history-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        font-family: system-ui, sans-serif;
+      }
+
+      .lesson-card {
+        border-radius: 14px;
+        background: #f8fafc;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+      }
+
+      .lesson-header {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: white;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+      }
+
+      .exam-list {
+        padding: 1rem 1.5rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1rem;
+      }
+
+      .exam-item {
+        background: white;
+        border-radius: 10px;
+        padding: 0.9rem 1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        transition: 0.2s ease;
+      }
+
+      .exam-item:hover {
+        transform: translateY(-3px);
+      }
+
+      .exam-name {
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+      }
+
+      .exam-meta {
+        font-size: 0.9rem;
+        color: #475569;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .loading,
+      .empty,
+      .error {
+        text-align: center;
+        color: #64748b;
+      }
+      .error {
+        color: #ef4444;
+      }
+
+      @media (max-width: 600px) {
+        .welcome {
+          font-size: 1.7rem;
+        }
+        .lessons-grid {
+          grid-template-columns: 1fr;
+        }
+        .exam-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .btn-submit-exam {
+          width: 100%;
+          padding: 1rem;
+        }
+        .lessons-section {
+          max-height: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="lesson-view" class="container">
+      <div class="student-header">
+        <div class="header-bar">
+          <h1 class="welcome" id="welcome-msg">Chào bé yêu! 👋</h1>
+          <button class="btn-logout" onclick="logout()">Đăng xuất</button>
+        </div>
+      </div>
+
+      <!-- Tiêu đề chính nằm trên grid, cùng cấp -->
+      <h2 class="main-title">📚 Bài học của bé</h2>
+      <div class="calendar-card">
+        <div class="card-title">📅 Tuần này</div>
+        <div id="week-calendar" class="week-grid"></div>
+      </div>
+      <div class="dashboard-grid">
+        <!-- Bên trái: Chỉ danh sách bài học -->
+        <div class="lessons-section">
+          <div id="lessons-container" class="lessons-grid"></div>
+        </div>
+
+        <!-- Bên phải: Tiến bộ + Thành tích + Tuần này -->
+        <div class="progress-section">
+          <div class="card chart-card">
+            <div class="card-title">📈 Tiến bộ học tập</div>
+            <div style="height: 340px">
+              <canvas id="progressChart"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">🏆 Thành tích gần đây</div>
+            <div id="history-list" class="history-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="exam-view" class="container">
+      <div class="exam-header">
+        <h2 id="exam-title-display" style="margin: 0; color: #2d3748">
+          Đề thi
+        </h2>
+        <div style="display: flex; align-items: center; gap: 1rem">
+          <span
+            id="timer"
+            style="
+              font-weight: bold;
+              color: #e53e3e;
+              background: #fff5f5;
+              padding: 0.4rem 1rem;
+              border-radius: 999px;
+            "
+            >00:00</span
+          >
+          <button
+            onclick="location.reload()"
+            style="
+              background: #edf2f7;
+              color: #4a5568;
+              border: none;
+              padding: 0.6rem 1rem;
+              border-radius: 0.7rem;
+              cursor: pointer;
+              font-weight: 700;
+            "
+          >
+            Thoát
+          </button>
+        </div>
+      </div>
+
+      <div id="questions-container"></div>
+
+      <button class="btn-submit-exam" onclick="submitExam()">
+        ✅ Nộp bài ngay
+      </button>
+    </div>
+
+    <script type="module" src="/static/student-functions.js"></script>
+    <script type="module" src="/static/exam.js"></script>
+    <script type="module" src="/static/chart.js"></script>
+    <script type="module" src="/static/student/index.js"></script>
+    <script type="module" src="/static/auth.js"></script>
+  </body>
+</html>

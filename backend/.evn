@@ -1,0 +1,5 @@
+GEMINI_API_KEY=AIzaSyA1RkRRgrspQWwA8hceKIAOEczFbx5vGy0
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=
+DB_NAME=math_elearning
