@@ -1,10 +1,11 @@
 import { currentQuestions } from './exam.js';
-
+import { currentSelectedLessonTitle } from './lessons.js';
 // Các hàm update và set (để hỗ trợ oninput và onclick)
 window.updateQuestionContent = updateQuestionContent;
 window.updateExplanation = updateExplanation;
 window.updateAnswer = updateAnswer;
 window.setCorrectAnswer = setCorrectAnswer;
+window.generateQuestions = generateQuestions;
 
 // Các hàm thêm/xóa mới
 window.addQuestion = addQuestion;
@@ -123,4 +124,52 @@ function deleteQuestion(qIndex) {
 function deleteAnswer(qIndex, aIndex) {
     currentQuestions[qIndex].answers.splice(aIndex, 1);
     renderQuestions(currentQuestions);
+}
+
+export async function generateQuestions() {
+    const lessonTitle = currentSelectedLessonTitle;
+    const examDescription = document.getElementById('exam-description').value;
+    const numQuestions = parseInt(document.getElementById('num-questions').value) || 5;
+
+    showLoading();
+
+    try {
+        const res = await fetch('/api/questions/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ lessonTitle, examDescription, numQuestions })
+        });
+
+        let text = await res.text();   // 👈 luôn đọc text trước
+
+        if (!res.ok) {
+            throw new Error(text);
+        }
+
+        let data;
+        try {
+            data = JSON.parse(text);     // 👈 parse thủ công
+        } catch {
+            throw new Error("Server không trả về JSON hợp lệ");
+        }
+
+        console.log("Câu hỏi tạo bởi AI:", data.data);
+        currentQuestions.push(...data.data);
+        renderQuestions(currentQuestions);
+
+    } catch (e) {
+        console.error(e);
+        alert("Lỗi tạo câu hỏi: " + e.message);
+    } finally {
+        hideLoading();
+    }
+}
+
+function showLoading() {
+    document.getElementById("loading-overlay").style.display = "flex";
+}
+
+function hideLoading() {
+    document.getElementById("loading-overlay").style.display = "none";
 }

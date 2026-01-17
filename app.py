@@ -533,12 +533,15 @@ def create_ls():
 @app.route("/api/questions/generate", methods=["POST"])
 def gen_exam():
     d = request.json
+    num_questions = d["numQuestions"]
+    lesson_title = d["lessonTitle"]
+    exam_description = d["examDescription"]
     prompt = f"""
-    Giáo viên Toán lớp 3. Tạo {d['num_questions']} câu trắc nghiệm '{d['lesson_title']}'. {d['description']}
+    Giáo viên Toán lớp 3. Tạo {num_questions} câu trắc nghiệm '{lesson_title}'. {exam_description}
     HÌNH ẢNH SVG: Dùng <circle>, <rect>... màu sắc đẹp minh họa số lượng. KHÔNG dùng Emoji.
     Format JSON Array: [
     {{ 
-        "content": "...", 
+        "questionContent": "...", 
         "svg_code": "...", 
         "explanation": "...",
         "answers": [
