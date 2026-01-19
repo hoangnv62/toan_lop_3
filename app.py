@@ -70,14 +70,15 @@ def student_page():
     )
 
 
-# --- API AUTH & CORE ---
+# --- API AUTH
 @app.route("/api/login/teacher", methods=["POST"])
 def login_teacher():
     d = request.json
     conn = get_db()
     cur = conn.cursor(dictionary=True)
     cur.execute(
-        "SELECT * FROM teachers WHERE username=%s AND password=%s", (d["u"], d["p"])
+        "SELECT * FROM teachers WHERE username=%s AND password=%s",
+        (d["username"], d["password"]),
     )
     u = cur.fetchone()
     conn.close()
@@ -1180,4 +1181,4 @@ def std_calendar():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5500)
+    app.run(debug=True, port=5000)

@@ -1,6 +1,3 @@
-export function loginForTeacher(payload) {
-
-}
 export async function loginForStudent(payload) {
     const res = await fetch('/api/login/student', {
         method: 'POST',
@@ -15,6 +12,15 @@ export async function checkPhoneNumber(payload) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: payload.phone })
+    });
+    return await res.json();
+}
+
+export async function loginForTeacher(payload) {
+    const res = await fetch('/api/login/teacher', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
     });
     return await res.json();
 }

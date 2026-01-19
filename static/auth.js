@@ -4,7 +4,7 @@ window.submitStudentLogin = submitStudentLogin;
 window.switchTab = switchTab;
 window.loginTeacher = loginTeacher;
 import { showToast } from './commonUtils.js';
-import { checkPhoneNumber, loginForStudent } from '../static/apis/jwtService.js';
+import { checkPhoneNumber, loginForStudent, loginForTeacher } from '../static/apis/jwtService.js';
 export async function checkPhone() {
     const phone = document.getElementById('s-phone').value.trim();
     if (!phone) return showToast("Vui lòng nhập số điện thoại!", "error");
@@ -36,7 +36,6 @@ export async function submitStudentLogin() {
         return;
     }
     try {
-
         const data = await loginForStudent({ phone: phone, password: password });
         console.log("Login response:", data);
         window.location.href = data.redirect;
@@ -66,26 +65,17 @@ export function switchTab(role) {
 
 // --- Logic Đăng Nhập Giáo Viên ---
 export async function loginTeacher() {
-    const u = document.getElementById('t-user').value;
-    const p = document.getElementById('t-pass').value;
+    const username = document.getElementById('t-user').value;
+    const password = document.getElementById('t-pass').value;
 
-    if (!u || !p) return showToast("Vui lòng nhập đầy đủ thông tin!", "error");
+    if (!username || !password) return showToast("Vui lòng nhập đầy đủ thông tin!", "error");
 
     try {
-        const res = await fetch('/api/login/teacher', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ u: u, p: p })
-        });
-        const data = await res.json();
-
-        if (data.status === 'success') {
-            window.location.href = data.redirect;
-        } else {
-            showToast(data.msg, "error");
-        }
+        const data = await loginForTeacher({ username: username, password: password });
+        console.log("Login response:", data);
+        window.location.href = data.redirect;
     } catch (e) {
-        console.error(e);
-        showToast("Lỗi kết nối đến server!", "error");
+        showToast("Lỗi kết nối server: " + e, "error");
+        return;
     }
 }
