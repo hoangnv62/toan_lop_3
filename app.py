@@ -254,7 +254,7 @@ def delete_class(class_id):
     cur = conn.cursor()
     # Xóa kết quả liên quan đến học sinh trong lớp
     cur.execute(
-        "DELETE FROM results WHERE student_id IN (SELECT id FROM students WHERE class_id=%s AND teacher_id=%s)",
+        "DELETE FROM student_answer WHERE user_id IN (SELECT id FROM students WHERE class_id=%s AND teacher_id=%s)",
         (class_id, uid),
     )
 
@@ -387,13 +387,13 @@ def upload_students_to_class(class_id):
         )
 
 
-@app.route("/api/students/<int:student_id>", methods=["DELETE"])
-def delete_student(student_id):
+@app.route("/api/students/<int:user_id>", methods=["DELETE"])
+def delete_student(user_id):
     uid = session.get("user_id")
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("DELETE FROM results WHERE student_id=%s", (student_id,))
-    cur.execute("DELETE FROM students WHERE id=%s AND teacher_id=%s", (student_id, uid))
+    cur.execute("DELETE FROM student_answer WHERE user_id=%s", (user_id,))
+    cur.execute("DELETE FROM students WHERE id=%s AND teacher_id=%s", (user_id, uid))
     conn.commit()
     conn.close()
     return jsonify({"status": "success"})
@@ -416,7 +416,7 @@ def manage_students():
         stds = cur.fetchall()
         # Tính điểm TB
         for s in stds:
-            cur.execute("SELECT score FROM results WHERE student_id=%s", (s["id"],))
+            cur.execute("SELECT score FROM student_answer WHERE user_id=%s", (s["id"],))
             sc = [r["score"] for r in cur.fetchall()]
             s["avg"] = round(sum(sc) / len(sc), 1) if sc else 0
         conn.close()
@@ -851,7 +851,7 @@ def get_ex_det(eid):
         q["options"] = json.loads(q["options"])
 
     # Lấy thống kê nhanh cho đề này
-    cur.execute("SELECT score FROM results WHERE exam_id=%s", (eid,))
+    cur.execute("SELECT score FROM student_answer WHERE exam_id=%s", (eid,))
     scores = [r["score"] for r in cur.fetchall()]
     stats = {
         "total_attempts": len(scores),
@@ -1162,7 +1162,8 @@ def std_calendar():
     cur = conn.cursor(dictionary=True)
     # Lấy ngày làm bài
     cur.execute(
-        "SELECT created_at, score, exam_id FROM results WHERE student_id=%s", (uid,)
+        "SELECT created_at, score, exam_id FROM student_answer WHERE user_id=%s",
+        (uid,),
     )
     done = cur.fetchall()
     events = [
@@ -1179,4 +1180,4 @@ def std_calendar():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5500)

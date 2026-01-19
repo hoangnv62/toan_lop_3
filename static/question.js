@@ -1,5 +1,6 @@
 import { currentQuestions } from './exam.js';
 import { currentSelectedLessonTitle } from './lessons.js';
+import { showToast } from './commonUtils.js';
 // Các hàm update và set (để hỗ trợ oninput và onclick)
 window.updateQuestionContent = updateQuestionContent;
 window.updateExplanation = updateExplanation;
@@ -154,13 +155,14 @@ export async function generateQuestions() {
             throw new Error("Server không trả về JSON hợp lệ");
         }
 
+        showToast("Tạo câu hỏi thành công!", "success");
         console.log("Câu hỏi tạo bởi AI:", data.data);
         currentQuestions.push(...data.data);
         renderQuestions(currentQuestions);
 
     } catch (e) {
         console.error(e);
-        alert("Lỗi tạo câu hỏi: " + e.message);
+        showToast("Lỗi tạo câu hỏi: " + e.message, "error");
     } finally {
         hideLoading();
     }

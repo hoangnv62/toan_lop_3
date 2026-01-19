@@ -1,6 +1,8 @@
 import { currentSelectedClassId } from './classes.js';
 import { getScoreColor } from './commonUtils.js';
 import { renderExam } from "./exam.js";
+import { showToast } from './commonUtils.js';
+
 window.loadStudentsByClass = loadStudentsByClass;
 window.addStudent = addStudent;
 window.deleteStudent = deleteStudent;
@@ -43,7 +45,7 @@ export function closeAddStudentModal() {
  */
 export async function addStudent() {
     if (!currentSelectedClassId) {
-        alert('Vui lòng chọn lớp trước khi thêm học sinh');
+        showToast('Vui lòng chọn lớp học trước khi thêm học sinh.', 'error');
         return;
     }
 
@@ -53,12 +55,12 @@ export async function addStudent() {
     const parentPhone = document.getElementById('new-std-phone').value.trim();
 
     if (!fullName) {
-        alert('Vui lòng nhập họ tên học sinh');
+        showToast('Vui lòng nhập họ tên học sinh', 'error');
         return;
     }
 
     if (!parentPhone) {
-        alert('Vui lòng nhập SĐT phụ huynh');
+        showToast('Vui lòng nhập SĐT phụ huynh', 'error');
         return;
     }
 
@@ -80,13 +82,14 @@ export async function addStudent() {
             throw new Error(errText || `HTTP ${res.status}`);
         }
 
-        alert('Thêm học sinh thành công!');
+        showToast('Thêm học sinh thành công!', 'success');
         closeAddStudentModal();
         await loadStudentsByClass(currentSelectedClassId);
 
     } catch (err) {
         console.error('Lỗi thêm học sinh:', err);
-        alert('Lỗi thêm học sinh: ' + err.message);
+        showToast('Lỗi thêm học sinh: ' + err.message, 'error');
+
     }
 }
 
@@ -107,7 +110,7 @@ export async function deleteStudent(classId, studentId) {
             throw new Error(errorText || `HTTP ${res.status}`);
         }
 
-        alert('Xóa học sinh thành công!');
+        showToast('Xóa học sinh thành công!', 'success');
         await loadStudentsByClass(classId);
 
         if (typeof window.loadDashboardStats === 'function') {
@@ -116,7 +119,7 @@ export async function deleteStudent(classId, studentId) {
 
     } catch (error) {
         console.error('Lỗi khi xóa học sinh:', error);
-        alert('Lỗi xóa học sinh: ' + error.message);
+        showToast('Lỗi xóa học sinh: ' + error.message, 'error');
     }
 }
 
@@ -169,7 +172,7 @@ async function uploadStudentExcel() {
     const file = fileInput.files[0];
 
     if (!file) {
-        alert("Vui lòng chọn file Excel!");
+        showToast("Vui lòng chọn file Excel!", "error");
         return;
     }
 
@@ -189,7 +192,7 @@ async function uploadStudentExcel() {
             throw new Error(result.msg || "Upload thất bại");
         }
 
-        alert(result.msg);
+        showToast(result.msg, "success");
         console.log("Upload OK:", result);
 
         // Có thể reload danh sách học sinh sau khi upload
@@ -197,7 +200,7 @@ async function uploadStudentExcel() {
 
     } catch (err) {
         console.error("Upload error:", err);
-        alert("Lỗi upload: " + err.message);
+        showToast("Lỗi upload: " + err.message, "error");
     }
 
 }
@@ -263,7 +266,7 @@ export async function loadProgressAndHistory() {
                             <div class="exam-item">
                                 <div class="exam-name">${exam.exam_name}</div>
                                 <div class="exam-meta">
-                                    <span>Điểm: <b>${exam.score}/${exam.total_questions}</b></span>
+                                    <span>Điểm: <b>${((exam.score * 10) / exam.total_questions).toFixed(1)}</b></span>
                                     <span>⏱ ${exam.time_spent}s</span>
                                 </div>
                             </div>

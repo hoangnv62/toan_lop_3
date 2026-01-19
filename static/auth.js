@@ -3,17 +3,14 @@ window.logout = logout;
 window.submitStudentLogin = submitStudentLogin;
 window.switchTab = switchTab;
 window.loginTeacher = loginTeacher;
+import { showToast } from './commonUtils.js';
+import { checkPhoneNumber, loginForStudent } from '../static/apis/jwtService.js';
 export async function checkPhone() {
     const phone = document.getElementById('s-phone').value.trim();
-    if (!phone) return alert("Vui lòng nhập số điện thoại!");
+    if (!phone) return showToast("Vui lòng nhập số điện thoại!", "error");
 
     try {
-        const res = await fetch('/api/check-student-phone', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: phone })
-        });
-        const data = await res.json();
+        const data = await checkPhoneNumber({ phone: phone });
 
         if (data.exists) {
             // SĐT đúng -> Chuyển sang bước nhập mật khẩu
@@ -23,10 +20,10 @@ export async function checkPhone() {
             document.getElementById('welcome-msg').style.display = 'block';
             setTimeout(() => document.getElementById('s-pass').focus(), 100);
         } else {
-            alert("Số điện thoại này chưa được giáo viên đăng ký!");
+            showToast("Số điện thoại này chưa được giáo viên đăng ký!", "error");
         }
     } catch (e) {
-        alert("Lỗi kết nối server: " + e);
+        showToast("Lỗi kết nối server: " + e, "error");
     }
 }
 
@@ -34,25 +31,24 @@ export async function submitStudentLogin() {
     const phone = document.getElementById('s-phone').value;
     const password = document.getElementById('s-pass').value;
 
-    if (!password) return alert("Vui lòng nhập mật khẩu!");
+    if (!password) {
+        showToast("Vui lòng nhập mật khẩu!", "error");
+        return;
+    }
+    try {
 
-    const res = await fetch('/api/login/student', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phone, password: password })
-    });
-    const data = await res.json();
-
-    if (data.status === 'success') {
+        const data = await loginForStudent({ phone: phone, password: password });
+        console.log("Login response:", data);
         window.location.href = data.redirect;
-    } else {
-        alert(data.msg);
+    } catch (e) {
+        showToast("Lỗi kết nối server: " + e, "error");
+        return;
     }
 }
 
 export function logout() {
     if (confirm("Bạn muốn đăng xuất ngay bây giờ?")) {
-        alert("Đã đăng xuất!");
+        showToast("Đã đăng xuất!", "success");
         location.href = "/";
     }
 };
@@ -73,7 +69,7 @@ export async function loginTeacher() {
     const u = document.getElementById('t-user').value;
     const p = document.getElementById('t-pass').value;
 
-    if (!u || !p) return alert("Vui lòng nhập đầy đủ thông tin!");
+    if (!u || !p) return showToast("Vui lòng nhập đầy đủ thông tin!", "error");
 
     try {
         const res = await fetch('/api/login/teacher', {
@@ -86,10 +82,10 @@ export async function loginTeacher() {
         if (data.status === 'success') {
             window.location.href = data.redirect;
         } else {
-            alert(data.msg);
+            showToast(data.msg, "error");
         }
     } catch (e) {
         console.error(e);
-        alert("Lỗi kết nối đến server!");
+        showToast("Lỗi kết nối đến server!", "error");
     }
 }

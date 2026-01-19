@@ -13,6 +13,7 @@ export let selectedAnswers = {};
 let currentExam = null;
 let timerId = null;
 let secondsPassed = 0;
+import { showToast, showScore } from './commonUtils.js';
 
 // ================= FETCH EXAM =================
 export async function fetchExam(examId) {
@@ -23,7 +24,7 @@ export async function fetchExam(examId) {
         return json.data;
     } catch (err) {
         console.error("Lỗi tải đề:", err);
-        alert("Không tải được đề thi!");
+        showToast("Lỗi tải đề: " + err.message, "warning");
     }
 }
 
@@ -48,7 +49,7 @@ export async function openExamModal(examId) {
         document.getElementById('num-questions').value = exam.questions.length;
         document.getElementById('exam-modal').classList.add('active');
     } catch (e) {
-        alert("Không thể mở đề!");
+        showToast("Lỗi mở đề: " + e.message, "warning");
     }
 }
 
@@ -61,7 +62,7 @@ export function closeExamModal() {
 // ================= SAVE QUESTIONS =================
 export async function saveQuestions() {
     if (!currentQuestions.length) {
-        alert("Chưa có câu hỏi!");
+        showToast("Chưa có câu hỏi!", "warning");
         return;
     }
 
@@ -86,7 +87,8 @@ export async function saveQuestions() {
 
     if (!res.ok) throw new Error(await res.text());
 
-    alert("Lưu thành công!");
+    showToast("Lưu thành công!", "success");
+
     closeExamModal();
     loadLessons();  // reload danh sách bài học để hiện exam mới
 }
@@ -142,7 +144,7 @@ function selectAnswer(questionId, answerId) {
 // ================= SUBMIT =================
 export async function submitExam() {
     if (!Object.keys(selectedAnswers).length) {
-        alert("Bạn chưa chọn đáp án!");
+        showToast("Chưa chọn đáp án nào!", "warning");
         return;
     }
 
@@ -159,11 +161,12 @@ export async function submitExam() {
 
     const json = await res.json();
     if (json.status !== "success") {
-        return alert("Lỗi nộp bài: " + (json.msg || "Không rõ"));
+        console.error("Lỗi nộp bài:", json);
+        showToast("Lỗi nộp bài: " + (json.msg || "Không rõ"), "warning");
+        return;
     } else {
         console.log("Kết quả:", json);
-        const score = json.score * (10 / json.total);
-        alert(`Hoàn thành! Điểm: ${score.toFixed(2)} / 10.00`);
+        showScore(json.score, json.total, null);
     }
     location.reload();
 }

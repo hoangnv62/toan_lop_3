@@ -1,5 +1,6 @@
 window.loadStatsAndHistory = loadStatsAndHistory;
 window.renderWeeklyCalendar = renderWeeklyCalendar;
+import { showToast } from './commonUtils.js';
 
 export async function loadStatsAndHistory() {
     // Lịch sử

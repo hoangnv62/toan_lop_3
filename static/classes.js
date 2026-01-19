@@ -1,5 +1,5 @@
 export let currentSelectedClassId = null;
-//import { getScoreColor } from './commonUtils.js';
+import { showToast } from "./commonUtils.js";
 window.loadClasses = loadClasses;
 window.deleteClass = deleteClass;
 window.selectClass = selectClass;
@@ -55,14 +55,15 @@ export async function deleteClass(classId) {
             credentials: 'include'
         });
         if (!res.ok) throw new Error(await res.text());
-        alert("Xóa lớp thành công!");
+        showToast("Xóa lớp thành công!", "success");
         loadClasses();
         if (currentSelectedClassId === classId) {
             document.getElementById('class-detail').style.display = 'none';
             currentSelectedClassId = null;
         }
     } catch (err) {
-        alert("Lỗi xóa lớp: " + err.message);
+        showToast("Lỗi xóa lớp: " + err.message, "error");
+        console.error("Lỗi xóa lớp:", err);
     }
 }
 
@@ -79,14 +80,14 @@ export async function createClass() {
     const className = classNameInput.value.trim();
 
     if (!className) {
-        alert('Vui lòng nhập tên lớp (ví dụ: 3A, 9 Toán, Lớp 6A1...)');
+        showToast('Vui lòng nhập tên lớp.', 'error');
         classNameInput.focus();
         return;
     }
 
     // Optional: kiểm tra định dạng tên lớp nếu bạn muốn (ví dụ: không cho ký tự đặc biệt)
     if (className.length < 2 || className.length > 50) {
-        alert('Tên lớp nên từ 2 đến 50 ký tự.');
+        showToast('Tên lớp nên từ 2 đến 50 ký tự.', 'error');
         return;
     }
 
@@ -105,14 +106,14 @@ export async function createClass() {
         const result = await response.json();
 
         if (response.ok && result.status === 'success') {
-            alert(`Tạo lớp "${className}" thành công!`);
+            showToast(`Tạo lớp "${className}" thành công!`, "success");
             classNameInput.value = '';           // xóa input sau khi tạo
             loadClasses();                       // tải lại danh sách lớp
         } else {
-            alert('Không thể tạo lớp: ' + (result.msg || 'Lỗi không xác định'));
+            showToast('Không thể tạo lớp: ' + (result.msg || 'Lỗi không xác định'), "error");
         }
     } catch (error) {
         console.error('Lỗi khi tạo lớp:', error);
-        alert('Có lỗi xảy ra khi kết nối server. Vui lòng thử lại.');
+        showToast('Có lỗi xảy ra khi kết nối server. Vui lòng thử lại.', "error");
     }
 }

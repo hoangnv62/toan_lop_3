@@ -1,5 +1,6 @@
 window.loadDashboardStats = loadDashboardStats;
 window.getAIAdvice = getAIAdvice;
+import { showToast } from './commonUtils.js';
 
 // 1. Dashboard stats + AI advice
 export async function loadDashboardStats() {

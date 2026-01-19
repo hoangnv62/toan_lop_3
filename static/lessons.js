@@ -5,6 +5,8 @@ window.createNewLesson = createNewLesson;
 window.deleteLesson = deleteLesson;
 export let currentSelectedLessonId = null;
 export let currentSelectedLessonTitle = '';
+import { showToast } from './commonUtils.js';
+
 export async function loadLessons() {
     const container = document.getElementById('lessons-container');
     if (!container) return;
@@ -89,7 +91,7 @@ export async function createNewLesson() {
     const input = document.getElementById('lesson-title-input');
     const title = input.value.trim();
     if (!title) {
-        alert("Nhập tiêu đề bài học!");
+        showToast("Tiêu đề bài học không được để trống!", "error");
         input.focus();
         return;
     }
@@ -109,11 +111,11 @@ export async function createNewLesson() {
             input.value = '';
             loadLessons();  // reload danh sách ngay
         } else {
-            alert("Lỗi: " + (result.message || "Không rõ"));
+            showToast("Lỗi tạo bài học: " + result.msg, "error");
         }
     } catch (err) {
         console.error("Lỗi tạo bài học:", err);
-        alert("Không tạo được: " + err.message);
+        showToast("Không tạo được: " + err.message, "error");
     }
 }
 
@@ -129,12 +131,12 @@ export function deleteLesson(lessonId) {
         return res.json();
     }).then(result => {
         if (result.status === 'success') {
-            alert("Xóa bài học thành công!");
+            showToast("Xóa bài học thành công!", "success");
             loadLessons();
         }
     }).catch(err => {
         console.error("Lỗi xóa bài học:", err);
-        alert("Không xóa được: " + err.message);
+        showToast("Không xóa được: " + err.message, "error");
     });
 }
 function convertToDate(input) {
