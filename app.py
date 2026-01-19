@@ -840,29 +840,6 @@ def create_exam(lesson_id):
         return {"error": str(e)}, 500
 
 
-@app.route("/api/teacher/get-exam-detail/<int:eid>")
-def get_ex_det(eid):
-    conn = get_db()
-    cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT * FROM exams WHERE id=%s", (eid,))
-    ex = cur.fetchone()
-    cur.execute("SELECT * FROM questions WHERE exam_id=%s", (eid,))
-    qs = cur.fetchall()
-    for q in qs:
-        q["options"] = json.loads(q["options"])
-
-    # Lấy thống kê nhanh cho đề này
-    cur.execute("SELECT score FROM student_answer WHERE exam_id=%s", (eid,))
-    scores = [r["score"] for r in cur.fetchall()]
-    stats = {
-        "total_attempts": len(scores),
-        "avg_score": round(sum(scores) / len(scores), 1) if scores else 0,
-        "high_score": max(scores) if scores else 0,
-    }
-    conn.close()
-    return jsonify({"status": "success", "exam": ex, "questions": qs, "stats": stats})
-
-
 # lấy danh sách đề thi theo bài học
 @app.route("/api/lesson/<int:lesson_id>", methods=["GET"])
 def get_exams(lesson_id):
@@ -1006,19 +983,48 @@ def std_data():
     uid = session.get("user_id")
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+
+    # 1. Lấy teacher của sinh viên
     cur.execute("SELECT teacher_id FROM students WHERE id=%s", (uid,))
     s = cur.fetchone()
     if not s:
+        conn.close()
         return jsonify({"lessons": []})
-    # Lấy bài học
+
+    # 2. Lấy lesson
     cur.execute(
-        "SELECT * FROM lessons WHERE teacher_id=%s ORDER BY created_at DESC",
+        """
+        SELECT * 
+        FROM lessons 
+        WHERE teacher_id=%s 
+        ORDER BY created_at DESC
+    """,
         (s["teacher_id"],),
     )
     ls = cur.fetchall()
+
+    # 3. Lấy exam + trạng thái làm bài
     for l in ls:
-        cur.execute("SELECT * FROM exams WHERE lesson_id=%s", (l["id"],))
+        cur.execute(
+            """
+            SELECT 
+                e.*,
+                CASE 
+                    WHEN sa.id IS NULL THEN 0 
+                    ELSE 1 
+                END AS done
+            FROM exams e
+            LEFT JOIN student_answer sa 
+                ON sa.exam_id = e.id 
+               AND sa.user_id = %s
+            WHERE e.lesson_id = %s
+            GROUP BY e.id
+        """,
+            (uid, l["id"]),
+        )
+
         l["exams"] = cur.fetchall()
+
     conn.close()
     return jsonify({"lessons": ls, "info": session.get("name")})
 
@@ -1154,30 +1160,6 @@ def std_hist():
         )
 
     return jsonify(list(lessons.values()))
-
-
-@app.route("/api/student/calendar-events", methods=["GET"])
-def std_calendar():
-    uid = session.get("user_id")
-    conn = get_db()
-    cur = conn.cursor(dictionary=True)
-    # Lấy ngày làm bài
-    cur.execute(
-        "SELECT created_at, score, exam_id FROM student_answer WHERE user_id=%s",
-        (uid,),
-    )
-    done = cur.fetchall()
-    events = [
-        {
-            "date": x["created_at"].strftime("%Y-%m-%d"),
-            "type": "done",
-            "score": x["score"],
-            "eid": x["exam_id"],
-        }
-        for x in done
-    ]
-    conn.close()
-    return jsonify(events)
 
 
 if __name__ == "__main__":

@@ -150,7 +150,9 @@ export async function generateQuestions() {
 
         let data;
         try {
-            data = JSON.parse(text);     // 👈 parse thủ công
+            data = JSON.parse(text);
+            console.log("Parsed JSON data:", data);
+            // 👈 parse thủ công
         } catch {
             throw new Error("Server không trả về JSON hợp lệ");
         }

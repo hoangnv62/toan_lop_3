@@ -1,7 +1,9 @@
 window.loadStatsAndHistory = loadStatsAndHistory;
 window.renderWeeklyCalendar = renderWeeklyCalendar;
-import { showToast } from './commonUtils.js';
+window.selectDay = selectDay;
 
+
+let selectedDay = null;
 export async function loadStatsAndHistory() {
     // Lịch sử
     const resH = await fetch('/api/student/history');
@@ -38,24 +40,59 @@ export async function loadStatsAndHistory() {
             },
             options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 10 } } }
         });
-        renderWeeklyCalendar(stats.dates);
+        //renderWeeklyCalendar(stats.dates);
     }
 }
 
-export function renderWeeklyCalendar(dates) {
+export function renderWeeklyCalendar() {
     const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
     const container = document.getElementById('week-calendar');
     let html = '';
-    for (let i = 1; i <= 7; i++) {
-        let idx = i === 7 ? 0 : i; // CN là 0
-        // Kiểm tra xem có ngày nào trong mảng dates trùng thứ trong tuần này không
-        // (Demo đơn giản: check thứ)
-        const isActive = dates.some(dt => new Date(dt).getDay() === idx);
+
+    const today = new Date();
+    const currentDay = today.getDay(); // 0 = CN
+
+    // Tìm ngày CN đầu tuần
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - currentDay);
+
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(sunday);
+        date.setDate(sunday.getDate() + i);
+
+        const formatted = formatDate(date);
+        const isToday = formatted === formatDate(today);
+
         html += `
-                <div class="day-box ${isActive ? 'active' : ''}">
-                    <div class="day-name">${days[idx]}</div>
-                    <div class="day-status">${isActive ? '⭐' : '-'}</div>
-                </div>`;
+            <div class="day-box ${isToday ? 'active' : ''}"
+                 onclick="selectDay('${formatted}')">
+                <div class="day-name">${days[date.getDay()]}</div>
+            </div>`;
     }
+
     container.innerHTML = html;
+}
+export function selectDay(dateStr) {
+    selectedDay = dateStr;
+
+    // reset active
+    document.querySelectorAll('.day-box').forEach(b => b.classList.remove('active'));
+
+    // active ô được chọn
+    event.currentTarget.classList.add('active');
+
+    console.log("Selected day:", selectedDay);
+
+    window.dispatchEvent(new CustomEvent("dayChanged",
+        {
+            detail: {
+                date: selectedDay
+            }
+        }));
+}
+function formatDate(date) {
+    const d = date.getDate().toString().padStart(2, '0');
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const y = date.getFullYear();
+    return `${d}/${m}/${y}`;
 }

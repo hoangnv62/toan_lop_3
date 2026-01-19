@@ -166,7 +166,10 @@ export async function submitExam() {
         return;
     } else {
         console.log("Kết quả:", json);
-        showScore(json.score, json.total, null);
+        showToast("Nộp bài thành công!", "success");
+        setTimeout(() => {
+            showScore(json.total, json.score, null);
+        }, 50000);
     }
     location.reload();
 }

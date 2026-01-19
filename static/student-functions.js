@@ -1,6 +1,5 @@
 import { currentSelectedClassId } from './classes.js';
 import { getScoreColor } from './commonUtils.js';
-import { renderExam } from "./exam.js";
 import { showToast } from './commonUtils.js';
 
 window.loadStudentsByClass = loadStudentsByClass;
@@ -211,32 +210,45 @@ export async function loadStudentProfileAndLessons() {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         console.log("Student data loaded:", data);
-        // Update welcome message
-        const name = data.info?.name || '';
+
+        // Welcome
+        const name = data.info || '';
         document.getElementById('welcome-msg').textContent = `Chào bé ${name}! 👋`;
 
-        // Render lessons
         const lessonsContainer = document.getElementById('lessons-container');
+
         if (!data.lessons?.length) {
-            lessonsContainer.innerHTML = '<p style="text-align:center; color:#777; grid-column: 1 / -1;">Chưa có bài học nào.</p>';
-        } else {
-            lessonsContainer.innerHTML = data.lessons.map(lesson => `
-                    <div class="lesson-item">
-                        <div class="lesson-title">${lesson.title}</div>
-                        <div class="lesson-content">
-                            ${lesson.exams?.map(exam => `
-                                <button class="test-btn" onclick="renderExam(${exam.id})">
-                                    ${exam.name}
-                                </button>
-                            `).join('') || '<small style="color:#aaa">Chưa có bài tập</small>'}
-                        </div>
-                    </div>
-                `).join('');
+            lessonsContainer.innerHTML =
+                '<p style="text-align:center; color:#777; grid-column: 1 / -1;">Chưa có bài học nào.</p>';
+            return;
         }
+
+        lessonsContainer.innerHTML = data.lessons.map(lesson => `
+            <div class="lesson-item">
+                <div class="lesson-title">${lesson.title}</div>
+                <div class="lesson-content">
+                    ${lesson.exams?.length
+                ? lesson.exams.map(exam => `
+                                <button 
+                                    class="test-btn ${exam.done ? 'done' : ''}"
+                                    ${exam.done ? 'disabled' : ''}
+                                    onclick="renderExam(${exam.id})">
+                                    
+                                    ${exam.name}
+                                    ${exam.done ? '<span class="done-text">✔ Đã làm</span>' : ''}
+                                </button>
+                            `).join('')
+                : '<small style="color:#aaa">Chưa có bài tập</small>'
+            }
+                </div>
+            </div>
+        `).join('');
+
     } catch (err) {
         console.error("Không tải được dữ liệu học sinh:", err);
     }
 }
+
 
 export async function loadProgressAndHistory() {
     const container = document.getElementById("history-list");
@@ -284,16 +296,6 @@ export async function loadProgressAndHistory() {
     }
 }
 
-
-export function renderWeekCalendar() {
-    const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-    const todayIndex = new Date().getDay();
-    const container = document.getElementById('week-calendar');
-
-    container.innerHTML = days.map((day, i) =>
-        `<div class="day ${i === todayIndex ? 'today' : ''}">${day}</div>`
-    ).join('');
-}
 let progressChart = null;
 
 function renderProgressChart(groupedHistory) {

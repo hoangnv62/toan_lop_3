@@ -59,6 +59,7 @@ export function showScore(total, correct, message = null) {
     overlay.onclick = (e) => {
         if (e.target === overlay) closeScore();
     };
+
 }
 
 function closeScore() {
