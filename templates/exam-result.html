@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Kết quả bài thi</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/exam-result.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <h2 id="exam-title"></h2>
+      <p class="meta" id="exam-meta"></p>
+      <div id="question-list"></div>
+    </div>
+
+    <script
+      type="module"
+      src="{{ url_for('static', filename='exam/index.js') }}"
+    ></script>
+  </body>
+</html>

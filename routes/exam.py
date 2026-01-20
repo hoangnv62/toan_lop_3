@@ -306,3 +306,86 @@ def get_exams(lesson_id):
     exams = cur.fetchall()
     conn.close()
     return jsonify(exams)
+
+
+@exam_bp.route("/api/student/exam-result/<int:exam_id>", methods=["GET"])
+def get_exam_result(exam_id):
+    uid = session.get("user_id")
+
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    # 1. Lấy info chung của bài thi
+    cur.execute(
+        """
+        SELECT 
+            e.name       AS exam_name,
+            l.title      AS lesson_name,
+            MAX(sa.time_spent)    AS time_spent,
+            MAX(sa.date_created)  AS submitted_at
+        FROM exams e
+        JOIN lessons l ON e.lesson_id = l.id
+        LEFT JOIN student_answer sa 
+            ON sa.exam_id = e.id AND sa.user_id = %s
+        WHERE e.id = %s
+        GROUP BY e.id
+    """,
+        (uid, exam_id),
+    )
+    exam_info = cur.fetchone()
+
+    # 2. Lấy chi tiết câu hỏi + đáp án
+    cur.execute(
+        """
+        SELECT 
+            q.id          AS question_id,
+            q.content     AS question_content,
+            q.explanation AS question_explanation,
+            a.id          AS answer_id,
+            a.content     AS answer_content,
+            a.isCorrected AS is_correct,
+            sa.answer_id  AS student_answer_id
+        FROM questions q
+        JOIN answers a ON a.questionId = q.id
+        LEFT JOIN student_answer sa 
+               ON sa.answer_id = a.id 
+              AND sa.user_id = %s
+              AND sa.exam_id = %s
+        WHERE q.exam_id = %s
+        ORDER BY q.id, a.id
+    """,
+        (uid, exam_id, exam_id),
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    # 3. Build JSON
+    question_map = {}
+    for r in rows:
+        qid = r["question_id"]
+        if qid not in question_map:
+            question_map[qid] = {
+                "id": qid,
+                "content": r["question_content"],
+                "explanation": r["question_explanation"],
+                "answers": [],
+            }
+
+        question_map[qid]["answers"].append(
+            {
+                "id": r["answer_id"],
+                "content": r["answer_content"],
+                "is_correct": bool(r["is_correct"]),
+                "is_selected": r["student_answer_id"] == r["answer_id"],
+            }
+        )
+
+    return jsonify(
+        {
+            "exam_name": exam_info["exam_name"],
+            "lesson_name": exam_info["lesson_name"],
+            "time_spent": exam_info["time_spent"] or 0,
+            "submitted_at": exam_info["submitted_at"],
+            "questions": list(question_map.values()),
+        }
+    )

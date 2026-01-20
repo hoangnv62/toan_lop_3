@@ -489,7 +489,7 @@ body {
 .test-btn.done {
   background: #e5e7eb;
   color: #777;
-  cursor: not-allowed;
+  cursor: pointer;
 }
 
 .test-btn.done:hover {

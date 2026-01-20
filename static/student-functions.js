@@ -238,8 +238,8 @@ export function loadStudentProfileAndLessons(data) {
                         : 0;
 
                     return `
-                    <div class="test-result done">
-                        <button class="test-btn done" disabled>
+                    <div class="test-result done" onclick="goToResult(${exam.id})">
+                        <button class="test-btn done">
                             ${exam.name}
                             <span class="done-text">✔ Đã làm</span>
                         </button>
@@ -264,6 +264,11 @@ export function loadStudentProfileAndLessons(data) {
             </div>
         </div>
     `).join('');
+}
+
+window.goToResult = goToResult;
+function goToResult(examId) {
+    window.location.href = `exam-result?examId=${examId}`;
 }
 
 let progressChart = null;

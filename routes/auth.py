@@ -28,6 +28,11 @@ def student_page():
     )
 
 
+@auth_bp.route("/exam-result")
+def exam_result_page():
+    return render_template("exam-result.html")
+
+
 # --- API AUTH ---
 @auth_bp.route("/api/login/teacher", methods=["POST"])
 def login_teacher():
