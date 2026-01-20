@@ -1,0 +1,62 @@
+/* Reset cơ bản */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar {
+  width: 240px;
+  height: 100vh;
+  background-color: #1e293b; /* xanh đậm */
+  color: #fff;
+  padding: 20px;
+  position: fixed;
+  top: 0;
+  left: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar h2 {
+  font-size: 18px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Nút menu */
+.sidebar-btn {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #e5e7eb;
+  font-size: 15px;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.sidebar-btn:hover {
+  background-color: #334155;
+  color: #fff;
+}
+
+/* Menu đang active */
+.sidebar-btn.active {
+  background-color: #2563eb;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Logout tách xuống dưới */
+.sidebar-btn.logout {
+  margin-top: auto;
+  background-color: #991b1b;
+}
+
+.sidebar-btn.logout:hover {
+  background-color: #dc2626;
+}

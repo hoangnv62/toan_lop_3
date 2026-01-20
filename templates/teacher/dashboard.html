@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teacher Dashboard</title>
+
+    <link rel="stylesheet" href="/static/css/common.css" />
+    <link rel="stylesheet" href="/static/css/dashboard.css" />
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="main-container">
+      <div id="sidebar-container">{% include "sidebar.html" %}</div>
+
+      <div class="main-content">
+        <section id="dashboard" class="section active">
+          <h1>Báo cáo tổng quan lớp học</h1>
+
+          <!-- SUMMARY -->
+          <div class="summary-cards">
+            <div class="card">
+              <h3>👨‍🎓 Học sinh</h3>
+              <p id="totalStudents">0</p>
+            </div>
+            <div class="card">
+              <h3>🏫 Lớp</h3>
+              <p id="totalClasses">0</p>
+            </div>
+            <div class="card">
+              <h3>📚 Bài học</h3>
+              <p id="totalLessons">0</p>
+            </div>
+            <div class="card">
+              <h3>📝 Đề thi</h3>
+              <p id="totalExams">0</p>
+            </div>
+          </div>
+
+          <!-- CHARTS -->
+          <div class="charts">
+            <div class="chart-card">
+              <h3>📊 Phân bố điểm</h3>
+              <canvas id="scoreChart"></canvas>
+            </div>
+
+            <div class="chart-card">
+              <h3>✅ Tỉ lệ đạt</h3>
+              <canvas id="passRateChart"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- AI -->
+        <div class="card ai-advisor">
+          <h3>🤖 AI Advisor - Lời khuyên cải thiện</h3>
+          <p id="ai-advice">Đang phân tích dữ liệu lớp học...</p>
+          <button class="btn btn-primary" id="reloadAI">Phân tích lại</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/static/dashboard.js"></script>
+  </body>
+</html>

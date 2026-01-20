@@ -10,13 +10,38 @@ def index():
     return render_template("login.html")
 
 
-@auth_bp.route("/teacher")
-def teacher_page():
+@auth_bp.route("/dashboard")
+def dashboard_page():
     return (
-        render_template("teacher.html")
+        render_template("teacher/dashboard.html")
         if session.get("role") == "teacher"
         else render_template("login.html")
     )
+
+
+@auth_bp.route("/sidebar")
+def sidebar():
+    return render_template("sidebar.html")
+
+
+@auth_bp.route("/manage-class")
+def manage_class_page():
+    return render_template("teacher/class/class_page.html")
+
+
+@auth_bp.route("/class-detail/<int:class_id>")
+def render_class_detail(class_id):
+    return render_template("teacher/class/class_detal.html", classId=class_id)
+
+
+@auth_bp.route("/manage-lesson")
+def manage_lesson_page():
+    return render_template("teacher/lesson/lesson_page.html")
+
+
+@auth_bp.route("/lesson-detail/<int:lesson_id>")
+def render_lesson_detail(lesson_id):
+    return render_template("teacher/lesson/lesson_detail.html", lessonId=lesson_id)
 
 
 @auth_bp.route("/student")
@@ -47,8 +72,8 @@ def login_teacher():
     conn.close()
     if u:
         session.update({"user_id": u["id"], "role": "teacher", "name": u["full_name"]})
-        return jsonify({"status": "success", "redirect": "/teacher"})
-    return jsonify({"status": "fail", "msg": "Sai thông tin"})
+        return jsonify({"status": "success", "redirect": "/dashboard"})
+    return jsonify({"status": "fail", "redirect": "/"})
 
 
 @auth_bp.route("/api/check-student-phone", methods=["POST"])

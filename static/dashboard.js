@@ -1,77 +1,171 @@
-window.loadDashboardStats = loadDashboardStats;
-window.getAIAdvice = getAIAdvice;
-import { showToast } from './commonUtils.js';
+// ===============================
+// DASHBOARD STATE
+// ===============================
+let dashboardData = null;
 
-// 1. Dashboard stats + AI advice
-export async function loadDashboardStats() {
+// ===============================
+// INIT
+// ===============================
+document.addEventListener("DOMContentLoaded", () => {
+    loadDashboard();
+});
+
+// ===============================
+// LOAD DASHBOARD DATA
+// ===============================
+async function loadDashboard() {
     try {
-        const res = await fetch('/api/teacher/stats/overall', { credentials: 'include' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const stats = await res.json();
-
-        document.getElementById('total-students').textContent = stats.student_count || 0;
-        document.getElementById('total-exams').textContent = stats.total_exams_taken || 0;
-        document.getElementById('class-avg').textContent = (stats.class_avg || 0).toFixed(1);
-
-        const ctx = document.getElementById('distChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Giỏi (9-10)', 'Khá (7-8.9)', 'Trung bình (5-6.9)', 'Yếu (<5)'],
-                datasets: [{
-                    data: stats.distribution || [0, 0, 0, 0],
-                    backgroundColor: ['#48bb78', '#ecc94b', '#ed8936', '#f56565'],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { position: 'bottom' } }
-            }
+        const res = await fetch("/api/teacher/dashboard", {
+            credentials: "include",
         });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-        await getAIAdvice();
+        dashboardData = await res.json();
+
+        renderSummary(dashboardData.summary);
+        renderScoreChart(dashboardData.scoreDistribution);
+        renderPassRateChart(dashboardData.passRate);
+
+        getAIAdvice();
     } catch (err) {
-        console.error("Lỗi tải dashboard:", err);
-        document.getElementById('ai-advice').textContent = "Không tải được dữ liệu.";
+        console.error("Dashboard error:", err);
     }
 }
 
+// ===============================
+// SUMMARY CARDS
+// ===============================
+function renderSummary(summary) {
+    document.getElementById("totalStudents").textContent =
+        summary.totalStudents ?? 0;
+    document.getElementById("totalClasses").textContent =
+        summary.totalClasses ?? 0;
+    document.getElementById("totalLessons").textContent =
+        summary.totalLessons ?? 0;
+    document.getElementById("totalExams").textContent =
+        summary.totalExams ?? 0;
+}
+
+// ===============================
+// SCORE DISTRIBUTION CHART
+// ===============================
+function renderScoreChart(dist) {
+    const ctx = document.getElementById("scoreChart");
+    if (!ctx) return;
+
+    new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: Object.keys(dist),
+            datasets: [
+                {
+                    label: "Số học sinh",
+                    data: Object.values(dist),
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+            },
+        },
+    });
+}
+
+// ===============================
+// PASS RATE CHART
+// ===============================
+function renderPassRateChart(rate) {
+    const ctx = document.getElementById("passRateChart");
+    if (!ctx) return;
+
+    new Chart(ctx, {
+        type: "doughnut",
+        data: {
+            labels: ["Đạt", "Không đạt"],
+            datasets: [
+                {
+                    data: [rate.pass ?? 0, rate.fail ?? 0],
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+        },
+    });
+}
+
+// ===============================
+// AI ADVICE
+// ===============================
 export async function getAIAdvice() {
-    const avg = parseFloat(document.getElementById('class-avg').textContent) || 0;
-    const total = parseInt(document.getElementById('total-exams').textContent) || 0;
+    if (!dashboardData) return;
+
+    const dist = dashboardData.scoreDistribution;
+    const totalStudents =
+        (dashboardData.passRate?.pass ?? 0) +
+        (dashboardData.passRate?.fail ?? 0);
+
+    // Ước lượng điểm trung bình từ phân bố
+    const avg =
+        (
+            (dist["0-4"] ?? 0) * 2 +
+            (dist["4-6"] ?? 0) * 5 +
+            (dist["6-8"] ?? 0) * 7 +
+            (dist["8-10"] ?? 0) * 9
+        ) / Math.max(totalStudents, 1);
 
     try {
-        const res = await fetch('/api/teacher/get-advice', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ avg, total, dist: [] })
+        const res = await fetch("/api/teacher/get-advice", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+                avg: Number(avg.toFixed(2)),
+                totalStudents,
+                dist,
+            }),
         });
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();
-        const adviceEl = document.getElementById('ai-advice');
-        let content = data.advice || "Không có lời khuyên lúc này.";
-
-        if (typeof content === 'string') {
-            content = content.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
-            try { content = JSON.parse(content); } catch { }
-        }
-
-        if (Array.isArray(content) && content.length > 0) {
-            adviceEl.innerHTML = content.map(item => `
-                <div style="margin-bottom:1.2rem; padding:1rem; background:rgba(99,102,241,0.05); border-radius:0.8rem;">
-                    <strong style="color:#4c51bf;">${item.title || 'Lời khuyên'}</strong><br>
-                    <p style="margin-top:0.5rem; color:#4a5568;">${item.detail || item}</p>
-                </div>
-            `).join('');
-        } else {
-            adviceEl.textContent = typeof content === 'string' ? content : "Không có lời khuyên.";
-        }
+        renderAIAdvice(data.advice);
     } catch (err) {
-        console.error("Lỗi AI advice:", err);
-        document.getElementById('ai-advice').textContent = "Hãy khuyến khích học sinh làm bài đều hơn nhé!";
+        console.error("AI advice error:", err);
+        document.getElementById("ai-advice").textContent =
+            "⚠️ Không thể phân tích lúc này. Vui lòng thử lại.";
     }
 }
+
+// ===============================
+// RENDER AI ADVICE
+// ===============================
+function renderAIAdvice(content) {
+    const adviceEl = document.getElementById("ai-advice");
+    if (!adviceEl) return;
+
+    if (!content || !Array.isArray(content)) {
+        adviceEl.textContent = "Không có lời khuyên.";
+        return;
+    }
+
+    adviceEl.innerHTML = content
+        .map(
+            (item) => `
+      <div class="ai-item">
+        <strong>${item.title || "Lời khuyên"}</strong>
+        <p>${item.detail || ""}</p>
+      </div>
+    `
+        )
+        .join("");
+}
+
+// ===============================
+// RELOAD AI BUTTON
+// ===============================
+document
+    .getElementById("reloadAI")
+    ?.addEventListener("click", getAIAdvice);
