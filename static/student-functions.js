@@ -2,104 +2,95 @@ import { currentSelectedClassId } from './classes.js';
 import { getScoreColor } from './commonUtils.js';
 import { showToast } from './commonUtils.js';
 import { fetchStudent } from './apis/studentService.js';
-window.loadStudentsByClass = loadStudentsByClass;
 window.addStudent = addStudent;
 window.deleteStudent = deleteStudent;
 window.showAddStudentModal = showAddStudentModal;
 window.closeAddStudentModal = closeAddStudentModal;
 window.uploadStudentExcel = uploadStudentExcel;
-/**
- * Mở modal thêm học sinh
- */
-export function showAddStudentModal() {
-    const modal = document.getElementById('add-student-modal');
-    if (modal) {
-        console.log('Opening modal...'); // Debug: Kiểm tra xem function có chạy không
-        modal.classList.add('active');
-    } else {
-        console.error('Modal not found!'); // Error nếu không tìm thấy modal
-    }
-}
+document.getElementById("btn-add-student")
+    ?.addEventListener("click", addStudent);
 
-/**
- * Đóng modal thêm học sinh
- */
-export function closeAddStudentModal() {
-    const modal = document.getElementById('add-student-modal');
-    if (modal) {
-        console.log('Closing modal...'); // Debug
-        modal.classList.remove('active');
-    }
+document.getElementById("btn-upload-students")
+    ?.addEventListener("click", uploadStudentExcel);
 
-    document.getElementById('new-std-name').value = '';
-    document.getElementById('new-std-dob').value = '';
-    document.getElementById('new-std-parent').value = '';
-    document.getElementById('new-std-phone').value = '';
-}
+
 
 /**
  * Thêm học sinh (HTML gọi addStudent())
  */
 export async function addStudent() {
-    if (!currentSelectedClassId) {
-        showToast('Vui lòng chọn lớp học trước khi thêm học sinh.', 'error');
-        return;
-    }
+    const fullName = document
+        .getElementById("student-name-input")
+        .value.trim();
 
-    const fullName = document.getElementById('new-std-name').value.trim();
-    const dob = document.getElementById('new-std-dob').value;
-    const parentName = document.getElementById('new-std-parent').value.trim();
-    const parentPhone = document.getElementById('new-std-phone').value.trim();
+    const dob = document.getElementById("student-dob-input").value;
+    const parentName = document
+        .getElementById("student-parent-input")
+        .value.trim();
+
+    const parentPhone = document
+        .getElementById("student-phone-input")
+        .value.trim();
 
     if (!fullName) {
-        showToast('Vui lòng nhập họ tên học sinh', 'error');
+        showToast("Vui lòng nhập họ tên học sinh", "error");
         return;
     }
 
     if (!parentPhone) {
-        showToast('Vui lòng nhập SĐT phụ huynh', 'error');
+        showToast("Vui lòng nhập SĐT phụ huynh", "error");
         return;
     }
 
     try {
-        const res = await fetch(`/api/classes/${currentSelectedClassId}/students`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-                full_name: fullName,
-                dob,
-                parent_name: parentName,
-                parent_phone: parentPhone
-            })
-        });
+        const res = await fetch(
+            `/api/classes/${classId}/students`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                    full_name: fullName,
+                    dob,
+                    parent_name: parentName,
+                    parent_phone: parentPhone
+                })
+            }
+        );
 
         if (!res.ok) {
             const errText = await res.text();
             throw new Error(errText || `HTTP ${res.status}`);
         }
 
-        showToast('Thêm học sinh thành công!', 'success');
-        closeAddStudentModal();
-        await loadStudentsByClass(currentSelectedClassId);
+        showToast("Thêm học sinh thành công!", "success");
+
+        // reset input
+        document.getElementById("student-name-input").value = "";
+        document.getElementById("student-dob-input").value = "";
+        document.getElementById("student-parent-input").value = "";
+        document.getElementById("student-phone-input").value = "";
+
+        // reload list
+        loadStudentsByClass();
 
     } catch (err) {
-        console.error('Lỗi thêm học sinh:', err);
-        showToast('Lỗi thêm học sinh: ' + err.message, 'error');
-
+        console.error("Lỗi thêm học sinh:", err);
+        showToast("Lỗi thêm học sinh: " + err.message, "error");
     }
 }
+
 
 /**
  * Xóa học sinh
  */
-export async function deleteStudent(classId, studentId) {
-    if (!confirm('Bạn có chắc muốn xóa học sinh này không?')) return;
+export async function deleteStudent(studentId) {
+    if (!confirm("Bạn có chắc muốn xóa học sinh này không?")) return;
 
     try {
         const res = await fetch(`/api/students/${studentId}`, {
-            method: 'DELETE',
-            credentials: 'include'
+            method: "DELETE",
+            credentials: "include"
         });
 
         if (!res.ok) {
@@ -107,16 +98,49 @@ export async function deleteStudent(classId, studentId) {
             throw new Error(errorText || `HTTP ${res.status}`);
         }
 
-        showToast('Xóa học sinh thành công!', 'success');
-        await loadStudentsByClass(classId);
-
-        if (typeof window.loadDashboardStats === 'function') {
-            window.loadDashboardStats();
-        }
+        showToast("Xóa học sinh thành công!", "success");
+        loadStudentsByClass(classId);
 
     } catch (error) {
-        console.error('Lỗi khi xóa học sinh:', error);
-        showToast('Lỗi xóa học sinh: ' + error.message, 'error');
+        console.error("Lỗi khi xóa học sinh:", error);
+        showToast("Lỗi xóa học sinh: " + error.message, "error");
+    }
+}
+
+export async function uploadStudentExcel() {
+    const fileInput = document.getElementById("student-file");
+    const file = fileInput.files[0];
+
+    if (!file) {
+        showToast("Vui lòng chọn file Excel!", "error");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const res = await fetch(
+            `/api/classes/${classId}/upload-students`,
+            {
+                method: "POST",
+                body: formData,
+                credentials: "include"
+            }
+        );
+
+        const result = await res.json();
+
+        if (!res.ok || result.status === "fail") {
+            throw new Error(result.msg || "Upload thất bại");
+        }
+
+        showToast(result.msg || "Upload thành công", "success");
+        loadStudentsByClass(classId);
+
+    } catch (err) {
+        console.error("Upload error:", err);
+        showToast("Lỗi upload: " + err.message, "error");
     }
 }
 
@@ -163,43 +187,6 @@ export async function loadStudentsByClass(classId) {
         console.error('Lỗi load học sinh:', err);
         tbody.innerHTML = `<tr><td colspan="5" style="color:#ef4444;text-align:center;padding:2rem;">Lỗi: ${err.message}</td></tr>`;
     }
-}
-async function uploadStudentExcel() {
-    const fileInput = document.getElementById("excel-upload");
-    const file = fileInput.files[0];
-
-    if (!file) {
-        showToast("Vui lòng chọn file Excel!", "error");
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-        const res = await fetch(`/api/classes/${currentSelectedClassId}/upload-students`, {
-            method: "POST",
-            body: formData,
-            credentials: "include"   // để gửi session cookie
-        });
-
-        const result = await res.json();
-
-        if (!res.ok || result.status === "fail") {
-            throw new Error(result.msg || "Upload thất bại");
-        }
-
-        showToast(result.msg, "success");
-        console.log("Upload OK:", result);
-
-        // Có thể reload danh sách học sinh sau khi upload
-        loadStudentsByClass(currentSelectedClassId);
-
-    } catch (err) {
-        console.error("Upload error:", err);
-        showToast("Lỗi upload: " + err.message, "error");
-    }
-
 }
 
 export async function renderUserProfile(dateFrom, dateTo) {

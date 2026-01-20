@@ -1,0 +1,79 @@
+.page-title {
+  margin-bottom: 1.5rem;
+}
+
+.add-class-box {
+  display: flex;
+  gap: 0.8rem;
+  margin-bottom: 2rem;
+}
+
+.add-class-box input {
+  flex: 1;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.6rem;
+  border: 1px solid #cbd5e1;
+}
+
+.add-class-box button {
+  padding: 0.6rem 1rem;
+  border-radius: 0.6rem;
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+}
+
+.class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.2rem;
+}
+
+.class-card {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1.2rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+}
+
+.class-card.good {
+  border-left: 6px solid #22c55e;
+}
+.class-card.warning {
+  border-left: 6px solid #f59e0b;
+}
+.class-card.bad {
+  border-left: 6px solid #ef4444;
+}
+
+.class-actions {
+  margin-top: 1rem;
+  text-align: left;
+}
+
+.btn-danger,
+.btn-navigate {
+  color: white; /* Chữ trắng để nổi bật */
+  border: none; /* Không viền */
+  padding: 8px 16px; /* Khoảng cách bên trong */
+  border-radius: 4px; /* Bo góc */
+  cursor: pointer; /* Con trỏ tay khi hover */
+  font-size: 14px; /* Kích thước chữ */
+  transition: background-color 0.3s; /* Hiệu ứng mượt */
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  background-color: #ef1444;
+}
+.btn-danger {
+  background-color: #ef4444;
+}
+.btn-navigate {
+  background-color: #007bff; /* Màu nền xanh dương */
+}
+
+.btn-navigate:hover {
+  background-color: #0056b3; /* Màu tối hơn khi hover */
+}

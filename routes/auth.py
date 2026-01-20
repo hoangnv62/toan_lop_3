@@ -31,7 +31,7 @@ def manage_class_page():
 
 @auth_bp.route("/class-detail/<int:class_id>")
 def render_class_detail(class_id):
-    return render_template("teacher/class/class_detal.html", classId=class_id)
+    return render_template("teacher/class/class_detail.html", classId=class_id)
 
 
 @auth_bp.route("/manage-lesson")

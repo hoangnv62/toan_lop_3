@@ -3,15 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <title>Quản lý lớp học</title>
     <link rel="stylesheet" href="/static/css/common.css" />
+    <link rel="stylesheet" href="/static/css/class-page.css" />
   </head>
   <body>
     <div class="main-container">
       <div id="sidebar-container">
         <div id="sidebar-container">{% include "sidebar.html" %}</div>
       </div>
-      <div class="main-content">class page</div>
+      <div class="main-content">
+        <h1 class="page-title">📚 Quản lý lớp học</h1>
+        <div class="add-class-box">
+          <input
+            type="text"
+            id="new-class-name"
+            placeholder="Nhập tên lớp học..."
+          />
+          <button id="btn-add-class" onclick="createClass()">
+            ➕ Thêm lớp
+          </button>
+        </div>
+
+        <div id="class-list" class="class-grid">
+          <!-- JS render -->
+        </div>
+      </div>
     </div>
+    <div id="toast-container"></div>
   </body>
 </html>
+<script type="module" src="/static/classes.js"></script>
