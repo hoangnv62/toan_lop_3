@@ -1,15 +1,13 @@
 import { currentSelectedClassId } from './classes.js';
 import { getScoreColor } from './commonUtils.js';
 import { showToast } from './commonUtils.js';
-
+import { fetchStudent } from './apis/studentService.js';
 window.loadStudentsByClass = loadStudentsByClass;
 window.addStudent = addStudent;
 window.deleteStudent = deleteStudent;
 window.showAddStudentModal = showAddStudentModal;
 window.closeAddStudentModal = closeAddStudentModal;
 window.uploadStudentExcel = uploadStudentExcel;
-window.loadStudentProfileAndLessons = loadStudentProfileAndLessons;
-window.loadProgressAndHistory = loadProgressAndHistory;
 /**
  * Mở modal thêm học sinh
  */
@@ -204,124 +202,100 @@ async function uploadStudentExcel() {
 
 }
 
-export async function loadStudentProfileAndLessons() {
+export async function renderUserProfile(dateFrom, dateTo) {
     try {
-        const response = await fetch('/api/student/data');
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        console.log("Student data loaded:", data);
-
-        // Welcome
-        const name = data.info || '';
-        document.getElementById('welcome-msg').textContent = `Chào bé ${name}! 👋`;
-
-        const lessonsContainer = document.getElementById('lessons-container');
-
-        if (!data.lessons?.length) {
-            lessonsContainer.innerHTML =
-                '<p style="text-align:center; color:#777; grid-column: 1 / -1;">Chưa có bài học nào.</p>';
-            return;
-        }
-
-        lessonsContainer.innerHTML = data.lessons.map(lesson => `
-            <div class="lesson-item">
-                <div class="lesson-title">${lesson.title}</div>
-                <div class="lesson-content">
-                    ${lesson.exams?.length
-                ? lesson.exams.map(exam => `
-                                <button 
-                                    class="test-btn ${exam.done ? 'done' : ''}"
-                                    ${exam.done ? 'disabled' : ''}
-                                    onclick="renderExam(${exam.id})">
-                                    
-                                    ${exam.name}
-                                    ${exam.done ? '<span class="done-text">✔ Đã làm</span>' : ''}
-                                </button>
-                            `).join('')
-                : '<small style="color:#aaa">Chưa có bài tập</small>'
-            }
-                </div>
-            </div>
-        `).join('');
-
+        const response = await fetchStudent(dateFrom, dateTo);
+        loadStudentProfileAndLessons(response);
+        renderProgressChart(response.lessons);
+        loadRank(response.ranking);
     } catch (err) {
         console.error("Không tải được dữ liệu học sinh:", err);
+        showToast("Không tải được dữ liệu học sinh", "error");
     }
 }
 
+export function loadStudentProfileAndLessons(data) {
+    const name = data.info || '';
+    document.getElementById('welcome-msg').textContent = `Chào bé ${name}! 👋`;
 
-export async function loadProgressAndHistory() {
-    const container = document.getElementById("history-list");
-    container.innerHTML = `<p class="loading">Đang tải lịch sử...</p>`;
+    const lessonsContainer = document.getElementById('lessons-container');
 
-    try {
-        const res = await fetch("/api/student/history", { credentials: "include" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const lessons = await res.json();
-        renderProgressChart(lessons);
-        if (!lessons.length) {
-            container.innerHTML = `<p class="empty">Chưa có bài làm nào.</p>`;
-            return;
-        }
-
-        let html = "";
-
-        lessons.forEach(lesson => {
-            html += `
-                <div class="lesson-card">
-                    <div class="lesson-header">
-                        📘 ${lesson.lesson_title}
-                    </div>
-                    <div class="exam-list">
-                        ${lesson.exams.map(exam => `
-                            <div class="exam-item">
-                                <div class="exam-name">${exam.exam_name}</div>
-                                <div class="exam-meta">
-                                    <span>Điểm: <b>${((exam.score * 10) / exam.total_questions).toFixed(1)}</b></span>
-                                    <span>⏱ ${exam.time_spent}s</span>
-                                </div>
-                            </div>
-                        `).join("")}
-                    </div>
-                </div>
-            `;
-        });
-
-        container.innerHTML = html;
-
-    } catch (err) {
-        console.error(err);
-        container.innerHTML = `<p class="error">Không tải được lịch sử học tập</p>`;
+    if (!data.lessons?.length) {
+        lessonsContainer.innerHTML =
+            '<p style="text-align:center; color:#777; grid-column: 1 / -1;">Chưa có bài học nào.</p>';
+        return;
     }
+
+    lessonsContainer.innerHTML = data.lessons.map(lesson => `
+        <div class="lesson-item">
+            <div class="lesson-title">${lesson.name}</div>
+            <div class="lesson-content">
+                ${lesson.exams?.length
+            ? lesson.exams.map(exam => {
+                if (exam.done) {
+                    const score = exam.total_questions > 0
+                        ? Math.round((exam.correct_questions / exam.total_questions) * 10)
+                        : 0;
+
+                    return `
+                    <div class="test-result done">
+                        <button class="test-btn done" disabled>
+                            ${exam.name}
+                            <span class="done-text">✔ Đã làm</span>
+                        </button>
+                        <div class="exam-info">
+                            <span>Điểm: <b>${score}/10</b></span>
+                            <span>Thời gian: <b>${exam.time_spent}s</b></span>
+                        </div>
+                    </div>
+                `;
+                } else {
+                    return `
+                    <button 
+                        class="test-btn"
+                        onclick="renderExam(${exam.id})">
+                        ${exam.name}
+                    </button>
+                `;
+                }
+            }).join('')
+            : '<small style="color:#aaa">Chưa có bài tập</small>'
+        }
+            </div>
+        </div>
+    `).join('');
 }
 
 let progressChart = null;
 
-function renderProgressChart(groupedHistory) {
+function renderProgressChart(lessons) {
 
-    // Làm phẳng dữ liệu
     const labels = [];
     const scores = [];
 
-    groupedHistory.forEach(lesson => {
+    lessons.forEach(lesson => {
         lesson.exams.forEach(exam => {
-            labels.push(`${lesson.lesson_title} - ${exam.exam_name}`);
-            const point = Math.round((exam.score / exam.total_questions) * 10);
-            scores.push(point);
+            if (exam.done === 1 && exam.total_questions > 0) {
+
+                labels.push(`${lesson.name} - ${exam.name}`);
+
+                // Quy đổi về thang 10
+                const point = Math.round((exam.correct_questions / exam.total_questions) * 10);
+                scores.push(point);
+            }
         });
     });
 
     const ctx = document.getElementById('progressChart').getContext('2d');
 
-    if (progressChart) progressChart.destroy(); // tránh vẽ chồng
+    if (progressChart) progressChart.destroy();
 
     progressChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
             datasets: [{
-                label: 'Tiến bộ học tập',
+                label: 'Điểm số',
                 data: scores,
                 borderWidth: 2.5,
                 tension: 0.35,
@@ -340,4 +314,41 @@ function renderProgressChart(groupedHistory) {
             }
         }
     });
+}
+export function loadRank(ranking) {
+    const container = document.getElementById("rank-container");
+
+    if (!ranking || ranking.length === 0) {
+        container.innerHTML = `<p class="empty">Chưa có dữ liệu xếp hạng.</p>`;
+        return;
+    }
+
+    let html = `
+        <table class="rank-table">
+            <thead>
+                <tr>
+                    <th>Hạng</th>
+                    <th>Học sinh</th>
+                    <th>Điểm TB</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    ranking.forEach((s, index) => {
+        html += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${s.name}</td>
+                <td>${s.avg_score}</td>
+            </tr>
+        `;
+    });
+
+    html += `
+            </tbody>
+        </table>
+    `;
+
+    container.innerHTML = html;
 }

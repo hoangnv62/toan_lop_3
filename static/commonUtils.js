@@ -67,3 +67,23 @@ function closeScore() {
     overlay.style.display = "none";
     overlay.innerHTML = "";
 }
+
+export function getToday() {
+    const today = new Date();
+    return today.toLocaleDateString('vi-VN');
+}
+
+export function getFirstDayOfWeek() {
+    const date = new Date(); // Sử dụng trực tiếp, không qua string để tránh parse lỗi
+    const dayOfWeek = date.getDay(); // 0: Chủ Nhật, 1: Thứ Hai, ..., 6: Thứ Bảy
+
+    // Tính số ngày cần trừ để về Thứ Hai (đầu tuần)
+    const diff = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
+
+    date.setDate(date.getDate() + diff);
+
+    // Đặt giờ về 00:00:00 để lấy đúng ngày đầu tuần
+    date.setHours(0, 0, 0, 0);
+
+    return date;
+}

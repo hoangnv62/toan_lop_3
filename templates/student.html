@@ -28,25 +28,23 @@
         <div class="card-title">📅 Tuần này</div>
         <div id="week-calendar" class="week-grid"></div>
       </div>
+      <!-- Bên phải: Tiến bộ + Thành tích + Tuần này -->
+      <div class="progress-section">
+        <div class="card chart-card">
+          <div class="card-title">📈 Tiến bộ học tập</div>
+          <div style="height: 340px">
+            <canvas id="progressChart"></canvas>
+          </div>
+        </div>
+      </div>
       <div class="dashboard-grid">
         <!-- Bên trái: Chỉ danh sách bài học -->
         <div class="lessons-section">
           <div id="lessons-container" class="lessons-grid"></div>
         </div>
-
-        <!-- Bên phải: Tiến bộ + Thành tích + Tuần này -->
-        <div class="progress-section">
-          <div class="card chart-card">
-            <div class="card-title">📈 Tiến bộ học tập</div>
-            <div style="height: 340px">
-              <canvas id="progressChart"></canvas>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-title">🏆 Thành tích gần đây</div>
-            <div id="history-list" class="history-list"></div>
-          </div>
+        <div class="card">
+          <div class="card-title">🏆 Bảng xếp hạng</div>
+          <div id="rank-container" class="rank-container"></div>
         </div>
       </div>
     </div>
