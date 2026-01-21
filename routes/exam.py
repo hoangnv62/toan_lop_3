@@ -389,3 +389,52 @@ def get_exam_result(exam_id):
             "questions": list(question_map.values()),
         }
     )
+
+
+@exam_bp.route("/api/exams/<int:exam_id>", methods=["DELETE"])
+def delete_exam(exam_id):
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+
+        # Kiểm tra exam tồn tại (tùy chọn, để return 404 nếu không tìm thấy)
+        cur.execute("SELECT 1 FROM exams WHERE id = %s", (exam_id,))
+        if not cur.fetchone():
+            return jsonify({"status": "error", "message": "Exam not found"}), 404
+
+        # Xóa student_answers dựa trên subquery (qua answers và questions)
+        cur.execute(
+            "DELETE sa FROM student_answer sa "
+            "WHERE sa.answer_id IN ("
+            "    SELECT a.id FROM answers a "
+            "    JOIN questions q ON a.questionId = q.id "
+            "    WHERE q.exam_id = %s"
+            ")",
+            (exam_id,),
+        )
+
+        # Xóa answers dựa trên subquery (qua questions)
+        cur.execute(
+            "DELETE a FROM answers a "
+            "WHERE a.questionId IN ("
+            "    SELECT q.id FROM questions q WHERE q.exam_id = %s"
+            ")",
+            (exam_id,),
+        )
+
+        # Xóa questions trực tiếp
+        cur.execute("DELETE FROM questions WHERE exam_id = %s", (exam_id,))
+
+        # Xóa exam
+        cur.execute("DELETE FROM exams WHERE id = %s", (exam_id,))
+
+        conn.commit()
+        return jsonify({"status": "success"})
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+    finally:
+        cur.close()
+        conn.close()

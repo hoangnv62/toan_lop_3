@@ -1,18 +1,4 @@
 import { currentQuestions } from './exam.js';
-import { currentSelectedLessonTitle } from './lessons.js';
-import { showToast } from './commonUtils.js';
-// Các hàm update và set (để hỗ trợ oninput và onclick)
-window.updateQuestionContent = updateQuestionContent;
-window.updateExplanation = updateExplanation;
-window.updateAnswer = updateAnswer;
-window.setCorrectAnswer = setCorrectAnswer;
-window.generateQuestions = generateQuestions;
-
-// Các hàm thêm/xóa mới
-window.addQuestion = addQuestion;
-window.addAnswer = addAnswer;
-window.deleteQuestion = deleteQuestion;
-window.deleteAnswer = deleteAnswer;
 
 // Hàm render câu hỏi vào trong modal
 export function renderQuestions(questions) {
@@ -125,55 +111,4 @@ function deleteQuestion(qIndex) {
 function deleteAnswer(qIndex, aIndex) {
     currentQuestions[qIndex].answers.splice(aIndex, 1);
     renderQuestions(currentQuestions);
-}
-
-export async function generateQuestions() {
-    const lessonTitle = currentSelectedLessonTitle;
-    const examDescription = document.getElementById('exam-description').value;
-    const numQuestions = parseInt(document.getElementById('num-questions').value) || 5;
-
-    showLoading();
-
-    try {
-        const res = await fetch('/api/questions/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ lessonTitle, examDescription, numQuestions })
-        });
-
-        let text = await res.text();   // 👈 luôn đọc text trước
-
-        if (!res.ok) {
-            throw new Error(text);
-        }
-
-        let data;
-        try {
-            data = JSON.parse(text);
-            console.log("Parsed JSON data:", data);
-            // 👈 parse thủ công
-        } catch {
-            throw new Error("Server không trả về JSON hợp lệ");
-        }
-
-        showToast("Tạo câu hỏi thành công!", "success");
-        console.log("Câu hỏi tạo bởi AI:", data.data);
-        currentQuestions.push(...data.data);
-        renderQuestions(currentQuestions);
-
-    } catch (e) {
-        console.error(e);
-        showToast("Lỗi tạo câu hỏi: " + e.message, "error");
-    } finally {
-        hideLoading();
-    }
-}
-
-function showLoading() {
-    document.getElementById("loading-overlay").style.display = "flex";
-}
-
-function hideLoading() {
-    document.getElementById("loading-overlay").style.display = "none";
 }

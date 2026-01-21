@@ -21,7 +21,7 @@ def generate_exam():
         "answers": [
             {{
                 "content": "...",
-                "correct": true/false
+                "isCorrected": 1/0
             }}
         ]
     }}]

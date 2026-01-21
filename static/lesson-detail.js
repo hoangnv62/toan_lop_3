@@ -97,6 +97,8 @@ function renderQuestions() {
         qDiv.className = "question-item";
 
         qDiv.innerHTML = `
+      <h4>Câu hỏi ${qIndex + 1}</h4>  <!-- ✅ Thêm số thứ tự ở đây -->
+
       <input
         class="question-input"
         placeholder="Nhập câu hỏi..."
@@ -145,7 +147,6 @@ function renderQuestions() {
         questionListEl.appendChild(qDiv);
     });
 }
-
 /* ========= MODAL ========= */
 function openCreateExamModal() {
     currentExamId = null;

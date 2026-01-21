@@ -1,13 +1,7 @@
-window.openExamModal = openExamModal;
-window.renderExam = renderExam;
-window.closeExamModal = closeExamModal;
 window.submitExam = submitExam;
-window.selectAnswer = selectAnswer;   // ⭐ BẮT BUỘC PHẢI CÓ
-window.saveQuestions = saveQuestions;
 window.loadExamResult = loadExamResult
-import { currentSelectedLessonId, currentSelectedLessonTitle } from './lessons.js';
-import { renderQuestions } from './question.js';
-import { loadLessons } from './lessons.js';
+window.renderExam = renderExam;
+window.selectAnswer = selectAnswer;
 export let currentSelectedExamId = null;
 export let currentQuestions = [];
 export let selectedAnswers = {};
@@ -27,71 +21,6 @@ export async function fetchExam(examId) {
         console.error("Lỗi tải đề:", err);
         showToast("Lỗi tải đề: " + err.message, "warning");
     }
-}
-
-// ================= MODAL =================
-export async function openExamModal(examId) {
-    if (examId == null) {
-        renderQuestions([]);
-        document.getElementById('exam-name').value = '';
-        document.getElementById('exam-description').value = '';
-        document.getElementById('num-questions').value = 0;
-        document.getElementById('exam-modal').classList.add('active');
-        return;
-    }
-    try {
-        const exam = await fetchExam(examId);
-        currentSelectedExamId = examId;
-        currentQuestions = exam.questions;
-
-        renderQuestions(currentQuestions);
-        document.getElementById('exam-name').value = exam.name || '';
-        document.getElementById('exam-description').value = exam.description || '';
-        document.getElementById('num-questions').value = exam.questions.length;
-        document.getElementById('exam-modal').classList.add('active');
-    } catch (e) {
-        showToast("Lỗi mở đề: " + e.message, "warning");
-    }
-}
-
-export function closeExamModal() {
-    currentSelectedExamId = null;
-    currentQuestions = [];
-    document.getElementById('exam-modal').classList.remove('active');
-}
-
-// ================= SAVE QUESTIONS =================
-export async function saveQuestions() {
-    if (!currentQuestions.length) {
-        showToast("Chưa có câu hỏi!", "warning");
-        return;
-    }
-
-    const body = {
-        name: document.getElementById('exam-name').value,
-        description: document.getElementById('exam-description').value,
-        questions: currentQuestions
-    };
-
-    const url = currentSelectedExamId
-        ? `/api/lessons/${currentSelectedLessonId}/exams/${currentSelectedExamId}`
-        : `/api/lessons/${currentSelectedLessonId}/exams`;
-
-    const method = currentSelectedExamId ? "PUT" : "POST";
-
-    const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(body)
-    });
-
-    if (!res.ok) throw new Error(await res.text());
-
-    showToast("Lưu thành công!", "success");
-
-    closeExamModal();
-    loadLessons();  // reload danh sách bài học để hiện exam mới
 }
 
 // ================= RENDER EXAM =================
