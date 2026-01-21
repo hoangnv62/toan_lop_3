@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
-from config import app_secret_key, model  # Import configs
+from config import app_secret_key
 from routes.auth import auth_bp
 from routes.classes import classes_bp
 from routes.dashboard import dashboard_bp

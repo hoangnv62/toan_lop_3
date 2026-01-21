@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import datetime
 from flask import Blueprint, request, jsonify, session
 from utils import get_db, clean_json_string  # Import helpers
-from config import model  # Import AI model
+from config import gemini_generate  # Import AI model
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -113,8 +113,8 @@ QUY ĐỊNH BẮT BUỘC:
 """
 
     try:
-        res = model.generate_content(prompt)
-        raw_text = res.text.strip()
+        res = gemini_generate(prompt)
+        raw_text = res.strip()
 
         print("Gemini raw:", raw_text)
 

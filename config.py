@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
 
 load_dotenv()
 
@@ -14,11 +14,31 @@ db_config = {
 }
 
 # Cấu hình AI
-api_key = os.getenv("GEMINI_API_KEY")
-model = None
-if api_key:
-    genai.configure(api_key=api_key)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# model = None
+# if :
+#     genai.configure(api_key=api_key)
+#     try:
+#         model = genai.GenerativeModel("models/gemini-2.5-flash")
+#     except:
+#         model = genai.GenerativeModel("gemini-1.5-flash")
+
+DEFAULT_MODEL = "models/gemini-2.5-flash"
+_client = genai.Client(api_key=GEMINI_API_KEY)
+for m in _client.models.list():
+    print(m.name, m.supported_actions)
+
+
+def gemini_generate(prompt: str):
+    config = {"response_mime_type": "application/json"}
+    response = _client.models.generate_content(
+        model=DEFAULT_MODEL, contents=prompt, config=config
+    )
+    return response.text
+
+
+def check_gemini():
     try:
-        model = genai.GenerativeModel("models/gemini-2.5-flash")
-    except:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        gemini_generate("ping")
+    except Exception:
+        raise RuntimeError("❌ Gemini API key không hợp lệ")

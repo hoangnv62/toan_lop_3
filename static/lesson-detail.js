@@ -181,27 +181,70 @@ function closeModal() {
 }
 
 /* ========= ACTIONS ========= */
-async function handleGenerateAI() {
-    const examDesc = examDescInput.value.trim();
-    const numQuestions = questionCountSelect.value;
+// async function handleGenerateAI() {
+//     const examDescription = examDescInput.value.trim();
+//     const numQuestions = questionCountSelect.value;
 
-    if (!examDesc) {
+//     if (!examDescription) {
+//         showToast("Vui lòng nhập mô tả đề thi", "error");
+//         return;
+//     }
+
+//     try {
+//         const res = await generateQuestionsByAI({
+//             lessonTitle,
+//             examDescription,
+//             numQuestions,
+//         });
+
+//         currentQuestions = mapApiQuestions(res.questions || []);
+//         renderQuestions();
+//         showToast("Tạo câu hỏi AI thành công", "success");
+//     } catch {
+//         showToast("Lỗi tạo câu hỏi AI", "error");
+//     }
+// }
+
+async function handleGenerateAI() {
+    const examDescription = examDescInput.value.trim();
+    const numQuestions = questionCountSelect.value;
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 30000);
+    if (!examDescription) {
         showToast("Vui lòng nhập mô tả đề thi", "error");
         return;
     }
 
+    showLoading(); // ✅ HIỆN VÒNG XOAY
+
     try {
         const res = await generateQuestionsByAI({
             lessonTitle,
-            examDesc,
+            examDescription,
             numQuestions,
         });
+        console.log("response: ", res);  // res đã là object { data: [...], status: "success" }
 
-        currentQuestions = mapApiQuestions(res.questions || []);
+        // Không cần parse nữa, dùng trực tiếp res.data
+        const data = res.data || [];  // Nếu res.data undefined, fallback array rỗng
+
+        // Kiểm tra nếu status không phải success (tùy chọn, để robust hơn)
+        if (res.status !== "success") {
+            throw new Error("Server trả về status không thành công");
+        }
+
+        clearTimeout(id);
+        currentQuestions = mapApiQuestions(data);
         renderQuestions();
         showToast("Tạo câu hỏi AI thành công", "success");
-    } catch {
-        showToast("Lỗi tạo câu hỏi AI", "error");
+
+    } catch (err) {
+        clearTimeout(id);
+        console.error(err);
+        showToast("AI đang bận hoặc quá tải, vui lòng thử lại", "error");
+
+    } finally {
+        hideLoading(); // ✅ LUÔN TẮT
     }
 }
 
@@ -314,4 +357,14 @@ function mapFrontendQuestionsToApi() {
 function getLessonIdFromUrl() {
     const parts = window.location.pathname.split("/");
     return parts[parts.length - 1];
+}
+
+const loadingOverlay = document.getElementById("loading-overlay");
+
+function showLoading() {
+    loadingOverlay.classList.remove("hidden");
+}
+
+function hideLoading() {
+    loadingOverlay.classList.add("hidden");
 }

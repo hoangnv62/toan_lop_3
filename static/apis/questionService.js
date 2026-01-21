@@ -5,4 +5,5 @@ export async function generateQuestionsByAI(payload) {
         credentials: 'include',
         body: JSON.stringify(payload)
     });
+    return res.json();
 }
