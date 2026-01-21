@@ -4,8 +4,6 @@ import { showToast } from './commonUtils.js';
 import { fetchStudent } from './apis/studentService.js';
 window.addStudent = addStudent;
 window.deleteStudent = deleteStudent;
-window.showAddStudentModal = showAddStudentModal;
-window.closeAddStudentModal = closeAddStudentModal;
 window.uploadStudentExcel = uploadStudentExcel;
 document.getElementById("btn-add-student")
     ?.addEventListener("click", addStudent);

@@ -4,7 +4,7 @@ from utils import get_db  # Import helper
 lesson_bp = Blueprint("lesson", __name__)
 
 
-@lesson_bp.route("/api/teacher/lessons", methods=["GET"])
+@lesson_bp.route("/api/lessons", methods=["GET"])
 def get_ls():
     uid = session.get("user_id")
     conn = get_db()
@@ -15,6 +15,24 @@ def get_ls():
     ls = cur.fetchall()
     conn.close()
     return jsonify(ls)
+
+
+@lesson_bp.route("/api/lessons/<int:lesson_id>", methods=["GET"])
+def get_lesson(lesson_id):
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT * FROM lessons WHERE id=%s", (lesson_id,))
+    lesson = cur.fetchone()
+    cur.execute("SELECT * FROM exams WHERE lesson_id=%s", (lesson_id,))
+    exams = cur.fetchall()
+    conn.close()
+    return jsonify(
+        {
+            "lessonId": lesson["id"],
+            "lessonTitle": lesson["title"],
+            "exams": exams,
+        }
+    )
 
 
 @lesson_bp.route("/api/lessons/<int:lesson_id>", methods=["DELETE"])
@@ -31,7 +49,7 @@ def delete_lesson(lesson_id):
     return jsonify({"status": "success"})
 
 
-@lesson_bp.route("/api/teacher/create-lesson", methods=["POST"])
+@lesson_bp.route("/api/lessons", methods=["POST"])
 def create_ls():
     d = request.json
     uid = session.get("user_id")
