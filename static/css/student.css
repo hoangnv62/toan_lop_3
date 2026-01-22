@@ -155,6 +155,8 @@ body {
   cursor: pointer;
   transition: all 0.2s;
   text-align: left;
+  font-size: 14px;
+  text-decoration: none;
 }
 
 .test-btn:hover {

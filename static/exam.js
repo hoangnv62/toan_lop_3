@@ -141,7 +141,7 @@ function renderExamResult(questions) {
             html += `
                 <div class="${cls}">
                     ${a.content}
-                    ${a.is_selected ? " (Bạn chọn)" : ""}
+                    ${a.is_selected ? "" : ""}
                     ${a.is_correct ? " ✔" : ""}
                 </div>
             `;

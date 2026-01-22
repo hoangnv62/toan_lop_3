@@ -1,4 +1,4 @@
-import { renderUserProfile } from "../student-functions.js";
+import { renderUserProfile } from "../student-page.js";
 import { renderWeeklyCalendar } from "../chart.js";
 import { getToday, getFirstDayOfWeek } from "../commonUtils.js";
 

@@ -47,10 +47,15 @@ def render_lesson_detail(lesson_id):
 @auth_bp.route("/student")
 def student_page():
     return (
-        render_template("student.html")
+        render_template("student/student_page.html")
         if session.get("role") == "student"
         else render_template("login.html")
     )
+
+
+@auth_bp.route("/student/exam/<int:exam_id>")
+def student_exam(exam_id):
+    return render_template("student/student_exam.html", examId=exam_id)
 
 
 @auth_bp.route("/exam-result")

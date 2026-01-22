@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thi trắc nghiệm</title>
+    <link rel="stylesheet" href="/static/css/student-exam.css" />
+    <link rel="stylesheet" href="/static/css/common.css" />
+  </head>
+  <body>
+    <div id="exam-view" class="container">
+      <div class="exam-header">
+        <h2 id="exam-title-display" style="margin: 0; color: #2d3748">
+          Đề thi
+        </h2>
+        <div style="display: flex; align-items: center; gap: 1rem">
+          <span
+            id="timer"
+            style="
+              font-weight: bold;
+              color: #e53e3e;
+              background: #fff5f5;
+              padding: 0.4rem 1rem;
+              border-radius: 999px;
+            "
+            >00:00</span
+          >
+          <button
+            onclick="window.location.href = '/student'"
+            style="
+              background: #edf2f7;
+              color: #4a5568;
+              border: none;
+              padding: 0.6rem 1rem;
+              border-radius: 0.7rem;
+              cursor: pointer;
+              font-weight: 700;
+            "
+          >
+            Thoát
+          </button>
+        </div>
+      </div>
+
+      <div id="questions-container"></div>
+
+      <button class="btn-submit-exam" onclick="submitExam()">
+        ✅ Nộp bài ngay
+      </button>
+    </div>
+    <div id="toast-container"></div>
+    <div id="score-overlay"></div>
+
+    <script type="module" src="/static/student_exam.js"></script>
+  </body>
+</html>

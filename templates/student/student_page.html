@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="stylesheet" href="/static/css/student.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="../static/css/common.css" />
+  </head>
+  <body>
+    <div id="lesson-view" class="container">
+      <div class="student-header">
+        <div class="header-bar">
+          <h1 class="welcome" id="welcome-msg">Chào bé yêu! 👋</h1>
+          <button class="btn-logout" onclick="window.location.href = '/'">
+            Đăng xuất
+          </button>
+        </div>
+      </div>
+
+      <!-- Tiêu đề chính nằm trên grid, cùng cấp -->
+      <h2 class="main-title">📚 Bài học của bé</h2>
+      <div class="calendar-card">
+        <div class="card-title">📅 Tuần này</div>
+        <div id="week-calendar" class="week-grid"></div>
+      </div>
+      <!-- Bên phải: Tiến bộ + Thành tích + Tuần này -->
+      <div class="progress-section">
+        <div class="card chart-card">
+          <div class="card-title">📈 Tiến bộ học tập</div>
+          <div style="height: 340px">
+            <canvas id="progressChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="dashboard-grid">
+        <!-- Bên trái: Chỉ danh sách bài học -->
+        <div class="lessons-section">
+          <div id="lessons-container" class="lessons-grid"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🏆 Bảng xếp hạng</div>
+          <div id="rank-container" class="rank-container"></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+<script type="module" src="/static/student-page.js"></script>
+<script type="module" src="/static/student/index.js"></script>

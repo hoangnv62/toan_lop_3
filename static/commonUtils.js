@@ -45,7 +45,7 @@ export function showScore(total, correct, message = null) {
             ? `<div class="score-message">${message}</div>`
             : `
                     <div class="score-result">${correct} / ${total}</div>
-                    <div class="score-percent">${Math.round((correct / total) * 100)}%</div>
+                    <div class="score-percent">${Math.round((correct / total) * 10)} điểm</div>
                   `
         }
     `;
