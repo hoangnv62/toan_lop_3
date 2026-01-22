@@ -1,5 +1,5 @@
 import { showToast, showScore } from './commonUtils.js';
-import { fetchExam } from './apis/examService.js';
+import { fetchExam, submit } from './apis/examService.js';
 
 let selectedAnswers = {};
 let timerId = null;
@@ -29,18 +29,12 @@ async function submitExam() {
     clearInterval(timerId);
 
     try {
-        const res = await fetch("/api/student/submit", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({
-                examId: examId,  // Sửa từ currentExam
-                answers: selectedAnswers,
-                timeSpent: secondsPassed
-            })
-        });
-
-        const json = await res.json();
+        const payload = {
+            examId: examId,  // Sửa từ currentExam
+            answers: selectedAnswers,
+            timeSpent: secondsPassed
+        }
+        const json = await submit(payload);
 
         if (json.status !== "success") {
             console.error("Lỗi nộp bài:", json);
