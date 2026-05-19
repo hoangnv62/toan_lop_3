@@ -1,8 +1,0 @@
-Flask
-flask-cors
-mysql-connector-python
-google-generativeai
-python-dotenv
-pandas
-openpyxl
-google-genai
