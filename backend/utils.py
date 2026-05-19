@@ -27,10 +27,7 @@ def _get_pool():
 
 
 def get_db():
-    try:
-        return _get_pool().get_connection()
-    except Exception:
-        return None
+    return _get_pool().get_connection()
 
 
 def hash_password(plain: str) -> str:

@@ -7,10 +7,10 @@ load_dotenv()
 app_secret_key = os.getenv("SECRET_KEY", "math_secret_key")
 
 db_config = {
-    "host": os.getenv("DB_HOST", "127.0.0.1"),
+    "host": os.getenv("DB_HOST", "localhost"),
     "user": os.getenv("DB_USER", "root"),
     "password": os.getenv("DB_PASSWORD", ""),
-    "database": os.getenv("DB_NAME", "elearning_math_db"),
+    "database": os.getenv("DB_NAME", "math_elearning"),
 }
 
 # Cấu hình AI

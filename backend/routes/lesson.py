@@ -8,9 +8,31 @@ lesson_bp = Blueprint("lesson", __name__)
 @require_auth
 def get_lessons():
     uid = g.user["user_id"]
+    q = request.args.get("q", "").strip()
     conn = get_db()
     cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT * FROM lessons WHERE teacher_id=%s ORDER BY created_at DESC", (uid,))
+    if q:
+        cur.execute(
+            """
+            SELECT l.*, COUNT(e.id) AS exam_count
+            FROM lessons l
+            LEFT JOIN exams e ON e.lesson_id = l.id
+            WHERE l.teacher_id=%s AND l.title LIKE %s
+            GROUP BY l.id ORDER BY l.created_at DESC
+            """,
+            (uid, f"%{q}%"),
+        )
+    else:
+        cur.execute(
+            """
+            SELECT l.*, COUNT(e.id) AS exam_count
+            FROM lessons l
+            LEFT JOIN exams e ON e.lesson_id = l.id
+            WHERE l.teacher_id=%s
+            GROUP BY l.id ORDER BY l.created_at DESC
+            """,
+            (uid,),
+        )
     lessons = cur.fetchall()
     cur.close()
     conn.close()

@@ -15,14 +15,13 @@ def add_class():
     conn = get_db()
     cur = conn.cursor()
     try:
-        cur.execute("INSERT INTO classes (teacher_id, class_name) VALUES (%s, %s)", (uid, class_name))
+        cur.execute("INSERT INTO classes (teacher_id, class_name) VALUES (%s,%s)", (uid, class_name))
         conn.commit()
         return jsonify({"success": True, "message": f'Tạo lớp "{class_name}" thành công'})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
 
 
 @classes_bp.route("/api/classes", methods=["GET"])
@@ -34,28 +33,27 @@ def get_teacher_classes():
     cur.execute(
         """
         SELECT
-            c.id AS classId,
+            c.id   AS classId,
             c.class_name AS className,
-            COUNT(DISTINCT s.id) AS totalStudents,
-            COUNT(sa.id) AS totalAnswers,
-            SUM(CASE WHEN a.isCorrected = 1 THEN 1 ELSE 0 END) AS correctAnswers
+            COUNT(DISTINCT u.id)  AS totalStudents,
+            COUNT(sa.id)          AS totalAnswers,
+            SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END) AS correctAnswers
         FROM classes c
-        LEFT JOIN students s ON s.class_id = c.id
-        LEFT JOIN student_answer sa ON sa.user_id = s.id
-        LEFT JOIN answers a ON a.id = sa.answer_id
-        WHERE c.teacher_id = %s
+        LEFT JOIN users u  ON u.class_id=c.id AND u.role='student'
+        LEFT JOIN student_answers sa ON sa.student_id=u.id
+        LEFT JOIN answers a ON a.id=sa.answer_id
+        WHERE c.teacher_id=%s
         GROUP BY c.id
         ORDER BY c.created_at DESC
         """,
         (teacher_id,),
     )
     rows = cur.fetchall()
-    cur.close()
-    conn.close()
+    cur.close(); conn.close()
 
     result = []
     for r in rows:
-        total = r["totalAnswers"] or 0
+        total   = r["totalAnswers"] or 0
         correct = r["correctAnswers"] or 0
         avg_score = round(correct / total * 10, 2) if total else None
         pass_rate = round(correct / total * 100, 2) if total else 0
@@ -74,33 +72,34 @@ def get_teacher_classes():
 def get_class_detail(class_id):
     conn = get_db()
     cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT id, class_name FROM classes WHERE id = %s", (class_id,))
+
+    cur.execute("SELECT id, class_name FROM classes WHERE id=%s", (class_id,))
     cls = cur.fetchone()
     if not cls:
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
         return jsonify({"success": False, "message": "Lớp không tồn tại"}), 404
 
     cur.execute(
         """
-        SELECT s.id, s.full_name, s.dob, s.parent_name, s.parent_phone,
-            ROUND(AVG(exam_score), 2) AS avg_score
-        FROM students s
+        SELECT u.id, u.username, u.full_name, u.dob,
+               sp.parent_name, sp.parent_phone,
+               ROUND(AVG(exam_score), 2) AS avg_score
+        FROM users u
+        LEFT JOIN student_parents sp ON sp.student_id=u.id
         LEFT JOIN (
-            SELECT sa.user_id, sa.exam_id,
-                SUM(a.isCorrected) / NULLIF(COUNT(sa.id), 0) * 10 AS exam_score
-            FROM student_answer sa
-            JOIN answers a ON a.id = sa.answer_id
-            GROUP BY sa.user_id, sa.exam_id
-        ) t ON t.user_id = s.id
-        WHERE s.class_id = %s
-        GROUP BY s.id
+            SELECT sa.student_id, sa.exam_id,
+                SUM(a.is_correct) / NULLIF(COUNT(sa.id),0) * 10 AS exam_score
+            FROM student_answers sa
+            JOIN answers a ON a.id=sa.answer_id
+            GROUP BY sa.student_id, sa.exam_id
+        ) t ON t.student_id=u.id
+        WHERE u.class_id=%s AND u.role='student'
+        GROUP BY u.id
         """,
         (class_id,),
     )
     students = cur.fetchall()
-    cur.close()
-    conn.close()
+    cur.close(); conn.close()
 
     return jsonify({"success": True, "data": {
         "classId": cls["id"], "className": cls["class_name"],
@@ -120,7 +119,7 @@ def update_class(class_id):
     cur = conn.cursor()
     try:
         cur.execute(
-            "UPDATE classes SET class_name = %s WHERE id = %s AND teacher_id = %s",
+            "UPDATE classes SET class_name=%s WHERE id=%s AND teacher_id=%s",
             (new_name, class_id, teacher_id),
         )
         conn.commit()
@@ -128,8 +127,7 @@ def update_class(class_id):
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
 
 
 @classes_bp.route("/api/classes/<int:class_id>", methods=["DELETE"])
@@ -139,12 +137,11 @@ def delete_class(class_id):
     conn = get_db()
     cur = conn.cursor()
     try:
+        # Gỡ học sinh khỏi lớp thay vì xóa tài khoản
         cur.execute(
-            "DELETE FROM student_answer WHERE user_id IN "
-            "(SELECT id FROM students WHERE class_id=%s AND teacher_id=%s)",
-            (class_id, uid),
+            "UPDATE users SET class_id=NULL WHERE class_id=%s AND role='student'",
+            (class_id,)
         )
-        cur.execute("DELETE FROM students WHERE class_id=%s AND teacher_id=%s", (class_id, uid))
         cur.execute("DELETE FROM classes WHERE id=%s AND teacher_id=%s", (class_id, uid))
         conn.commit()
         return jsonify({"success": True, "message": "Đã xóa lớp"})
@@ -152,8 +149,7 @@ def delete_class(class_id):
         conn.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
 
 
 @classes_bp.route("/api/classes/<int:class_id>/students", methods=["GET"])
@@ -161,27 +157,28 @@ def delete_class(class_id):
 def class_students_with_scores(class_id):
     conn = get_db()
     cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT id FROM classes WHERE id = %s", (class_id,))
+
+    cur.execute("SELECT id FROM classes WHERE id=%s", (class_id,))
     if not cur.fetchone():
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
         return jsonify({"success": False, "message": "Lớp không tồn tại"}), 404
 
     cur.execute(
         """
-        SELECT s.id, s.full_name AS name,
-            ROUND(SUM(CASE WHEN a.isCorrected = 1 THEN 1 ELSE 0 END) * 10.0
-                  / NULLIF(COUNT(DISTINCT q.id), 0), 2) AS avg_score
-        FROM students s
-        LEFT JOIN student_answer sa ON sa.user_id = s.id
-        LEFT JOIN answers a ON sa.answer_id = a.id
-        LEFT JOIN questions q ON a.questionId = q.id
-        WHERE s.class_id = %s
-        GROUP BY s.id ORDER BY s.full_name
+        SELECT u.id, u.full_name AS name,
+            ROUND(
+                SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END) * 10.0
+                / NULLIF(COUNT(DISTINCT q.id), 0)
+            , 2) AS avg_score
+        FROM users u
+        LEFT JOIN student_answers sa ON sa.student_id=u.id
+        LEFT JOIN answers a ON sa.answer_id=a.id
+        LEFT JOIN questions q ON a.question_id=q.id
+        WHERE u.class_id=%s AND u.role='student'
+        GROUP BY u.id ORDER BY u.full_name
         """,
         (class_id,),
     )
     rows = cur.fetchall()
-    cur.close()
-    conn.close()
+    cur.close(); conn.close()
     return jsonify({"success": True, "data": rows})

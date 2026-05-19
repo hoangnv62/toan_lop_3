@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 
 import Login from './pages/Login';
+import Register from './pages/Register';
 import Dashboard from './pages/teacher/Dashboard';
 import ManageClass from './pages/teacher/ManageClass';
 import ClassDetail from './pages/teacher/ClassDetail';
@@ -24,6 +25,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
         <Route path="/dashboard" element={
           <RequireAuth role="teacher"><Dashboard /></RequireAuth>

@@ -40,8 +40,8 @@ All frontend `fetch` calls use `credentials: 'include'`. Session cookies are set
 ### Auth flow
 1. On app mount, `AuthContext` calls `GET /api/me` to restore session state
 2. `RequireAuth` in `App.jsx` guards routes by `user.role` (`"teacher"` or `"student"`)
-3. Teacher login: username + password via `POST /api/login/teacher`
-4. Student login: two-step — phone check (`POST /api/check-student-phone`) then password (`POST /api/login/student`)
+3. Teacher login: username + password via `POST /api/auth/login/teacher`
+4. Student login: two-step — phone check (`POST /api/auth/check-phone`) then password (`POST /api/auth/login/student`)
 
 ### Backend structure
 Each feature is a Flask blueprint in `routes/`:
@@ -53,8 +53,8 @@ Each feature is a Flask blueprint in `routes/`:
 - `student.py` — student CRUD, bulk Excel upload, student dashboard
 - `dashboard.py` — teacher dashboard stats + AI advice
 
-Database access: `utils.get_db()` returns a raw `mysql.connector` connection (no ORM).  
-AI calls: `config.gemini_generate(prompt)` uses `google.genai` client with `models/gemini-2.5-flash`, requesting JSON responses.
+Database access: `utils.get_db()` returns a raw `mysql.connector` connection from a pool (no ORM).  
+AI calls: `config.gemini_generate(prompt)` uses `google.genai` client with `models/gemini-2.5-pro`, requesting JSON responses.
 
 ### Frontend structure
 - `src/config.js` — single `API_BASE = 'http://localhost:5000'` constant used by all API modules

@@ -1,16 +1,44 @@
 import { apiFetch, setToken, clearToken } from './index';
 
-export const checkPhone = (phone) =>
-  apiFetch('/api/auth/check-phone', { method: 'POST', body: JSON.stringify({ phone }) });
-
-export const loginStudent = async (phone, password) => {
-  const data = await apiFetch('/api/auth/login/student', { method: 'POST', body: JSON.stringify({ phone, password }) });
+export const loginTeacher = async (username, password) => {
+  const data = await apiFetch('/api/auth/login/teacher', {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  });
   if (data.token) setToken(data.token);
   return data;
 };
 
-export const loginTeacher = async (username, password) => {
-  const data = await apiFetch('/api/auth/login/teacher', { method: 'POST', body: JSON.stringify({ username, password }) });
+export const loginStudent = async (username, password) => {
+  const data = await apiFetch('/api/auth/login/student', {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  });
+  if (data.token) setToken(data.token);
+  return data;
+};
+
+export const registerTeacher = async (username, password, fullName) => {
+  const data = await apiFetch('/api/auth/register/teacher', {
+    method: 'POST',
+    body: JSON.stringify({ username, password, full_name: fullName }),
+  });
+  if (data.token) setToken(data.token);
+  return data;
+};
+
+export const registerStudent = async ({ username, password, fullName, dob, parentName, parentPhone }) => {
+  const data = await apiFetch('/api/auth/register/student', {
+    method: 'POST',
+    body: JSON.stringify({
+      username,
+      password,
+      full_name:    fullName,
+      dob:          dob || null,
+      parent_name:  parentName,
+      parent_phone: parentPhone,
+    }),
+  });
   if (data.token) setToken(data.token);
   return data;
 };

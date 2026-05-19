@@ -13,48 +13,46 @@ def get_exam(exam_id):
     cur.execute("SELECT * FROM exams WHERE id=%s", (exam_id,))
     exam = cur.fetchone()
     if not exam:
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
         return jsonify({"success": False, "message": "Bài thi không tồn tại"}), 404
 
     cur.execute(
         """
         SELECT q.id AS questionId, q.content AS questionContent,
-            q.svg_code AS svgCode, q.explanation,
-            a.id AS answerId, a.content AS answerContent, a.isCorrected
+               q.svg_code AS svgCode, q.explanation,
+               a.id AS answerId, a.content AS answerContent, a.is_correct AS isCorrected
         FROM questions q
-        LEFT JOIN answers a ON q.id = a.questionId
-        WHERE q.exam_id = %s ORDER BY q.id, a.id
+        LEFT JOIN answers a ON q.id=a.question_id
+        WHERE q.exam_id=%s ORDER BY q.id, a.id
         """,
         (exam_id,),
     )
     rows = cur.fetchall()
-    cur.close()
-    conn.close()
+    cur.close(); conn.close()
 
     questions_map = {}
     for row in rows:
         qid = row["questionId"]
         if qid not in questions_map:
             questions_map[qid] = {
-                "questionId": qid,
+                "questionId":      qid,
                 "questionContent": row["questionContent"],
-                "svgCode": row["svgCode"],
-                "explanation": row["explanation"],
-                "answers": [],
+                "svgCode":         row["svgCode"],
+                "explanation":     row["explanation"],
+                "answers":         [],
             }
         if row["answerId"] is not None:
             questions_map[qid]["answers"].append({
-                "answerId": row["answerId"],
-                "content": row["answerContent"],
+                "answerId":   row["answerId"],
+                "content":    row["answerContent"],
                 "isCorrected": row["isCorrected"],
             })
 
     return jsonify({"success": True, "data": {
-        "name": exam["name"],
+        "name":        exam["name"],
         "description": exam["description"],
         "dateCreated": exam["date_created"],
-        "questions": list(questions_map.values()),
+        "questions":   list(questions_map.values()),
     }})
 
 
@@ -78,7 +76,7 @@ def create_exam(lesson_id):
             q_id = cur.lastrowid
             for a in q.get("answers", []):
                 cur.execute(
-                    "INSERT INTO answers(questionId, content, isCorrected) VALUES(%s,%s,%s)",
+                    "INSERT INTO answers(question_id, content, is_correct) VALUES(%s,%s,%s)",
                     (q_id, a.get("content"), 1 if a.get("isCorrected") else 0),
                 )
         conn.commit()
@@ -87,8 +85,7 @@ def create_exam(lesson_id):
         conn.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
 
 
 @exam_bp.route("/api/lessons/<int:lesson_id>/exams/<int:exam_id>", methods=["PUT"])
@@ -121,21 +118,21 @@ def update_exam(lesson_id, exam_id):
                 q_id = cur.lastrowid
             client_q_ids.add(q_id)
 
-            cur.execute("SELECT id FROM answers WHERE questionId=%s", (q_id,))
-            db_a_ids = {row["id"] for row in cur.fetchall()}
+            cur.execute("SELECT id FROM answers WHERE question_id=%s", (q_id,))
+            db_a_ids     = {row["id"] for row in cur.fetchall()}
             client_a_ids = set()
 
             for a in q.get("answers", []):
-                a_id = a.get("answerId")
+                a_id       = a.get("answerId")
                 is_correct = 1 if a.get("isCorrected") else 0
                 if a_id:
                     cur.execute(
-                        "UPDATE answers SET content=%s, isCorrected=%s WHERE id=%s AND questionId=%s",
+                        "UPDATE answers SET content=%s, is_correct=%s WHERE id=%s AND question_id=%s",
                         (a.get("content"), is_correct, a_id, q_id),
                     )
                 else:
                     cur.execute(
-                        "INSERT INTO answers(questionId, content, isCorrected) VALUES(%s,%s,%s)",
+                        "INSERT INTO answers(question_id, content, is_correct) VALUES(%s,%s,%s)",
                         (q_id, a.get("content"), is_correct),
                     )
                     a_id = cur.lastrowid
@@ -161,8 +158,7 @@ def update_exam(lesson_id, exam_id):
         conn.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
 
 
 @exam_bp.route("/api/exams/<int:exam_id>", methods=["DELETE"])
@@ -171,59 +167,61 @@ def delete_exam(exam_id):
     conn = get_db()
     cur = conn.cursor()
     try:
-        cur.execute("SELECT 1 FROM exams WHERE id = %s", (exam_id,))
+        cur.execute("SELECT 1 FROM exams WHERE id=%s", (exam_id,))
         if not cur.fetchone():
             return jsonify({"success": False, "message": "Bài thi không tồn tại"}), 404
 
         cur.execute(
-            "DELETE sa FROM student_answer sa WHERE sa.answer_id IN "
-            "(SELECT a.id FROM answers a JOIN questions q ON a.questionId = q.id WHERE q.exam_id = %s)",
+            "DELETE sa FROM student_answers sa "
+            "WHERE sa.answer_id IN ("
+            "  SELECT a.id FROM answers a "
+            "  JOIN questions q ON a.question_id=q.id WHERE q.exam_id=%s"
+            ")",
             (exam_id,),
         )
         cur.execute(
-            "DELETE a FROM answers a WHERE a.questionId IN "
-            "(SELECT q.id FROM questions q WHERE q.exam_id = %s)",
+            "DELETE a FROM answers a "
+            "WHERE a.question_id IN (SELECT q.id FROM questions q WHERE q.exam_id=%s)",
             (exam_id,),
         )
-        cur.execute("DELETE FROM questions WHERE exam_id = %s", (exam_id,))
-        cur.execute("DELETE FROM exams WHERE id = %s", (exam_id,))
+        cur.execute("DELETE FROM questions WHERE exam_id=%s", (exam_id,))
+        cur.execute("DELETE FROM exams WHERE id=%s", (exam_id,))
         conn.commit()
         return jsonify({"success": True, "message": "Đã xóa bài thi"})
     except Exception as e:
         conn.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
 
 
 @exam_bp.route("/api/exams/<int:exam_id>/submit", methods=["POST"])
 @require_auth
 def submit_exam(exam_id):
     conn = None
-    cur = None
+    cur  = None
     try:
-        data = request.get_json() or {}
-        answers = data.get("answers", [])
+        data       = request.get_json() or {}
+        answers    = data.get("answers", [])
         time_spent = data.get("timeSpent", 0)
-        user_id = g.user["user_id"]
+        student_id = g.user["user_id"]
 
         if not answers:
             return jsonify({"success": False, "message": "Thiếu dữ liệu câu trả lời"}), 400
 
         conn = get_db()
-        cur = conn.cursor(dictionary=True)
+        cur  = conn.cursor(dictionary=True)
 
         cur.execute(
-            "SELECT 1 FROM student_answer WHERE exam_id=%s AND user_id=%s LIMIT 1",
-            (exam_id, user_id),
+            "SELECT 1 FROM student_answers WHERE exam_id=%s AND student_id=%s LIMIT 1",
+            (exam_id, student_id),
         )
         if cur.fetchone():
             return jsonify({"success": False, "message": "Bạn đã nộp bài rồi!"}), 409
 
         cur.execute(
-            "SELECT id FROM answers WHERE questionId IN "
-            "(SELECT id FROM questions WHERE exam_id=%s) AND isCorrected=1",
+            "SELECT id FROM answers WHERE question_id IN "
+            "(SELECT id FROM questions WHERE exam_id=%s) AND is_correct=1",
             (exam_id,),
         )
         correct_ids = {row["id"] for row in cur.fetchall()}
@@ -237,8 +235,8 @@ def submit_exam(exam_id):
             if answer_id in correct_ids:
                 score_count += 1
             cur.execute(
-                "INSERT INTO student_answer (exam_id, answer_id, user_id, time_spent) VALUES (%s,%s,%s,%s)",
-                (exam_id, answer_id, user_id, time_spent),
+                "INSERT INTO student_answers (exam_id, answer_id, student_id, time_spent) VALUES(%s,%s,%s,%s)",
+                (exam_id, answer_id, student_id, time_spent),
             )
 
         conn.commit()
@@ -250,10 +248,8 @@ def submit_exam(exam_id):
             conn.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
+        if cur:  cur.close()
+        if conn: conn.close()
 
 
 @exam_bp.route("/api/exams/<int:exam_id>/result", methods=["GET"])
@@ -261,64 +257,63 @@ def submit_exam(exam_id):
 def get_exam_result(exam_id):
     uid = g.user["user_id"]
     conn = get_db()
-    cur = conn.cursor(dictionary=True)
+    cur  = conn.cursor(dictionary=True)
 
     cur.execute(
         """
         SELECT e.name AS exam_name, l.title AS lesson_name,
-            MAX(sa.time_spent) AS time_spent, MAX(sa.date_created) AS submitted_at
+               MAX(sa.time_spent) AS time_spent,
+               MAX(sa.submitted_at) AS submitted_at
         FROM exams e
-        JOIN lessons l ON e.lesson_id = l.id
-        LEFT JOIN student_answer sa ON sa.exam_id = e.id AND sa.user_id = %s
-        WHERE e.id = %s GROUP BY e.id
+        JOIN lessons l ON e.lesson_id=l.id
+        LEFT JOIN student_answers sa ON sa.exam_id=e.id AND sa.student_id=%s
+        WHERE e.id=%s GROUP BY e.id
         """,
         (uid, exam_id),
     )
     exam_info = cur.fetchone()
     if not exam_info:
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
         return jsonify({"success": False, "message": "Bài thi không tồn tại"}), 404
 
     cur.execute(
         """
         SELECT q.id AS question_id, q.content AS question_content, q.explanation,
-            a.id AS answer_id, a.content AS answer_content,
-            a.isCorrected AS is_correct, sa.answer_id AS student_answer_id
+               a.id AS answer_id, a.content AS answer_content,
+               a.is_correct, sa.answer_id AS student_answer_id
         FROM questions q
-        JOIN answers a ON a.questionId = q.id
-        LEFT JOIN student_answer sa ON sa.answer_id = a.id AND sa.user_id = %s AND sa.exam_id = %s
-        WHERE q.exam_id = %s ORDER BY q.id, a.id
+        JOIN answers a ON a.question_id=q.id
+        LEFT JOIN student_answers sa ON sa.answer_id=a.id AND sa.student_id=%s AND sa.exam_id=%s
+        WHERE q.exam_id=%s ORDER BY q.id, a.id
         """,
         (uid, exam_id, exam_id),
     )
     rows = cur.fetchall()
-    cur.close()
-    conn.close()
+    cur.close(); conn.close()
 
     question_map = {}
     for r in rows:
         qid = r["question_id"]
         if qid not in question_map:
             question_map[qid] = {
-                "questionId": qid,
-                "questionContent": r["question_content"],
-                "explanation": r["explanation"],
-                "isCorrect": False,
+                "questionId":       qid,
+                "questionContent":  r["question_content"],
+                "explanation":      r["explanation"],
+                "isCorrect":        False,
                 "selectedAnswerId": None,
-                "answers": [],
+                "answers":          [],
             }
         ans = {
-            "answerId": r["answer_id"],
-            "content": r["answer_content"],
+            "answerId":   r["answer_id"],
+            "content":    r["answer_content"],
             "isCorrected": r["is_correct"],
-            "isSelected": r["student_answer_id"] == r["answer_id"],
+            "isSelected":  r["student_answer_id"] == r["answer_id"],
         }
         if ans["isSelected"]:
             question_map[qid]["selectedAnswerId"] = r["answer_id"]
         question_map[qid]["answers"].append(ans)
 
-    questions = list(question_map.values())
+    questions    = list(question_map.values())
     correct_count = 0
     for q in questions:
         correct_ans = next((a for a in q["answers"] if a["isCorrected"] == 1), None)
@@ -331,14 +326,14 @@ def get_exam_result(exam_id):
     score = round(correct_count / len(questions) * 10, 1) if questions else 0
 
     return jsonify({"success": True, "data": {
-        "examName": exam_info["exam_name"],
-        "lessonName": exam_info["lesson_name"],
-        "timeSpent": exam_info["time_spent"] or 0,
+        "examName":    exam_info["exam_name"],
+        "lessonName":  exam_info["lesson_name"],
+        "timeSpent":   exam_info["time_spent"] or 0,
         "submittedAt": str(exam_info["submitted_at"]) if exam_info["submitted_at"] else None,
-        "score": score,
-        "correct": correct_count,
-        "total": len(questions),
-        "questions": questions,
+        "score":       score,
+        "correct":     correct_count,
+        "total":       len(questions),
+        "questions":   questions,
     }})
 
 
@@ -346,25 +341,26 @@ def get_exam_result(exam_id):
 @require_auth
 def get_exam_stats(exam_id):
     conn = get_db()
-    cur = conn.cursor(dictionary=True)
+    cur  = conn.cursor(dictionary=True)
 
     cur.execute("SELECT name, lesson_id FROM exams WHERE id=%s", (exam_id,))
     exam = cur.fetchone()
     if not exam:
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
         return jsonify({"success": False, "message": "Bài thi không tồn tại"}), 404
 
     cur.execute(
         """
-        SELECT sa.user_id,
-            ROUND(SUM(CASE WHEN a.isCorrected=1 THEN 1 ELSE 0 END)
-                  / NULLIF(COUNT(DISTINCT q.id), 0) * 10, 1) AS score
-        FROM student_answer sa
-        JOIN answers a ON sa.answer_id = a.id
-        JOIN questions q ON a.questionId = q.id
-        WHERE sa.exam_id = %s
-        GROUP BY sa.user_id
+        SELECT sa.student_id,
+            ROUND(
+                SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END)
+                / NULLIF(COUNT(DISTINCT q.id),0) * 10
+            , 1) AS score
+        FROM student_answers sa
+        JOIN answers a ON sa.answer_id=a.id
+        JOIN questions q ON a.question_id=q.id
+        WHERE sa.exam_id=%s
+        GROUP BY sa.student_id
         """,
         (exam_id,),
     )
@@ -372,35 +368,31 @@ def get_exam_stats(exam_id):
 
     cur.execute(
         """
-        SELECT COUNT(DISTINCT s.id) AS total
-        FROM students s
-        JOIN classes c ON s.class_id = c.id
-        WHERE c.teacher_id = (SELECT teacher_id FROM lessons WHERE id = %s)
+        SELECT COUNT(DISTINCT u.id) AS total
+        FROM users u
+        JOIN classes c ON u.class_id=c.id
+        WHERE c.teacher_id=(SELECT teacher_id FROM lessons WHERE id=%s)
+          AND u.role='student'
         """,
         (exam["lesson_id"],),
     )
     total_row = cur.fetchone()
-    cur.close()
-    conn.close()
+    cur.close(); conn.close()
 
     total_students = total_row["total"] if total_row else 0
     dist = {"0-4": 0, "4-6": 0, "6-8": 0, "8-10": 0}
     for s in scores:
-        if s < 4:
-            dist["0-4"] += 1
-        elif s < 6:
-            dist["4-6"] += 1
-        elif s < 8:
-            dist["6-8"] += 1
-        else:
-            dist["8-10"] += 1
+        if s < 4:   dist["0-4"] += 1
+        elif s < 6: dist["4-6"] += 1
+        elif s < 8: dist["6-8"] += 1
+        else:       dist["8-10"] += 1
 
     avg_score = round(sum(scores) / len(scores), 1) if scores else 0
 
     return jsonify({"success": True, "data": {
-        "examName": exam["name"],
-        "totalStudents": total_students,
+        "examName":          exam["name"],
+        "totalStudents":     total_students,
         "completedStudents": len(scores),
-        "avgScore": avg_score,
-        "distribution": dist,
+        "avgScore":          avg_score,
+        "distribution":      dist,
     }})

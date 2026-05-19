@@ -16,11 +16,14 @@ def teacher_dashboard():
     cur.execute(
         """
         SELECT
-            (SELECT COUNT(*) FROM students WHERE teacher_id = %s) AS totalStudents,
-            (SELECT COUNT(*) FROM classes WHERE teacher_id = %s) AS totalClasses,
-            (SELECT COUNT(*) FROM lessons WHERE teacher_id = %s) AS totalLessons,
-            (SELECT COUNT(*) FROM exams e JOIN lessons l ON e.lesson_id = l.id
-             WHERE l.teacher_id = %s) AS totalExams
+            (SELECT COUNT(*) FROM users u
+             JOIN classes c ON u.class_id=c.id
+             WHERE c.teacher_id=%s AND u.role='student') AS totalStudents,
+            (SELECT COUNT(*) FROM classes WHERE teacher_id=%s)  AS totalClasses,
+            (SELECT COUNT(*) FROM lessons WHERE teacher_id=%s)  AS totalLessons,
+            (SELECT COUNT(*) FROM exams e
+             JOIN lessons l ON e.lesson_id=l.id
+             WHERE l.teacher_id=%s) AS totalExams
         """,
         (teacher_id, teacher_id, teacher_id, teacher_id),
     )
@@ -28,46 +31,39 @@ def teacher_dashboard():
 
     cur.execute(
         """
-        SELECT sa.user_id AS studentId,
-            ROUND(SUM(CASE WHEN a.isCorrected = 1 THEN 1 ELSE 0 END) * 10.0
-                  / NULLIF(COUNT(q.id), 0), 1) AS avgScore
-        FROM student_answer sa
-        JOIN answers a ON sa.answer_id = a.id
-        JOIN questions q ON a.questionId = q.id
-        JOIN exams e ON sa.exam_id = e.id
-        JOIN lessons l ON e.lesson_id = l.id
-        WHERE l.teacher_id = %s
-        GROUP BY sa.user_id
+        SELECT sa.student_id AS studentId,
+            ROUND(
+                SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END) * 10.0
+                / NULLIF(COUNT(q.id),0)
+            , 1) AS avgScore
+        FROM student_answers sa
+        JOIN answers  a ON sa.answer_id=a.id
+        JOIN questions q ON a.question_id=q.id
+        JOIN exams e ON sa.exam_id=e.id
+        JOIN lessons l ON e.lesson_id=l.id
+        WHERE l.teacher_id=%s
+        GROUP BY sa.student_id
         ORDER BY avgScore DESC
         """,
         (teacher_id,),
     )
     scores = cur.fetchall()
-    cur.close()
-    conn.close()
+    cur.close(); conn.close()
 
     score_distribution = {"0-4": 0, "4-6": 0, "6-8": 0, "8-10": 0}
     pass_count = fail_count = 0
     for s in scores:
         score = float(s["avgScore"] or 0)
-        if score < 4:
-            score_distribution["0-4"] += 1
-            fail_count += 1
-        elif score < 6:
-            score_distribution["4-6"] += 1
-            fail_count += 1
-        elif score < 8:
-            score_distribution["6-8"] += 1
-            pass_count += 1
-        else:
-            score_distribution["8-10"] += 1
-            pass_count += 1
+        if score < 4:   score_distribution["0-4"] += 1; fail_count += 1
+        elif score < 6: score_distribution["4-6"] += 1; fail_count += 1
+        elif score < 8: score_distribution["6-8"] += 1; pass_count += 1
+        else:           score_distribution["8-10"] += 1; pass_count += 1
 
     return jsonify({"success": True, "data": {
-        "summary": summary,
+        "summary":           summary,
         "scoreDistribution": score_distribution,
-        "passRate": {"pass": pass_count, "fail": fail_count},
-        "topStudents": scores[:5],
+        "passRate":          {"pass": pass_count, "fail": fail_count},
+        "topStudents":       scores[:5],
     }})
 
 
@@ -75,9 +71,9 @@ def teacher_dashboard():
 @require_auth
 def get_ai_advice():
     d = request.json or {}
-    avg = d.get("avg", 0)
+    avg            = d.get("avg", 0)
     total_students = d.get("totalStudents", 0)
-    dist = d.get("dist", {})
+    dist           = d.get("dist", {})
 
     prompt = f"""
 Bạn là trợ lý giáo dục chuyên về Toán lớp 3.
@@ -99,7 +95,7 @@ Chỉ trả về JSON array thuần, không markdown, không giải thích:
         return jsonify({"success": True, "data": {"advice": advice_list}})
     except Exception:
         return jsonify({"success": True, "data": {"advice": [
-            {"title": "Củng cố kiến thức nền", "detail": "Dành thời gian ôn lại các phép tính cơ bản cho nhóm học sinh yếu."},
+            {"title": "Củng cố kiến thức nền",  "detail": "Dành thời gian ôn lại các phép tính cơ bản cho nhóm học sinh yếu."},
             {"title": "Tăng hoạt động thực hành", "detail": "Lồng ghép trò chơi toán học để tăng hứng thú học tập."},
-            {"title": "Phân hóa bài tập", "detail": "Giao bài theo mức độ để học sinh khá giỏi và trung bình đều tiến bộ."},
+            {"title": "Phân hóa bài tập",         "detail": "Giao bài theo mức độ để học sinh khá giỏi và trung bình đều tiến bộ."},
         ]}})
