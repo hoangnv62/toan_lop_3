@@ -4,23 +4,29 @@ import { useAuth } from '../context/AuthContext';
 import { registerTeacher, registerStudent } from '../api/auth';
 import { toast } from 'react-toastify';
 
+function Field({ label, required, children }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
 export default function Register() {
   const [role, setRole] = useState('student');
-  // Teacher fields
-  const [tUsername, setTUsername]   = useState('');
-  const [tFullName, setTFullName]   = useState('');
-  const [tPass, setTPass]           = useState('');
-  const [tConfirm, setTConfirm]     = useState('');
-  // Student fields
-  const [sUsername, setSUsername]   = useState('');
-  const [sFullName, setSFullName]   = useState('');
-  const [sDob, setSdob]             = useState('');
-  const [sParentName, setSParentName]   = useState('');
-  const [sParentPhone, setSParentPhone] = useState('');
-  const [sPass, setSPass]           = useState('');
-  const [sConfirm, setSConfirm]     = useState('');
-  const [loading, setLoading]       = useState(false);
-
+  const [tUsername, setTUsername]     = useState('');
+  const [tFullName, setTFullName]     = useState('');
+  const [tPass, setTPass]             = useState('');
+  const [tConfirm, setTConfirm]       = useState('');
+  const [sUsername, setSUsername] = useState('');
+  const [sFullName, setSFullName] = useState('');
+  const [sDob, setSdob]           = useState('');
+  const [sPass, setSPass]         = useState('');
+  const [sConfirm, setSConfirm]   = useState('');
+  const [loading, setLoading]         = useState(false);
   const { setUser } = useAuth();
   const navigate    = useNavigate();
 
@@ -37,9 +43,7 @@ export default function Register() {
       navigate('/dashboard');
     } catch (err) {
       toast.error(err.message || 'Đăng ký thất bại');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
   async function handleStudentRegister() {
@@ -50,112 +54,107 @@ export default function Register() {
     setLoading(true);
     try {
       const data = await registerStudent({
-        username:    sUsername,
-        password:    sPass,
-        fullName:    sFullName,
-        dob:         sDob,
-        parentName:  sParentName,
-        parentPhone: sParentPhone,
+        username: sUsername, password: sPass, fullName: sFullName, dob: sDob,
       });
       setUser(data.user || { role: 'student' });
       toast.success('Đăng ký thành công!');
       navigate('/student');
     } catch (err) {
       toast.error(err.message || 'Đăng ký thất bại');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
-        <div className="text-center mb-6">
-          <div className="text-5xl mb-3">📝</div>
-          <h2 className="text-2xl font-bold text-gray-800">Đăng Ký Tài Khoản</h2>
-          <p className="text-gray-500 text-sm mt-1">Toán Lớp 3</p>
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+      {/* Brand */}
+      <div className="mb-8 text-center">
+        <div className="inline-flex items-center justify-center w-12 h-12 bg-indigo-600 rounded-2xl mb-4 shadow-lg shadow-indigo-200">
+          <span className="text-white font-bold text-xl leading-none">3</span>
         </div>
+        <h1 className="text-2xl font-bold text-gray-900">Tạo tài khoản</h1>
+        <p className="text-sm text-gray-500 mt-1">Toán Lớp 3 – E-Learning</p>
+      </div>
 
-        <div className="flex gap-2 mb-6 bg-gray-100 p-1 rounded-lg">
+      {/* Card */}
+      <div className="w-full max-w-[420px] bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        {/* Tabs */}
+        <div className="flex border-b border-gray-100">
           {[
-            { value: 'student', label: '👦 Học Sinh' },
-            { value: 'teacher', label: '👩‍🏫 Giáo Viên' },
+            { value: 'student', label: 'Học Sinh' },
+            { value: 'teacher', label: 'Giáo Viên' },
           ].map(({ value, label }) => (
             <button key={value} onClick={() => setRole(value)}
-              className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${
-                role === value ? 'bg-white shadow text-indigo-600' : 'text-gray-500'
+              className={`flex-1 py-3.5 text-sm font-medium transition-all ${
+                role === value
+                  ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white -mb-px'
+                  : 'text-gray-500 hover:text-gray-700 bg-gray-50/60'
               }`}>
               {label}
             </button>
           ))}
         </div>
 
-        {role === 'teacher' ? (
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên <span className="text-red-500">*</span></label>
-              <input className="input" placeholder="Nguyễn Thị Lan" value={tFullName} onChange={e => setTFullName(e.target.value)} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập <span className="text-red-500">*</span></label>
-              <input className="input" placeholder="username" value={tUsername} onChange={e => setTUsername(e.target.value)} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu <span className="text-red-500">*</span></label>
-              <input className="input" type="password" placeholder="Mật khẩu" value={tPass} onChange={e => setTPass(e.target.value)} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu <span className="text-red-500">*</span></label>
-              <input className="input" type="password" placeholder="Nhập lại mật khẩu" value={tConfirm}
-                onChange={e => setTConfirm(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleTeacherRegister()} />
-            </div>
-            <button className="btn-primary w-full mt-1" onClick={handleTeacherRegister} disabled={loading}>
-              {loading ? 'Đang xử lý...' : 'Đăng Ký Giáo Viên'}
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập <span className="text-red-500">*</span></label>
-              <input className="input" placeholder="username học sinh" value={sUsername} onChange={e => setSUsername(e.target.value)} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên học sinh <span className="text-red-500">*</span></label>
-              <input className="input" placeholder="Nguyễn Văn An" value={sFullName} onChange={e => setSFullName(e.target.value)} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ngày sinh</label>
-              <input className="input" type="date" value={sDob} onChange={e => setSdob(e.target.value)} />
-            </div>
-            <div className="border-t pt-3">
-              <p className="text-xs text-gray-500 mb-2">Thông tin phụ huynh (không bắt buộc)</p>
-              <div className="space-y-3">
-                <input className="input" placeholder="Họ tên phụ huynh" value={sParentName} onChange={e => setSParentName(e.target.value)} />
-                <input className="input" placeholder="Số điện thoại phụ huynh" value={sParentPhone} onChange={e => setSParentPhone(e.target.value)} />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu <span className="text-red-500">*</span></label>
-              <input className="input" type="password" placeholder="Mật khẩu" value={sPass} onChange={e => setSPass(e.target.value)} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu <span className="text-red-500">*</span></label>
-              <input className="input" type="password" placeholder="Nhập lại mật khẩu" value={sConfirm}
-                onChange={e => setSConfirm(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleStudentRegister()} />
-            </div>
-            <button className="btn-primary w-full mt-1" onClick={handleStudentRegister} disabled={loading}>
-              {loading ? 'Đang xử lý...' : 'Đăng Ký Học Sinh'}
-            </button>
-          </div>
-        )}
-
-        <div className="mt-5 text-center text-sm text-gray-500">
-          Đã có tài khoản?{' '}
-          <Link to="/" className="text-indigo-600 font-semibold hover:underline">Đăng nhập</Link>
+        <div className="p-6 space-y-3.5">
+          {role === 'teacher' ? (
+            <>
+              <Field label="Họ và tên" required>
+                <input className="input" placeholder="Nguyễn Thị Lan"
+                  value={tFullName} onChange={e => setTFullName(e.target.value)} />
+              </Field>
+              <Field label="Tên đăng nhập" required>
+                <input className="input" placeholder="username"
+                  value={tUsername} onChange={e => setTUsername(e.target.value)} />
+              </Field>
+              <Field label="Mật khẩu" required>
+                <input className="input" type="password" placeholder="Mật khẩu"
+                  value={tPass} onChange={e => setTPass(e.target.value)} />
+              </Field>
+              <Field label="Xác nhận mật khẩu" required>
+                <input className="input" type="password" placeholder="Nhập lại mật khẩu"
+                  value={tConfirm} onChange={e => setTConfirm(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleTeacherRegister()} />
+              </Field>
+              <button className="btn-primary w-full py-2.5 mt-1" onClick={handleTeacherRegister} disabled={loading}>
+                {loading ? 'Đang xử lý...' : 'Đăng ký tài khoản giáo viên'}
+              </button>
+            </>
+          ) : (
+            <>
+              <Field label="Tên đăng nhập" required>
+                <input className="input" placeholder="username học sinh"
+                  value={sUsername} onChange={e => setSUsername(e.target.value)} />
+              </Field>
+              <Field label="Họ và tên học sinh" required>
+                <input className="input" placeholder="Nguyễn Văn An"
+                  value={sFullName} onChange={e => setSFullName(e.target.value)} />
+              </Field>
+              <Field label="Ngày sinh">
+                <input className="input" type="date"
+                  value={sDob} onChange={e => setSdob(e.target.value)} />
+              </Field>
+              <Field label="Mật khẩu" required>
+                <input className="input" type="password" placeholder="Mật khẩu"
+                  value={sPass} onChange={e => setSPass(e.target.value)} />
+              </Field>
+              <Field label="Xác nhận mật khẩu" required>
+                <input className="input" type="password" placeholder="Nhập lại mật khẩu"
+                  value={sConfirm} onChange={e => setSConfirm(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleStudentRegister()} />
+              </Field>
+              <button className="btn-primary w-full py-2.5 mt-1" onClick={handleStudentRegister} disabled={loading}>
+                {loading ? 'Đang xử lý...' : 'Đăng ký tài khoản học sinh'}
+              </button>
+            </>
+          )}
         </div>
       </div>
+
+      <p className="mt-6 text-sm text-gray-500">
+        Đã có tài khoản?{' '}
+        <Link to="/" className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors">
+          Đăng nhập
+        </Link>
+      </p>
     </div>
   );
 }

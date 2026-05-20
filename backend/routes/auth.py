@@ -30,18 +30,16 @@ def register_teacher():
     cur.close(); conn.close()
 
     token = create_token(uid, "teacher", full_name)
-    return jsonify({"success": True, "token": token, "user": {"role": "teacher", "name": full_name}}), 201
+    return jsonify({"success": True, "token": token, "user": {"user_id": uid, "role": "teacher", "name": full_name}}), 201
 
 
 @auth_bp.route("/api/auth/register/student", methods=["POST"])
 def register_student():
     d = request.json or {}
-    username    = d.get("username", "").strip()
-    password    = d.get("password", "")
-    full_name   = d.get("full_name", "").strip()
-    dob         = d.get("dob") or None
-    parent_name  = d.get("parent_name", "").strip()
-    parent_phone = d.get("parent_phone", "").strip()
+    username  = d.get("username", "").strip()
+    password  = d.get("password", "")
+    full_name = d.get("full_name", "").strip()
+    dob       = d.get("dob") or None
 
     if not username or not password or not full_name:
         return jsonify({"success": False, "message": "Vui lòng điền đầy đủ thông tin"}), 400
@@ -54,30 +52,16 @@ def register_student():
         cur.close(); conn.close()
         return jsonify({"success": False, "message": "Tên đăng nhập đã tồn tại"}), 409
 
-    if parent_phone:
-        cur.execute("SELECT id FROM student_parents WHERE parent_phone=%s", (parent_phone,))
-        if cur.fetchone():
-            cur.close(); conn.close()
-            return jsonify({"success": False, "message": "Số điện thoại phụ huynh đã được đăng ký"}), 409
-
     cur.execute(
         "INSERT INTO users (username, password, full_name, role, dob) VALUES (%s,%s,%s,'student',%s)",
         (username, hash_password(password), full_name, dob)
     )
     conn.commit()
     uid = cur.lastrowid
-
-    if parent_name or parent_phone:
-        cur.execute(
-            "INSERT INTO student_parents (student_id, parent_name, parent_phone) VALUES (%s,%s,%s)",
-            (uid, parent_name or None, parent_phone or None)
-        )
-        conn.commit()
-
     cur.close(); conn.close()
 
     token = create_token(uid, "student", full_name)
-    return jsonify({"success": True, "token": token, "user": {"role": "student", "name": full_name}}), 201
+    return jsonify({"success": True, "token": token, "user": {"user_id": uid, "role": "student", "name": full_name}}), 201
 
 
 @auth_bp.route("/api/auth/login/teacher", methods=["POST"])
@@ -98,7 +82,7 @@ def login_teacher():
         return jsonify({"success": False, "message": "Sai tài khoản hoặc mật khẩu"}), 401
 
     token = create_token(u["id"], "teacher", u["full_name"])
-    return jsonify({"success": True, "token": token, "user": {"role": "teacher", "name": u["full_name"]}})
+    return jsonify({"success": True, "token": token, "user": {"user_id": u["id"], "role": "teacher", "name": u["full_name"]}})
 
 
 @auth_bp.route("/api/auth/login/student", methods=["POST"])
@@ -119,7 +103,7 @@ def login_student():
         return jsonify({"success": False, "message": "Sai tài khoản hoặc mật khẩu"}), 401
 
     token = create_token(u["id"], "student", u["full_name"])
-    return jsonify({"success": True, "token": token, "user": {"role": "student", "name": u["full_name"]}})
+    return jsonify({"success": True, "token": token, "user": {"user_id": u["id"], "role": "student", "name": u["full_name"]}})
 
 
 @auth_bp.route("/api/auth/logout", methods=["POST"])

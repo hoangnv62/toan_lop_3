@@ -2,16 +2,48 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchExam, submitExam } from '../../api/examService';
 import { toast } from 'react-toastify';
+import { FiAlertCircle } from 'react-icons/fi';
+
+function ConfirmSubmitModal({ answered, total, onConfirm, onCancel }) {
+  const unanswered = total - answered;
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="text-center mb-5">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 ${
+            unanswered > 0 ? 'bg-amber-50' : 'bg-indigo-50'
+          }`}>
+            <FiAlertCircle size={24} className={unanswered > 0 ? 'text-amber-500' : 'text-indigo-500'} />
+          </div>
+          <h3 className="font-semibold text-gray-900 text-base">Xác nhận nộp bài?</h3>
+          <p className="text-sm text-gray-500 mt-2">
+            Đã trả lời <span className="font-semibold text-gray-800">{answered}/{total}</span> câu hỏi.
+          </p>
+          {unanswered > 0 && (
+            <p className="text-xs text-amber-600 mt-1 font-medium">
+              Còn {unanswered} câu chưa trả lời.
+            </p>
+          )}
+        </div>
+        <div className="flex gap-3">
+          <button className="btn-secondary flex-1" onClick={onCancel}>Làm tiếp</button>
+          <button className="btn-primary flex-1" onClick={onConfirm}>Nộp bài</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const EXAM_DURATION = 20 * 60;
 
 export default function StudentExam() {
-  const { examId } = useParams();
-  const navigate = useNavigate();
-  const [exam, setExam] = useState(null);
-  const [answers, setAnswers] = useState({});
-  const [timeLeft, setTimeLeft] = useState(EXAM_DURATION);
-  const [submitting, setSubmitting] = useState(false);
+  const { examId }  = useParams();
+  const navigate    = useNavigate();
+  const [exam, setExam]           = useState(null);
+  const [answers, setAnswers]     = useState({});
+  const [timeLeft, setTimeLeft]   = useState(EXAM_DURATION);
+  const [submitting, setSubmitting]   = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -33,19 +65,18 @@ export default function StudentExam() {
   }
 
   async function handleSubmit(auto = false) {
-    if (!auto && !confirm('Nộp bài?')) return;
+    if (!auto) { setShowConfirm(true); return; }
+    setShowConfirm(false);
     clearInterval(timerRef.current);
     setSubmitting(true);
     try {
       const timeSpent = EXAM_DURATION - timeLeft;
-      const payload = {
+      await submitExam(Number(examId), {
         answers: Object.entries(answers).map(([qId, aId]) => ({
-          questionId: Number(qId),
-          answerId: Number(aId),
+          questionId: Number(qId), answerId: Number(aId),
         })),
         timeSpent,
-      };
-      await submitExam(Number(examId), payload);
+      });
       toast.success('Nộp bài thành công');
       setTimeout(() => navigate(`/exam-result/${examId}`), 800);
     } catch (err) {
@@ -54,34 +85,68 @@ export default function StudentExam() {
     }
   }
 
-  const mm = String(Math.floor(timeLeft / 60)).padStart(2, '0');
-  const ss = String(timeLeft % 60).padStart(2, '0');
-  const timeColor = timeLeft <= 60 ? 'text-red-500' : timeLeft <= 300 ? 'text-yellow-500' : 'text-indigo-600';
+  const mm       = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+  const ss       = String(timeLeft % 60).padStart(2, '0');
   const answered = Object.keys(answers).length;
-  const total = exam?.questions?.length ?? 0;
+  const total    = exam?.questions?.length ?? 0;
+  const pct      = total ? (answered / total) * 100 : 0;
+
+  const timeStatus =
+    timeLeft <= 60  ? 'urgent' :
+    timeLeft <= 300 ? 'warning' : 'normal';
+
+  const timerCls =
+    timeStatus === 'urgent'  ? 'text-red-600 bg-red-50 border-red-200' :
+    timeStatus === 'warning' ? 'text-amber-600 bg-amber-50 border-amber-200' :
+                               'text-indigo-600 bg-indigo-50 border-indigo-200';
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="sticky top-0 z-10 bg-white shadow-sm px-4 py-3 flex items-center justify-between">
-        <div>
-          <p className="font-bold text-gray-800 text-sm">{exam?.name || 'Đang tải...'}</p>
-          <p className="text-xs text-gray-400">{answered}/{total} câu đã trả lời</p>
+      {showConfirm && (
+        <ConfirmSubmitModal
+          answered={answered}
+          total={total}
+          onConfirm={() => handleSubmit(true)}
+          onCancel={() => setShowConfirm(false)}
+        />
+      )}
+      {/* Sticky header */}
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="min-w-0">
+            <p className="font-semibold text-gray-900 text-sm truncate">{exam?.name || 'Đang tải...'}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{answered}/{total} câu đã trả lời</p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <div className={`font-mono font-bold text-base px-3 py-1 rounded-lg border ${timerCls}`}>
+              {mm}:{ss}
+            </div>
+            <button className="btn-primary py-1.5 px-4" onClick={() => handleSubmit(false)} disabled={submitting}>
+              {submitting ? 'Đang nộp...' : 'Nộp bài'}
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <span className={`font-mono font-bold text-lg ${timeColor}`}>{mm}:{ss}</span>
-          <button className="btn-primary text-sm py-1.5 px-4" onClick={() => handleSubmit(false)} disabled={submitting}>
-            {submitting ? 'Đang nộp...' : 'Nộp bài'}
-          </button>
-        </div>
+        {/* Progress bar */}
+        {total > 0 && (
+          <div className="h-1 bg-gray-100">
+            <div
+              className="h-full bg-indigo-500 transition-all duration-300"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        )}
       </div>
 
-      <div className="max-w-2xl mx-auto p-4 space-y-4 pb-20">
+      {/* Questions */}
+      <div className="max-w-2xl mx-auto p-4 space-y-4 pb-8">
         {!exam ? (
-          <p className="text-center text-gray-400 mt-20">Đang tải đề thi...</p>
+          <div className="flex justify-center py-20">
+            <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          </div>
         ) : exam.questions.map((q, qi) => (
           <div key={q.questionId} className="card">
-            <p className="font-semibold text-gray-800 mb-3">
-              <span className="text-indigo-500 mr-2">Câu {qi + 1}.</span>
+            <p className="font-semibold text-gray-900 mb-4 text-sm leading-relaxed">
+              <span className="badge-indigo mr-2">Câu {qi + 1}</span>
               {q.questionContent}
             </p>
             <div className="space-y-2">
@@ -89,10 +154,11 @@ export default function StudentExam() {
                 const selected = answers[q.questionId] === a.answerId;
                 return (
                   <button key={a.answerId}
-                    className={`w-full text-left px-4 py-2.5 rounded-lg border text-sm transition
-                      ${selected
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-medium'
-                        : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-700'}`}
+                    className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all ${
+                      selected
+                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-medium shadow-sm'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700'
+                    }`}
                     onClick={() => selectAnswer(q.questionId, a.answerId)}>
                     {a.content}
                   </button>
@@ -102,21 +168,6 @@ export default function StudentExam() {
           </div>
         ))}
       </div>
-
-      {total > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 py-2">
-          <div className="max-w-2xl mx-auto">
-            <div className="flex justify-between text-xs text-gray-400 mb-1">
-              <span>Tiến độ</span>
-              <span>{answered}/{total}</span>
-            </div>
-            <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-indigo-500 rounded-full transition-all"
-                style={{ width: `${total ? (answered / total) * 100 : 0}%` }} />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

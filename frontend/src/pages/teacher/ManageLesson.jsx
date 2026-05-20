@@ -3,58 +3,47 @@ import { useNavigate } from 'react-router-dom';
 import TeacherLayout from '../../components/TeacherLayout';
 import { fetchLessons, createLesson, updateLesson, deleteLesson } from '../../api/lessonService';
 import { toast } from 'react-toastify';
-import {
-  FiSearch, FiPlus, FiEdit2, FiTrash2, FiEye, FiBookOpen,
-} from 'react-icons/fi';
+import { FiSearch, FiPlus, FiEdit2, FiTrash2, FiArrowRight, FiBook, FiLoader, FiX } from 'react-icons/fi';
 
 function formatDate(str) {
   if (!str) return '--';
   const d = new Date(str);
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 }
 
-// ── Modal thêm bài học ───────────────────────────────────────────────────────
-function AddModal({ onClose, onCreated }) {
-  const [title, setTitle] = useState('');
-  const [loading, setLoading] = useState(false);
+function LessonModal({ title, initialValue = '', onClose, onSubmit, loading }) {
+  const [value, setValue] = useState(initialValue);
   const inputRef = useRef();
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
-
-  async function handleSubmit() {
-    const t = title.trim();
-    if (!t) return toast.error('Tiêu đề không được trống');
-    setLoading(true);
-    try {
-      await createLesson(t);
-      toast.success('Tạo bài học thành công');
-      onCreated();
-    } catch (err) {
-      toast.error(err.message || 'Tạo thất bại');
-    } finally {
-      setLoading(false);
-    }
-  }
+  useEffect(() => {
+    inputRef.current?.focus();
+    if (initialValue) inputRef.current?.select();
+  }, []);
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
-        <h3 className="text-lg font-bold text-gray-800">➕ Thêm bài học mới</h3>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tên bài học</label>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-semibold text-gray-900">{title}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+            <FiX size={17} />
+          </button>
+        </div>
+        <div className="mb-5">
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên bài học</label>
           <input
             ref={inputRef}
-            className="input w-full"
+            className="input"
             placeholder="VD: Phép cộng trong phạm vi 100"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); if (e.key === 'Escape') onClose(); }}
+            value={value}
+            onChange={e => setValue(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') onSubmit(value); if (e.key === 'Escape') onClose(); }}
           />
         </div>
-        <div className="flex gap-3 pt-1">
+        <div className="flex gap-3">
           <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
-          <button className="btn-primary flex-1" onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Đang tạo...' : 'Tạo bài học'}
+          <button className="btn-primary flex-1" onClick={() => onSubmit(value)} disabled={loading}>
+            {loading ? 'Đang xử lý...' : 'Xác nhận'}
           </button>
         </div>
       </div>
@@ -62,55 +51,6 @@ function AddModal({ onClose, onCreated }) {
   );
 }
 
-// ── Modal sửa tên bài học ────────────────────────────────────────────────────
-function EditModal({ lesson, onClose, onUpdated }) {
-  const [title, setTitle] = useState(lesson.title);
-  const [loading, setLoading] = useState(false);
-  const inputRef = useRef();
-
-  useEffect(() => { inputRef.current?.focus(); inputRef.current?.select(); }, []);
-
-  async function handleSubmit() {
-    const t = title.trim();
-    if (!t) return toast.error('Tiêu đề không được trống');
-    setLoading(true);
-    try {
-      await updateLesson(lesson.id, t);
-      toast.success('Cập nhật thành công');
-      onUpdated();
-    } catch (err) {
-      toast.error(err.message || 'Cập nhật thất bại');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
-        <h3 className="text-lg font-bold text-gray-800">✏️ Sửa tên bài học</h3>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tên bài học</label>
-          <input
-            ref={inputRef}
-            className="input w-full"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); if (e.key === 'Escape') onClose(); }}
-          />
-        </div>
-        <div className="flex gap-3 pt-1">
-          <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
-          <button className="btn-primary flex-1" onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Đang lưu...' : 'Lưu'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Modal xác nhận xóa ───────────────────────────────────────────────────────
 function DeleteModal({ lesson, onClose, onDeleted }) {
   const [loading, setLoading] = useState(false);
 
@@ -122,19 +62,19 @@ function DeleteModal({ lesson, onClose, onDeleted }) {
       onDeleted();
     } catch (err) {
       toast.error(err.message || 'Xóa thất bại');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
-        <div className="text-center">
-          <div className="text-4xl mb-3">🗑️</div>
-          <h3 className="text-lg font-bold text-gray-800">Xác nhận xóa</h3>
-          <p className="text-gray-500 text-sm mt-2">
-            Xóa bài học <span className="font-semibold text-gray-800">"{lesson.title}"</span>?
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="text-center mb-5">
+          <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+            <FiTrash2 size={22} className="text-red-500" />
+          </div>
+          <h3 className="font-semibold text-gray-900">Xóa bài học</h3>
+          <p className="text-sm text-gray-500 mt-2">
+            Xóa <span className="font-semibold text-gray-800">"{lesson.title}"</span>?
           </p>
           <p className="text-xs text-red-400 mt-1">Tất cả bài thi trong bài học này cũng sẽ bị xóa.</p>
         </div>
@@ -149,13 +89,14 @@ function DeleteModal({ lesson, onClose, onDeleted }) {
   );
 }
 
-// ── Trang chính ──────────────────────────────────────────────────────────────
 export default function ManageLesson() {
-  const [lessons, setLessons]     = useState([]);
-  const [query, setQuery]         = useState('');
-  const [loading, setLoading]     = useState(true);
-  const [showAdd, setShowAdd]     = useState(false);
-  const [editLesson, setEditLesson]     = useState(null);
+  const [lessons, setLessons]         = useState([]);
+  const [query, setQuery]             = useState('');
+  const [loading, setLoading]         = useState(true);
+  const [showAdd, setShowAdd]         = useState(false);
+  const [addLoading, setAddLoading]   = useState(false);
+  const [editLesson, setEditLesson]   = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
   const [deleteLesson_, setDeleteLesson] = useState(null);
   const debounceRef = useRef();
   const navigate = useNavigate();
@@ -173,26 +114,55 @@ export default function ManageLesson() {
     try {
       const data = await fetchLessons(q);
       setLessons(data);
-    } catch {
-      setLessons([]);
-    } finally {
-      setLoading(false);
-    }
+    } catch { setLessons([]); }
+    finally { setLoading(false); }
+  }
+
+  async function handleCreate(title) {
+    const t = title.trim();
+    if (!t) return toast.error('Tiêu đề không được trống');
+    setAddLoading(true);
+    try {
+      await createLesson(t);
+      toast.success('Tạo bài học thành công');
+      setShowAdd(false);
+      load(query);
+    } catch (err) {
+      toast.error(err.message || 'Tạo thất bại');
+    } finally { setAddLoading(false); }
+  }
+
+  async function handleEdit(title) {
+    const t = title.trim();
+    if (!t) return toast.error('Tiêu đề không được trống');
+    setEditLoading(true);
+    try {
+      await updateLesson(editLesson.id, t);
+      toast.success('Cập nhật thành công');
+      setEditLesson(null);
+      load(query);
+    } catch (err) {
+      toast.error(err.message || 'Cập nhật thất bại');
+    } finally { setEditLoading(false); }
   }
 
   return (
     <TeacherLayout>
       {showAdd && (
-        <AddModal
+        <LessonModal
+          title="Thêm bài học mới"
           onClose={() => setShowAdd(false)}
-          onCreated={() => { setShowAdd(false); load(query); }}
+          onSubmit={handleCreate}
+          loading={addLoading}
         />
       )}
       {editLesson && (
-        <EditModal
-          lesson={editLesson}
+        <LessonModal
+          title="Sửa tên bài học"
+          initialValue={editLesson.title}
           onClose={() => setEditLesson(null)}
-          onUpdated={() => { setEditLesson(null); load(query); }}
+          onSubmit={handleEdit}
+          loading={editLoading}
         />
       )}
       {deleteLesson_ && (
@@ -204,66 +174,70 @@ export default function ManageLesson() {
       )}
 
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-          <FiBookOpen className="text-indigo-500" /> Quản lý bài học
-        </h1>
-        <div className="relative flex-1 max-w-xs ml-4">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            className="input w-full pl-9"
-            placeholder="Tìm kiếm bài học..."
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-          />
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Bài học & Đề thi</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{lessons.length} bài học</p>
         </div>
-        <button className="btn-primary flex items-center gap-2 whitespace-nowrap" onClick={() => setShowAdd(true)}>
-          <FiPlus /> Thêm bài học
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <FiSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              className="input pl-9 w-56"
+              placeholder="Tìm kiếm bài học..."
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+            />
+          </div>
+          <button className="btn-primary whitespace-nowrap" onClick={() => setShowAdd(true)}>
+            <FiPlus size={16} /> Thêm bài học
+          </button>
+        </div>
       </div>
 
-      {/* Body */}
+      {/* List */}
       {loading ? (
-        <p className="text-center text-gray-400 mt-10">Đang tải...</p>
+        <div className="flex justify-center py-20">
+          <FiLoader size={24} className="animate-spin text-gray-400" />
+        </div>
       ) : lessons.length === 0 ? (
-        <p className="text-center text-gray-400 mt-10">
-          {query ? 'Không tìm thấy bài học nào.' : 'Chưa có bài học nào.'}
-        </p>
+        <div className="text-center py-20">
+          <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+            <FiBook size={22} className="text-gray-400" />
+          </div>
+          <p className="text-gray-500 font-medium">
+            {query ? 'Không tìm thấy bài học nào' : 'Chưa có bài học nào'}
+          </p>
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {lessons.map(l => (
-            <div key={l.id} className="card flex items-center justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-800 truncate">{l.title}</p>
-                <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-400">
-                  <span>{formatDate(l.created_at)}</span>
-                  <span className="flex items-center gap-1">
-                    <FiBookOpen size={11} />
-                    {l.exam_count ?? 0} bài thi
-                  </span>
+            <div key={l.id}
+              className="card flex items-center justify-between gap-4 py-4 hover:shadow-md transition-all duration-200">
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center shrink-0">
+                  <FiBook size={16} className="text-indigo-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 truncate">{l.title}</p>
+                  <div className="flex items-center gap-3 mt-0.5">
+                    <span className="text-xs text-gray-400">{formatDate(l.created_at)}</span>
+                    <span className="badge-indigo">{l.exam_count ?? 0} đề thi</span>
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <button
-                  title="Cập nhật"
-                  className="p-2 rounded-lg text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-                  onClick={() => setEditLesson(l)}
-                >
-                  <FiEdit2 size={16} />
+                <button title="Sửa" className="btn-ghost p-2"
+                  onClick={() => setEditLesson(l)}>
+                  <FiEdit2 size={15} />
                 </button>
-                <button
-                  title="Xóa"
-                  className="p-2 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors"
-                  onClick={() => setDeleteLesson(l)}
-                >
-                  <FiTrash2 size={16} />
+                <button title="Xóa" className="btn-ghost text-red-500 hover:text-red-600 hover:bg-red-50 p-2"
+                  onClick={() => setDeleteLesson(l)}>
+                  <FiTrash2 size={15} />
                 </button>
-                <button
-                  title="Xem chi tiết"
-                  className="btn-primary flex items-center gap-1.5 text-sm py-1.5 px-3"
-                  onClick={() => navigate(`/lesson-detail/${l.id}`)}
-                >
-                  <FiEye size={14} /> Chi tiết
+                <button className="btn-primary py-1.5 px-3 text-xs ml-1"
+                  onClick={() => navigate(`/lesson-detail/${l.id}`)}>
+                  Chi tiết <FiArrowRight size={13} />
                 </button>
               </div>
             </div>

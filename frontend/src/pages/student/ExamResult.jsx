@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getExamResult } from '../../api/examService';
+import { FiArrowLeft, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 
 export default function ExamResult() {
   const { examId } = useParams();
-  const navigate = useNavigate();
+  const navigate   = useNavigate();
   const [result, setResult] = useState(null);
 
   useEffect(() => {
@@ -13,59 +14,80 @@ export default function ExamResult() {
 
   if (!result) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <p className="text-gray-400">Đang tải kết quả...</p>
+      <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
-  const score = result.score ?? 0;
+  const score  = result.score ?? 0;
   const passed = score >= 5;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto p-4 space-y-4">
-        {/* Result header */}
-        <div className={`card text-center py-6 border-t-4 ${passed ? 'border-green-500' : 'border-red-400'}`}>
-          <div className={`text-5xl font-bold mb-2 ${passed ? 'text-green-600' : 'text-red-500'}`}>
-            {score}/10
-          </div>
-          <p className={`text-lg font-semibold ${passed ? 'text-green-700' : 'text-red-600'}`}>
-            {passed ? '✅ Đạt' : '❌ Chưa đạt'}
-          </p>
-          <p className="text-sm text-gray-500 mt-1">{result.correct}/{result.total} câu đúng</p>
-          <p className="text-gray-600 font-medium mt-2">{result.examName}</p>
-          <button className="btn-secondary text-sm mt-4" onClick={() => navigate('/student')}>
-            ← Về trang chủ
+    <div className="min-h-screen bg-gray-50 pb-8">
+      {/* Nav */}
+      <div className="bg-white border-b border-gray-200 px-4 py-3.5">
+        <div className="max-w-2xl mx-auto">
+          <button onClick={() => navigate('/student')}
+            className="btn-ghost py-1.5 px-2.5 gap-1.5 text-gray-600">
+            <FiArrowLeft size={15} /> Về trang chủ
           </button>
         </div>
+      </div>
 
-        {/* Questions review */}
+      <div className="max-w-2xl mx-auto p-4 space-y-4">
+        {/* Score card */}
+        <div className={`card text-center py-8 border-t-4 ${passed ? 'border-t-emerald-400' : 'border-t-red-400'}`}>
+          <div className={`inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-4 ${
+            passed ? 'bg-emerald-50' : 'bg-red-50'
+          }`}>
+            <span className={`text-3xl font-bold ${passed ? 'text-emerald-600' : 'text-red-500'}`}>
+              {score}
+            </span>
+          </div>
+          <p className={`text-lg font-bold mb-1 ${passed ? 'text-emerald-700' : 'text-red-600'}`}>
+            {passed ? 'Đạt' : 'Chưa đạt'}
+          </p>
+          <p className="text-sm text-gray-500">{result.correct}/{result.total} câu đúng</p>
+          <p className="text-sm font-medium text-gray-700 mt-2">{result.examName}</p>
+        </div>
+
+        {/* Review */}
         <div className="space-y-3">
           {result.questions?.map((q, qi) => (
-            <div key={q.questionId} className={`card border-l-4 ${q.isCorrect ? 'border-green-400' : 'border-red-400'}`}>
-              <p className="font-semibold text-gray-800 mb-2 text-sm">
-                <span className={`mr-2 ${q.isCorrect ? 'text-green-500' : 'text-red-500'}`}>
-                  {q.isCorrect ? '✓' : '✗'}
-                </span>
-                Câu {qi + 1}: {q.questionContent}
-              </p>
-              <div className="space-y-1.5">
+            <div key={q.questionId}
+              className={`card border-l-4 ${q.isCorrect ? 'border-l-emerald-400' : 'border-l-red-400'}`}>
+              <div className="flex items-start gap-2.5 mb-3">
+                {q.isCorrect
+                  ? <FiCheckCircle size={16} className="text-emerald-500 mt-0.5 shrink-0" />
+                  : <FiXCircle size={16} className="text-red-500 mt-0.5 shrink-0" />}
+                <p className="font-medium text-gray-900 text-sm leading-relaxed">
+                  Câu {qi + 1}: {q.questionContent}
+                </p>
+              </div>
+              <div className="space-y-2 pl-6">
                 {q.answers?.map(a => {
-                  let cls = 'border-gray-100 text-gray-600';
-                  if (a.isCorrected === 1) cls = 'border-green-300 bg-green-50 text-green-700 font-medium';
-                  else if (a.isSelected && a.isCorrected !== 1) cls = 'border-red-300 bg-red-50 text-red-700';
+                  const isCorrect  = a.isCorrected === 1;
+                  const isSelected = a.isSelected && !isCorrect;
                   return (
-                    <div key={a.answerId} className={`px-3 py-2 rounded-lg border text-sm ${cls}`}>
+                    <div key={a.answerId}
+                      className={`px-3 py-2 rounded-lg border text-sm ${
+                        isCorrect  ? 'border-emerald-300 bg-emerald-50 text-emerald-700 font-medium' :
+                        isSelected ? 'border-red-300 bg-red-50 text-red-700' :
+                                     'border-gray-100 text-gray-600'
+                      }`}>
                       {a.content}
-                      {a.isCorrected === 1 && <span className="ml-2 text-xs">(Đáp án đúng)</span>}
-                      {a.isSelected && a.isCorrected !== 1 && <span className="ml-2 text-xs">(Bạn chọn)</span>}
+                      {isCorrect  && <span className="ml-2 text-xs opacity-70">(Đáp án đúng)</span>}
+                      {isSelected && <span className="ml-2 text-xs opacity-70">(Bạn chọn)</span>}
                     </div>
                   );
                 })}
               </div>
               {q.explanation && (
-                <p className="mt-2 text-xs text-gray-500 bg-gray-50 p-2 rounded">
-                  💡 {q.explanation}
-                </p>
+                <div className="mt-3 pl-6">
+                  <div className="text-xs text-gray-500 bg-amber-50 border border-amber-100 px-3 py-2 rounded-lg">
+                    <span className="font-medium text-amber-700">Giải thích: </span>
+                    {q.explanation}
+                  </div>
+                </div>
               )}
             </div>
           ))}

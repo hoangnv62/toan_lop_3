@@ -1,130 +1,131 @@
-create table answers
-(
-    id          int auto_increment
-        primary key,
-    questionId  int        not null,
-    content     int        not null,
-    isCorrected tinyint(1) not null
-)
-    collate = utf8mb4_general_ci;
-
-create table exams
-(
-    id           int auto_increment
-        primary key,
-    lesson_id    int                                not null,
-    name         text                               not null,
-    description  text                               not null,
-    date_created datetime default CURRENT_TIMESTAMP not null
-)
-    collate = utf8mb4_general_ci;
-
-create table questions
-(
-    id          int auto_increment
-        primary key,
-    exam_id     int                          not null,
-    content     text                         not null,
-    svg_code    longtext                     null,
-    options     longtext collate utf8mb4_bin null,
-    explanation text                         null,
-    check (json_valid(`options`))
-)
-    collate = utf8mb4_general_ci;
-
-create index exam_set_id
-    on questions (exam_id);
-
-create table student_answer
-(
-    id         int auto_increment
-        primary key,
-    exam_id    int not null,
-    answer_id  int not null,
-    user_id    int not null,
-    time_spent int not null
-)
-    collate = utf8mb4_general_ci;
-
-create table teachers
-(
-    id        int auto_increment
-        primary key,
-    username  varchar(50)  null,
-    password  varchar(50)  null,
-    full_name varchar(100) null,
-    constraint username
-        unique (username)
-)
-    collate = utf8mb4_general_ci;
-
 create table classes
 (
     id         int auto_increment
         primary key,
-    teacher_id int                                 not null,
-    class_name varchar(100)                        not null,
-    created_at timestamp default CURRENT_TIMESTAMP not null,
-    constraint classes_ibfk_1
-        foreign key (teacher_id) references teachers (id)
-            on delete cascade
-)
-    collate = utf8mb4_general_ci;
+    teacher_id int                                   not null,
+    class_name varchar(100)                          not null,
+    created_at timestamp default current_timestamp() not null
+);
 
-create index teacher_id
-    on classes (teacher_id);
+create table users
+(
+    id         int auto_increment
+        primary key,
+    username   varchar(50)                           not null,
+    password   varchar(255)                          not null,
+    full_name  varchar(100)                          not null,
+    role       enum ('teacher', 'student')           not null,
+    dob        date                                  null,
+    class_id   int                                   null,
+    created_at timestamp default current_timestamp() not null,
+    constraint username
+        unique (username),
+    constraint fk_user_class
+        foreign key (class_id) references classes (id)
+            on delete set null
+);
+
+alter table classes
+    add constraint fk_class_teacher
+        foreign key (teacher_id) references users (id);
 
 create table lessons
 (
     id          int auto_increment
         primary key,
-    teacher_id  int                                 null,
-    title       varchar(255)                        null,
-    description text                                null,
-    created_at  timestamp default CURRENT_TIMESTAMP not null,
-    constraint lessons_ibfk_1
-        foreign key (teacher_id) references teachers (id)
-)
-    collate = utf8mb4_general_ci;
+    teacher_id  int                                   not null,
+    title       varchar(255)                          not null,
+    description text                                  null,
+    created_at  timestamp default current_timestamp() not null,
+    constraint fk_lesson_teacher
+        foreign key (teacher_id) references users (id)
+);
 
-create table exam_sets
-(
-    id         int auto_increment
-        primary key,
-    lesson_id  int                                                   not null,
-    title      varchar(255)                                          null,
-    status     enum ('draft', 'published') default 'draft'           null,
-    created_at timestamp                   default CURRENT_TIMESTAMP not null,
-    constraint exam_sets_ibfk_1
-        foreign key (lesson_id) references lessons (id)
-            on delete cascade
-)
-    collate = utf8mb4_general_ci;
-
-create index lesson_id
-    on exam_sets (lesson_id);
-
-create index teacher_id
-    on lessons (teacher_id);
-
-create table students
+create table exams
 (
     id           int auto_increment
         primary key,
-    full_name    varchar(100)                       null,
-    parent_name  varchar(100)                       null,
-    parent_phone varchar(20)                        null,
-    teacher_id   int                                null,
-    class_id     int                                not null,
-    dob          datetime default CURRENT_TIMESTAMP null,
-    password     text                               not null,
+    lesson_id    int                                   not null,
+    name         varchar(255)                          not null,
+    description  text                                  null,
+    date_created timestamp default current_timestamp() not null,
+    constraint fk_exam_lesson
+        foreign key (lesson_id) references lessons (id)
+            on delete cascade
+);
+
+create table questions
+(
+    id          int auto_increment
+        primary key,
+    exam_id     int      not null,
+    content     text     not null,
+    svg_code    longtext null,
+    explanation text     null,
+    constraint fk_question_exam
+        foreign key (exam_id) references exams (id)
+            on delete cascade
+);
+
+create table answers
+(
+    id          int auto_increment
+        primary key,
+    question_id int                  not null,
+    content     text                 not null,
+    is_correct  tinyint(1) default 0 null,
+    constraint fk_answer_question
+        foreign key (question_id) references questions (id)
+            on delete cascade
+);
+
+create table student_answers
+(
+    id           int auto_increment
+        primary key,
+    student_id   int                                   not null,
+    exam_id      int                                   not null,
+    answer_id    int                                   not null,
+    time_spent   int       default 0                   null,
+    submitted_at timestamp default current_timestamp() not null,
+    constraint fk_student_answer_answer
+        foreign key (answer_id) references answers (id)
+            on delete cascade,
+    constraint fk_student_answer_exam
+        foreign key (exam_id) references exams (id)
+            on delete cascade,
+    constraint fk_student_answer_student
+        foreign key (student_id) references users (id)
+            on delete cascade
+);
+
+create table student_relatives
+(
+    id           int auto_increment
+        primary key,
+    student_id   int          not null,
+    name         varchar(100) not null,
+    phone        varchar(20)  not null,
+    relationship varchar(50)  null,
+    created_at   timestamp default current_timestamp() not null,
+    constraint fk_relative_student
+        foreign key (student_id) references users (id)
+            on delete cascade
+);
+
+create table student_parents
+(
+    id           int auto_increment
+        primary key,
+    student_id   int          not null,
+    parent_name  varchar(100) null,
+    parent_phone varchar(20)  null,
     constraint parent_phone
         unique (parent_phone),
-    constraint students_ibfk_1
-        foreign key (teacher_id) references teachers (id)
-)
-    collate = utf8mb4_general_ci;
-
-create index teacher_id
-    on students (teacher_id);
+    constraint student_id
+        unique (student_id),
+    constraint fk_parent_student
+        foreign key (student_id) references users (id)
+            on delete cascade
+);
 

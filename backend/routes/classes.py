@@ -82,10 +82,8 @@ def get_class_detail(class_id):
     cur.execute(
         """
         SELECT u.id, u.username, u.full_name, u.dob,
-               sp.parent_name, sp.parent_phone,
                ROUND(AVG(exam_score), 2) AS avg_score
         FROM users u
-        LEFT JOIN student_parents sp ON sp.student_id=u.id
         LEFT JOIN (
             SELECT sa.student_id, sa.exam_id,
                 SUM(a.is_correct) / NULLIF(COUNT(sa.id),0) * 10 AS exam_score

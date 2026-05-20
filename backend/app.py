@@ -8,6 +8,7 @@ from routes.exam import exam_bp
 from routes.question import question_bp
 from routes.student import student_bp
 from routes.lesson import lesson_bp
+from routes.relatives import relatives_bp
 
 app = Flask(__name__)
 app.secret_key = app_secret_key
@@ -28,6 +29,7 @@ app.register_blueprint(exam_bp)
 app.register_blueprint(question_bp)
 app.register_blueprint(student_bp)
 app.register_blueprint(lesson_bp)
+app.register_blueprint(relatives_bp)
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

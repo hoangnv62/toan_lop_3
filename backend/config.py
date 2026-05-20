@@ -23,7 +23,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 #     except:
 #         model = genai.GenerativeModel("gemini-1.5-flash")
 
-DEFAULT_MODEL = "models/gemini-2.5-pro"
+DEFAULT_MODEL = "models/gemini-2.5-flash"
 _client = genai.Client(api_key=GEMINI_API_KEY)
 
 

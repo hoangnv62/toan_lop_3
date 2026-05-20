@@ -22,11 +22,9 @@ def search_students():
     cur.execute(
         """
         SELECT u.id, u.username, u.full_name, u.dob,
-               u.class_id, c.class_name AS current_class,
-               sp.parent_name, sp.parent_phone
+               u.class_id, c.class_name AS current_class
         FROM users u
         LEFT JOIN classes c ON c.id=u.class_id
-        LEFT JOIN student_parents sp ON sp.student_id=u.id
         WHERE u.role='student' AND u.username LIKE %s
         LIMIT 20
         """,
