@@ -129,3 +129,44 @@ create table student_parents
             on delete cascade
 );
 
+-- Giao bài tập theo lớp (với deadline tùy chọn)
+create table class_exams
+(
+    id          int auto_increment
+        primary key,
+    class_id    int                                   not null,
+    exam_id     int                                   not null,
+    deadline    datetime                              null,
+    assigned_at timestamp default current_timestamp() not null,
+    constraint uq_class_exam
+        unique (class_id, exam_id),
+    constraint fk_ce_class
+        foreign key (class_id) references classes (id)
+            on delete cascade,
+    constraint fk_ce_exam
+        foreign key (exam_id) references exams (id)
+            on delete cascade
+);
+
+-- Nhận xét của giáo viên trên bài làm của học sinh
+create table student_exam_comments
+(
+    id         int auto_increment
+        primary key,
+    exam_id    int                                   not null,
+    student_id int                                   not null,
+    teacher_id int                                   not null,
+    comment    text                                  not null,
+    created_at timestamp default current_timestamp() not null,
+    constraint uq_sec
+        unique (exam_id, student_id),
+    constraint fk_sec_exam
+        foreign key (exam_id) references exams (id)
+            on delete cascade,
+    constraint fk_sec_student
+        foreign key (student_id) references users (id)
+            on delete cascade,
+    constraint fk_sec_teacher
+        foreign key (teacher_id) references users (id)
+            on delete cascade
+);
