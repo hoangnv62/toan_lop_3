@@ -20,3 +20,12 @@ export const uploadStudents  = (classId, file) => {
   form.append('file', file);
   return apiFetch(`/api/classes/${classId}/students/upload`, { method: 'POST', body: form });
 };
+
+export const getClassExams   = (classId)                   => apiFetch(`/api/classes/${classId}/exams`);
+export const assignExam      = (classId, examId, deadline) =>
+  apiFetch(`/api/classes/${classId}/exams`, {
+    method: 'POST',
+    body: JSON.stringify({ exam_id: examId, deadline: deadline || null }),
+  });
+export const unassignExam    = (classId, examId)           =>
+  apiFetch(`/api/classes/${classId}/exams/${examId}`, { method: 'DELETE' });

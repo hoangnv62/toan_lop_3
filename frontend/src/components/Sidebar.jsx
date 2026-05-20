@@ -7,7 +7,7 @@ import { FiBarChart2, FiUsers, FiBook, FiLogOut } from 'react-icons/fi';
 const links = [
   { to: '/dashboard',     label: 'Báo cáo & Phân tích', icon: FiBarChart2 },
   { to: '/manage-class',  label: 'Quản lý lớp',          icon: FiUsers },
-  { to: '/manage-lesson', label: 'Bài học & Đề thi',      icon: FiBook },
+  { to: '/manage-lesson', label: 'Bài học & Bài tập',      icon: FiBook },
 ];
 
 export default function Sidebar() {

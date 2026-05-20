@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import TeacherLayout from '../../components/TeacherLayout';
 import { fetchLesson } from '../../api/lessonService';
-import { fetchExam, saveExam, deleteExam } from '../../api/examService';
+import { fetchExam, saveExam, deleteExam, getExamAssignments } from '../../api/examService';
 import { generateQuestions } from '../../api/questionService';
+import { assignExam, unassignExam } from '../../api/classService';
 import { toast } from 'react-toastify';
 import {
-  FiPlus, FiTrash2, FiEdit2, FiEye, FiZap, FiSave, FiX, FiCheckCircle, FiLoader,
+  FiPlus, FiTrash2, FiEdit2, FiEye, FiZap, FiSave, FiX, FiCheckCircle, FiLoader, FiSend, FiClock,
 } from 'react-icons/fi';
 
 const ANSWER_LABELS = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -21,6 +22,148 @@ const emptyQuestion = () => ({
   questionId: null, content: '', explanation: '',
   answers: ['','','',''].map(() => ({ answerId: null, content: '', correct: false })),
 });
+
+// ── Assign Exam Modal ─────────────────────────────────────────────────────────
+function AssignExamModal({ exam, onClose }) {
+  const [assignments, setAssignments] = useState(null);
+  const [pendingId, setPendingId]     = useState(null); // classId đang chờ nhập deadline
+  const [deadline, setDeadline]       = useState('');
+  const [actionId, setActionId]       = useState(null); // classId đang xử lý
+
+  useEffect(() => { load(); }, []);
+
+  async function load() {
+    try {
+      setAssignments(await getExamAssignments(exam.id));
+    } catch {
+      setAssignments([]);
+    }
+  }
+
+  async function handleAssign(classId) {
+    setActionId(classId);
+    try {
+      await assignExam(classId, exam.id, deadline || null);
+      toast.success('Đã giao bài cho lớp');
+      setPendingId(null);
+      setDeadline('');
+      load();
+    } catch (err) {
+      toast.error(err.message || 'Giao bài thất bại');
+    } finally { setActionId(null); }
+  }
+
+  async function handleUnassign(classId) {
+    setActionId(classId);
+    try {
+      await unassignExam(classId, exam.id);
+      toast.success('Đã thu hồi bài thi');
+      load();
+    } catch (err) {
+      toast.error(err.message || 'Thu hồi thất bại');
+    } finally { setActionId(null); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="font-semibold text-gray-900">Giao bài cho lớp</h3>
+            <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[210px]">{exam.name}</p>
+          </div>
+          <button onClick={onClose}
+            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+            <FiX size={17} />
+          </button>
+        </div>
+
+        {assignments === null ? (
+          <div className="flex justify-center py-10">
+            <FiLoader size={20} className="animate-spin text-gray-300" />
+          </div>
+        ) : assignments.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-10">Chưa có lớp nào.</p>
+        ) : (
+          <div className="space-y-2 max-h-80 overflow-y-auto">
+            {assignments.map(cls => (
+              <div key={cls.class_id}
+                className={`rounded-xl border p-3 transition-colors ${
+                  cls.assigned ? 'border-indigo-200 bg-indigo-50/40' : 'border-gray-200'
+                }`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-gray-900 truncate">{cls.class_name}</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {cls.assigned ? (
+                      <>
+                        <span className="badge-green text-xs">Đã giao</span>
+                        <button
+                          className="btn-ghost text-red-500 hover:bg-red-50 py-0.5 px-2 text-xs gap-0.5"
+                          disabled={actionId === cls.class_id}
+                          onClick={() => handleUnassign(cls.class_id)}>
+                          {actionId === cls.class_id
+                            ? <FiLoader size={11} className="animate-spin" />
+                            : <><FiX size={11} /> Thu hồi</>}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        className="btn-primary py-0.5 px-2.5 text-xs gap-1"
+                        onClick={() => { setPendingId(cls.class_id); setDeadline(''); }}>
+                        <FiSend size={11} /> Giao
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Deadline info */}
+                {cls.assigned && cls.deadline && (
+                  <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1">
+                    <FiClock size={10} /> Hạn: {new Date(cls.deadline).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
+                  </p>
+                )}
+
+                {/* Inline form khi nhấn Giao */}
+                {pendingId === cls.class_id && (
+                  <div className="mt-2.5 pt-2.5 border-t border-gray-200 space-y-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Hạn nộp bài <span className="text-gray-400 font-normal">(tùy chọn)</span>
+                      </label>
+                      <input
+                        type="datetime-local"
+                        className="input text-sm py-1.5"
+                        value={deadline}
+                        onChange={e => setDeadline(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        className="btn-secondary flex-1 text-xs py-1.5"
+                        onClick={() => { setPendingId(null); setDeadline(''); }}>
+                        Hủy
+                      </button>
+                      <button
+                        className="btn-primary flex-1 text-xs py-1.5"
+                        disabled={actionId === cls.class_id}
+                        onClick={() => handleAssign(cls.class_id)}>
+                        {actionId === cls.class_id
+                          ? <FiLoader size={11} className="animate-spin" />
+                          : 'Xác nhận'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button className="btn-secondary w-full mt-4" onClick={onClose}>Đóng</button>
+      </div>
+    </div>
+  );
+}
 
 // ── Exam Modal ────────────────────────────────────────────────────────────────
 function ExamModal({ lesson, examId, initialData, onClose, onSaved }) {
@@ -282,9 +425,10 @@ function ExamModal({ lesson, examId, initialData, onClose, onSaved }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function LessonDetail() {
   const { lessonId } = useParams();
-  const [lesson, setLesson]     = useState(null);
-  const [modal, setModal]       = useState(null);
-  const [deleting, setDeleting] = useState(null);
+  const [lesson, setLesson]           = useState(null);
+  const [modal, setModal]             = useState(null);
+  const [assignModal, setAssignModal] = useState(null); // { exam: { id, name } }
+  const [deleting, setDeleting]       = useState(null);
 
   useEffect(() => { load(); }, [lessonId]);
 
@@ -363,6 +507,11 @@ export default function LessonDetail() {
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                <button title="Giao cho lớp"
+                  className="btn-ghost text-indigo-600 hover:bg-indigo-50 p-2"
+                  onClick={() => setAssignModal({ exam })}>
+                  <FiSend size={15} />
+                </button>
                 <button title="Chỉnh sửa"
                   className="btn-ghost p-2"
                   onClick={() => openEdit(exam.id)}>
@@ -394,6 +543,13 @@ export default function LessonDetail() {
           initialData={modal.initialData}
           onClose={() => setModal(null)}
           onSaved={() => { setModal(null); load(); }}
+        />
+      )}
+
+      {assignModal && (
+        <AssignExamModal
+          exam={assignModal.exam}
+          onClose={() => setAssignModal(null)}
         />
       )}
     </TeacherLayout>

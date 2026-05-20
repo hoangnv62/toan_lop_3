@@ -150,6 +150,119 @@ def delete_class(class_id):
         cur.close(); conn.close()
 
 
+@classes_bp.route("/api/classes/<int:class_id>/exams", methods=["GET"])
+@require_auth
+def get_class_exams(class_id):
+    teacher_id = g.user["user_id"]
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    cur.execute("SELECT id FROM classes WHERE id=%s AND teacher_id=%s", (class_id, teacher_id))
+    if not cur.fetchone():
+        cur.close(); conn.close()
+        return jsonify({"success": False, "message": "Lớp không tồn tại"}), 404
+
+    cur.execute(
+        """
+        SELECT ce.exam_id, e.name AS exam_name, l.title AS lesson_name,
+               ce.deadline, ce.assigned_at,
+               COUNT(DISTINCT sa.student_id) AS completed_count,
+               (SELECT COUNT(*) FROM users WHERE class_id=%s AND role='student') AS total_students
+        FROM class_exams ce
+        JOIN exams e ON ce.exam_id=e.id
+        JOIN lessons l ON e.lesson_id=l.id
+        LEFT JOIN student_answers sa
+            ON sa.exam_id=ce.exam_id
+            AND sa.student_id IN (SELECT id FROM users WHERE class_id=%s AND role='student')
+        WHERE ce.class_id=%s
+        GROUP BY ce.exam_id
+        ORDER BY ce.assigned_at DESC
+        """,
+        (class_id, class_id, class_id),
+    )
+    rows = cur.fetchall()
+    cur.close(); conn.close()
+
+    for r in rows:
+        r["deadline"]    = str(r["deadline"])    if r["deadline"]    else None
+        r["assigned_at"] = str(r["assigned_at"]) if r["assigned_at"] else None
+
+    return jsonify({"success": True, "data": rows})
+
+
+@classes_bp.route("/api/classes/<int:class_id>/exams", methods=["POST"])
+@require_auth
+def assign_exam_to_class(class_id):
+    teacher_id = g.user["user_id"]
+    data    = request.get_json() or {}
+    exam_id  = data.get("exam_id")
+    deadline = data.get("deadline") or None
+
+    if not exam_id:
+        return jsonify({"success": False, "message": "Thiếu exam_id"}), 400
+
+    conn = get_db()
+    cur  = conn.cursor(dictionary=True)
+
+    cur.execute("SELECT id FROM classes WHERE id=%s AND teacher_id=%s", (class_id, teacher_id))
+    if not cur.fetchone():
+        cur.close(); conn.close()
+        return jsonify({"success": False, "message": "Lớp không tồn tại"}), 404
+
+    cur.execute(
+        """
+        SELECT e.id FROM exams e
+        JOIN lessons l ON e.lesson_id=l.id
+        WHERE e.id=%s AND l.teacher_id=%s
+        """,
+        (exam_id, teacher_id),
+    )
+    if not cur.fetchone():
+        cur.close(); conn.close()
+        return jsonify({"success": False, "message": "Bài thi không tồn tại"}), 404
+
+    try:
+        cur.execute(
+            "INSERT INTO class_exams (class_id, exam_id, deadline) VALUES (%s,%s,%s)",
+            (class_id, exam_id, deadline),
+        )
+        conn.commit()
+        return jsonify({"success": True, "message": "Đã giao bài cho lớp"})
+    except Exception as e:
+        conn.rollback()
+        if "Duplicate entry" in str(e):
+            return jsonify({"success": False, "message": "Bài thi đã được giao cho lớp này"}), 409
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cur.close(); conn.close()
+
+
+@classes_bp.route("/api/classes/<int:class_id>/exams/<int:exam_id>", methods=["DELETE"])
+@require_auth
+def unassign_exam_from_class(class_id, exam_id):
+    teacher_id = g.user["user_id"]
+    conn = get_db()
+    cur  = conn.cursor()
+
+    cur.execute("SELECT id FROM classes WHERE id=%s AND teacher_id=%s", (class_id, teacher_id))
+    if not cur.fetchone():
+        cur.close(); conn.close()
+        return jsonify({"success": False, "message": "Lớp không tồn tại"}), 404
+
+    try:
+        cur.execute(
+            "DELETE FROM class_exams WHERE class_id=%s AND exam_id=%s",
+            (class_id, exam_id),
+        )
+        conn.commit()
+        return jsonify({"success": True, "message": "Đã thu hồi bài thi"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cur.close(); conn.close()
+
+
 @classes_bp.route("/api/classes/<int:class_id>/students", methods=["GET"])
 @require_auth
 def class_students_with_scores(class_id):

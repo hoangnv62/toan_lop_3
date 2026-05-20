@@ -47,7 +47,7 @@ export default function StudentExam() {
   const timerRef = useRef(null);
 
   useEffect(() => {
-    fetchExam(examId).then(setExam).catch(() => toast.error('Không tải được đề thi'));
+    fetchExam(examId).then(setExam).catch(() => toast.error('Không tải được bài tập'));
   }, [examId]);
 
   useEffect(() => {

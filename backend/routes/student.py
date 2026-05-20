@@ -249,7 +249,7 @@ def student_dashboard():
         }})
     teacher_id = row["teacher_id"]
 
-    lesson_rows  = _lessons_with_stats(cur, uid, teacher_id, date_from, date_to)
+    lesson_rows  = _lessons_with_stats(cur, uid, date_from, date_to)
     ranking_rows = _class_ranking(cur, teacher_id, date_from, date_to)
     cur.close(); conn.close()
 
@@ -263,6 +263,7 @@ def student_dashboard():
         exams.append({
             "examId": r["exam_id"], "examName": r["exam_name"],
             "lessonTitle": r["lesson_name"], "done": done, "score": score,
+            "deadline": str(r["deadline"]) if r.get("deadline") else None,
         })
         if done and score is not None:
             scores.append({"examName": r["exam_name"], "score": score})
@@ -286,22 +287,24 @@ def student_dashboard():
     }})
 
 
-def _lessons_with_stats(cur, student_id, teacher_id, date_from=None, date_to=None):
+def _lessons_with_stats(cur, student_id, date_from=None, date_to=None):
     sql = """
         SELECT l.id AS lesson_id, l.title AS lesson_name, l.created_at,
             e.id AS exam_id, e.name AS exam_name,
+            ce.deadline,
             CASE WHEN MAX(sa.id) IS NULL THEN 0 ELSE 1 END AS done,
             COUNT(DISTINCT q.id) AS total_questions,
             SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END) AS correct_questions,
             MAX(sa.time_spent) AS time_spent
         FROM lessons l
         JOIN exams e ON e.lesson_id=l.id
+        JOIN class_exams ce ON ce.exam_id=e.id
         LEFT JOIN student_answers sa ON sa.exam_id=e.id AND sa.student_id=%s
         LEFT JOIN answers a ON sa.answer_id=a.id
         LEFT JOIN questions q ON a.question_id=q.id
-        WHERE l.teacher_id=%s
+        WHERE ce.class_id=(SELECT class_id FROM users WHERE id=%s)
     """
-    params = [student_id, teacher_id]
+    params = [student_id, student_id]
     if date_from:
         sql += " AND (sa.submitted_at IS NULL OR sa.submitted_at >= %s)"
         params.append(date_from)

@@ -176,7 +176,7 @@ export default function ManageLesson() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Bài học & Đề thi</h1>
+          <h1 className="page-title">Bài học & Bài tập</h1>
           <p className="text-sm text-gray-500 mt-0.5">{lessons.length} bài học</p>
         </div>
         <div className="flex items-center gap-3">
@@ -222,7 +222,7 @@ export default function ManageLesson() {
                   <p className="font-medium text-gray-900 truncate">{l.title}</p>
                   <div className="flex items-center gap-3 mt-0.5">
                     <span className="text-xs text-gray-400">{formatDate(l.created_at)}</span>
-                    <span className="badge-indigo">{l.exam_count ?? 0} đề thi</span>
+                    <span className="badge-indigo">{l.exam_count ?? 0} </span>
                   </div>
                 </div>
               </div>

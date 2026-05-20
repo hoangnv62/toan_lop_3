@@ -1,8 +1,120 @@
-from flask import Blueprint, request, jsonify, g
+from io import BytesIO
+from urllib.parse import quote
+from flask import Blueprint, request, jsonify, g, Response
 from utils import get_db, require_auth
 
 exam_bp = Blueprint("exam", __name__)
 
+
+# ── shared helper ─────────────────────────────────────────────────────────────
+
+def _build_exam_result(cur, exam_id, student_id):
+    cur.execute(
+        """
+        SELECT e.name AS exam_name, l.title AS lesson_name,
+               MAX(sa.time_spent) AS time_spent,
+               MAX(sa.submitted_at) AS submitted_at
+        FROM exams e
+        JOIN lessons l ON e.lesson_id=l.id
+        LEFT JOIN student_answers sa ON sa.exam_id=e.id AND sa.student_id=%s
+        WHERE e.id=%s GROUP BY e.id
+        """,
+        (student_id, exam_id),
+    )
+    exam_info = cur.fetchone()
+    if not exam_info:
+        return None
+
+    cur.execute(
+        """
+        SELECT q.id AS question_id, q.content AS question_content, q.explanation,
+               a.id AS answer_id, a.content AS answer_content,
+               a.is_correct, sa.answer_id AS student_answer_id
+        FROM questions q
+        JOIN answers a ON a.question_id=q.id
+        LEFT JOIN student_answers sa ON sa.answer_id=a.id AND sa.student_id=%s AND sa.exam_id=%s
+        WHERE q.exam_id=%s ORDER BY q.id, a.id
+        """,
+        (student_id, exam_id, exam_id),
+    )
+    rows = cur.fetchall()
+
+    question_map = {}
+    for r in rows:
+        qid = r["question_id"]
+        if qid not in question_map:
+            question_map[qid] = {
+                "questionId":       qid,
+                "questionContent":  r["question_content"],
+                "explanation":      r["explanation"],
+                "isCorrect":        False,
+                "selectedAnswerId": None,
+                "answers":          [],
+            }
+        ans = {
+            "answerId":    r["answer_id"],
+            "content":     r["answer_content"],
+            "isCorrected": r["is_correct"],
+            "isSelected":  r["student_answer_id"] == r["answer_id"],
+        }
+        if ans["isSelected"]:
+            question_map[qid]["selectedAnswerId"] = r["answer_id"]
+        question_map[qid]["answers"].append(ans)
+
+    questions     = list(question_map.values())
+    correct_count = 0
+    for q in questions:
+        correct_ans = next((a for a in q["answers"] if a["isCorrected"] == 1), None)
+        q["isCorrect"] = (
+            correct_ans is not None and q["selectedAnswerId"] == correct_ans["answerId"]
+        )
+        if q["isCorrect"]:
+            correct_count += 1
+
+    score = round(correct_count / len(questions) * 10, 1) if questions else 0
+    return {
+        "examName":    exam_info["exam_name"],
+        "lessonName":  exam_info["lesson_name"],
+        "timeSpent":   exam_info["time_spent"] or 0,
+        "submittedAt": str(exam_info["submitted_at"]) if exam_info["submitted_at"] else None,
+        "score":       score,
+        "correct":     correct_count,
+        "total":       len(questions),
+        "questions":   questions,
+    }
+
+
+# ── GET assignment status per class for an exam ──────────────────────────────
+
+@exam_bp.route("/api/exams/<int:exam_id>/assignments", methods=["GET"])
+@require_auth
+def get_exam_assignments(exam_id):
+    if g.user["role"] != "teacher":
+        return jsonify({"success": False, "message": "Không có quyền"}), 403
+    conn = get_db()
+    cur  = conn.cursor(dictionary=True)
+    cur.execute(
+        """
+        SELECT c.id AS class_id, c.class_name,
+               (ce.exam_id IS NOT NULL) AS assigned,
+               ce.deadline, ce.assigned_at
+        FROM classes c
+        LEFT JOIN class_exams ce ON ce.class_id=c.id AND ce.exam_id=%s
+        WHERE c.teacher_id=%s
+        ORDER BY c.class_name
+        """,
+        (exam_id, g.user["user_id"]),
+    )
+    rows = cur.fetchall()
+    cur.close(); conn.close()
+    for r in rows:
+        r["assigned"]    = bool(r["assigned"])
+        r["deadline"]    = str(r["deadline"])    if r["deadline"]    else None
+        r["assigned_at"] = str(r["assigned_at"]) if r["assigned_at"] else None
+    return jsonify({"success": True, "data": rows})
+
+
+# ── GET exam structure ────────────────────────────────────────────────────────
 
 @exam_bp.route("/api/exams/<int:exam_id>", methods=["GET"])
 @require_auth
@@ -19,7 +131,7 @@ def get_exam(exam_id):
     cur.execute(
         """
         SELECT q.id AS questionId, q.content AS questionContent,
-               q.svg_code AS svgCode, q.explanation,
+               q.explanation,
                a.id AS answerId, a.content AS answerContent, a.is_correct AS isCorrected
         FROM questions q
         LEFT JOIN answers a ON q.id=a.question_id
@@ -37,14 +149,13 @@ def get_exam(exam_id):
             questions_map[qid] = {
                 "questionId":      qid,
                 "questionContent": row["questionContent"],
-                "svgCode":         row["svgCode"],
                 "explanation":     row["explanation"],
                 "answers":         [],
             }
         if row["answerId"] is not None:
             questions_map[qid]["answers"].append({
-                "answerId":   row["answerId"],
-                "content":    row["answerContent"],
+                "answerId":    row["answerId"],
+                "content":     row["answerContent"],
                 "isCorrected": row["isCorrected"],
             })
 
@@ -55,6 +166,8 @@ def get_exam(exam_id):
         "questions":   list(questions_map.values()),
     }})
 
+
+# ── CREATE exam ───────────────────────────────────────────────────────────────
 
 @exam_bp.route("/api/lessons/<int:lesson_id>/exams", methods=["POST"])
 @require_auth
@@ -87,6 +200,8 @@ def create_exam(lesson_id):
     finally:
         cur.close(); conn.close()
 
+
+# ── UPDATE exam ───────────────────────────────────────────────────────────────
 
 @exam_bp.route("/api/lessons/<int:lesson_id>/exams/<int:exam_id>", methods=["PUT"])
 @require_auth
@@ -161,6 +276,8 @@ def update_exam(lesson_id, exam_id):
         cur.close(); conn.close()
 
 
+# ── DELETE exam ───────────────────────────────────────────────────────────────
+
 @exam_bp.route("/api/exams/<int:exam_id>", methods=["DELETE"])
 @require_auth
 def delete_exam(exam_id):
@@ -194,6 +311,8 @@ def delete_exam(exam_id):
     finally:
         cur.close(); conn.close()
 
+
+# ── SUBMIT exam ───────────────────────────────────────────────────────────────
 
 @exam_bp.route("/api/exams/<int:exam_id>/submit", methods=["POST"])
 @require_auth
@@ -252,25 +371,50 @@ def submit_exam(exam_id):
         if conn: conn.close()
 
 
+# ── GET result (student views own result) ─────────────────────────────────────
+
 @exam_bp.route("/api/exams/<int:exam_id>/result", methods=["GET"])
 @require_auth
 def get_exam_result(exam_id):
-    uid = g.user["user_id"]
+    conn = get_db()
+    cur  = conn.cursor(dictionary=True)
+    data = _build_exam_result(cur, exam_id, g.user["user_id"])
+    cur.close(); conn.close()
+    if not data:
+        return jsonify({"success": False, "message": "Bài thi không tồn tại"}), 404
+    return jsonify({"success": True, "data": data})
+
+
+# ── GET result (teacher views a student's submission) ─────────────────────────
+
+@exam_bp.route("/api/exams/<int:exam_id>/submissions/<int:student_id>", methods=["GET"])
+@require_auth
+def get_student_submission(exam_id, student_id):
+    if g.user["role"] != "teacher":
+        return jsonify({"success": False, "message": "Không có quyền truy cập"}), 403
+    conn = get_db()
+    cur  = conn.cursor(dictionary=True)
+    data = _build_exam_result(cur, exam_id, student_id)
+    cur.close(); conn.close()
+    if not data:
+        return jsonify({"success": False, "message": "Bài thi không tồn tại"}), 404
+    return jsonify({"success": True, "data": data})
+
+
+# ── EXPORT exam results to Excel ──────────────────────────────────────────────
+
+@exam_bp.route("/api/exams/<int:exam_id>/export", methods=["GET"])
+@require_auth
+def export_exam_results(exam_id):
+    if g.user["role"] != "teacher":
+        return jsonify({"success": False, "message": "Không có quyền"}), 403
+
+    import openpyxl
+
     conn = get_db()
     cur  = conn.cursor(dictionary=True)
 
-    cur.execute(
-        """
-        SELECT e.name AS exam_name, l.title AS lesson_name,
-               MAX(sa.time_spent) AS time_spent,
-               MAX(sa.submitted_at) AS submitted_at
-        FROM exams e
-        JOIN lessons l ON e.lesson_id=l.id
-        LEFT JOIN student_answers sa ON sa.exam_id=e.id AND sa.student_id=%s
-        WHERE e.id=%s GROUP BY e.id
-        """,
-        (uid, exam_id),
-    )
+    cur.execute("SELECT name FROM exams WHERE id=%s", (exam_id,))
     exam_info = cur.fetchone()
     if not exam_info:
         cur.close(); conn.close()
@@ -278,64 +422,56 @@ def get_exam_result(exam_id):
 
     cur.execute(
         """
-        SELECT q.id AS question_id, q.content AS question_content, q.explanation,
-               a.id AS answer_id, a.content AS answer_content,
-               a.is_correct, sa.answer_id AS student_answer_id
-        FROM questions q
-        JOIN answers a ON a.question_id=q.id
-        LEFT JOIN student_answers sa ON sa.answer_id=a.id AND sa.student_id=%s AND sa.exam_id=%s
-        WHERE q.exam_id=%s ORDER BY q.id, a.id
+        SELECT u.full_name, u.username,
+            ROUND(
+                SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END) * 10.0
+                / NULLIF(COUNT(DISTINCT q.id), 0)
+            , 1) AS score,
+            SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END) AS correct_count,
+            COUNT(DISTINCT q.id) AS total_questions,
+            MAX(sa.time_spent) AS time_spent,
+            MAX(sa.submitted_at) AS submitted_at
+        FROM student_answers sa
+        JOIN users u ON u.id=sa.student_id
+        JOIN answers a ON sa.answer_id=a.id
+        JOIN questions q ON a.question_id=q.id
+        WHERE sa.exam_id=%s
+        GROUP BY sa.student_id
+        ORDER BY score DESC
         """,
-        (uid, exam_id, exam_id),
+        (exam_id,),
     )
     rows = cur.fetchall()
     cur.close(); conn.close()
 
-    question_map = {}
-    for r in rows:
-        qid = r["question_id"]
-        if qid not in question_map:
-            question_map[qid] = {
-                "questionId":       qid,
-                "questionContent":  r["question_content"],
-                "explanation":      r["explanation"],
-                "isCorrect":        False,
-                "selectedAnswerId": None,
-                "answers":          [],
-            }
-        ans = {
-            "answerId":   r["answer_id"],
-            "content":    r["answer_content"],
-            "isCorrected": r["is_correct"],
-            "isSelected":  r["student_answer_id"] == r["answer_id"],
-        }
-        if ans["isSelected"]:
-            question_map[qid]["selectedAnswerId"] = r["answer_id"]
-        question_map[qid]["answers"].append(ans)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Kết quả thi"
+    ws.append(["STT", "Họ tên", "Username", "Điểm", "Số câu đúng", "Tổng câu", "Thời gian (giây)", "Thời gian nộp"])
+    for i, row in enumerate(rows, 1):
+        ws.append([
+            i,
+            row["full_name"],
+            row["username"],
+            float(row["score"] or 0),
+            int(row["correct_count"] or 0),
+            int(row["total_questions"] or 0),
+            int(row["time_spent"] or 0),
+            str(row["submitted_at"]) if row["submitted_at"] else "",
+        ])
 
-    questions    = list(question_map.values())
-    correct_count = 0
-    for q in questions:
-        correct_ans = next((a for a in q["answers"] if a["isCorrected"] == 1), None)
-        q["isCorrect"] = (
-            correct_ans is not None and q["selectedAnswerId"] == correct_ans["answerId"]
-        )
-        if q["isCorrect"]:
-            correct_count += 1
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    safe_name = quote(exam_info["name"])
+    return Response(
+        buf.getvalue(),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{safe_name}.xlsx"},
+    )
 
-    score = round(correct_count / len(questions) * 10, 1) if questions else 0
 
-    return jsonify({"success": True, "data": {
-        "examName":    exam_info["exam_name"],
-        "lessonName":  exam_info["lesson_name"],
-        "timeSpent":   exam_info["time_spent"] or 0,
-        "submittedAt": str(exam_info["submitted_at"]) if exam_info["submitted_at"] else None,
-        "score":       score,
-        "correct":     correct_count,
-        "total":       len(questions),
-        "questions":   questions,
-    }})
-
+# ── GET exam stats ────────────────────────────────────────────────────────────
 
 @exam_bp.route("/api/exams/<int:exam_id>/stats", methods=["GET"])
 @require_auth

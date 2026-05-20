@@ -55,7 +55,7 @@ export default function Dashboard() {
     { label: 'Học sinh',  value: summary.totalStudents ?? 0, icon: FiUsers,    bg: 'bg-blue-50',   text: 'text-blue-600' },
     { label: 'Lớp học',   value: summary.totalClasses ?? 0,  icon: FiLayers,   bg: 'bg-violet-50', text: 'text-violet-600' },
     { label: 'Bài học',   value: summary.totalLessons ?? 0,  icon: FiBook,     bg: 'bg-emerald-50',text: 'text-emerald-600' },
-    { label: 'Đề thi',    value: summary.totalExams ?? 0,    icon: FiFileText, bg: 'bg-amber-50',  text: 'text-amber-600' },
+    { label: 'Bài tập',    value: summary.totalExams ?? 0,    icon: FiFileText, bg: 'bg-amber-50',  text: 'text-amber-600' },
   ];
 
   return (

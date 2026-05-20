@@ -8,7 +8,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { fetchDashboard } from '../../api/studentService';
 import { logout } from '../../api/auth';
-import { FiChevronLeft, FiChevronRight, FiLogOut, FiFileText, FiCheckCircle, FiStar, FiTrendingUp, FiUsers, FiPlus, FiEdit2, FiTrash2, FiX, FiPhone, FiUser } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiLogOut, FiFileText, FiCheckCircle, FiStar, FiTrendingUp, FiUsers, FiPlus, FiEdit2, FiTrash2, FiX, FiPhone, FiUser, FiClock } from 'react-icons/fi';
 import { getRelatives, addRelative, updateRelative, deleteRelative } from '../../api/relativeService';
 import { toast } from 'react-toastify';
 
@@ -264,33 +264,45 @@ export default function StudentHome() {
             <p className="text-gray-400 text-sm text-center py-8">Không có đề thi trong tuần này.</p>
           ) : (
             <div className="space-y-2">
-              {exams.map(exam => (
-                <div key={exam.examId}
-                  className="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                  <div className="min-w-0 mr-3">
-                    <p className="font-medium text-gray-900 text-sm truncate">{exam.examName}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{exam.lessonTitle}</p>
+              {exams.map(exam => {
+                const isPastDeadline = exam.deadline && new Date(exam.deadline) < new Date();
+                return (
+                  <div key={exam.examId}
+                    className="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
+                    <div className="min-w-0 mr-3">
+                      <p className="font-medium text-gray-900 text-sm truncate">{exam.examName}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{exam.lessonTitle}</p>
+                      {exam.deadline && !exam.done && (
+                        <p className={`text-xs mt-0.5 flex items-center gap-1 ${isPastDeadline ? 'text-red-500' : 'text-amber-600'}`}>
+                          <FiClock size={10} />
+                          {isPastDeadline ? 'Hết hạn: ' : 'Hạn: '}
+                          {new Date(exam.deadline).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      {exam.score != null && (
+                        <span className={`text-sm font-bold ${exam.score >= 5 ? 'text-emerald-600' : 'text-red-500'}`}>
+                          {exam.score}/10
+                        </span>
+                      )}
+                      {exam.done ? (
+                        <button className="btn-secondary py-1.5 px-3 text-xs"
+                          onClick={() => navigate(`/exam-result/${exam.examId}`)}>
+                          Xem kết quả
+                        </button>
+                      ) : (
+                        <button
+                          className="btn-primary py-1.5 px-3 text-xs disabled:opacity-50 disabled:pointer-events-none"
+                          disabled={isPastDeadline}
+                          onClick={() => navigate(`/student/exam/${exam.examId}`)}>
+                          {isPastDeadline ? 'Hết hạn' : 'Làm bài'}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    {exam.score != null && (
-                      <span className={`text-sm font-bold ${exam.score >= 5 ? 'text-emerald-600' : 'text-red-500'}`}>
-                        {exam.score}/10
-                      </span>
-                    )}
-                    {exam.done ? (
-                      <button className="btn-secondary py-1.5 px-3 text-xs"
-                        onClick={() => navigate(`/exam-result/${exam.examId}`)}>
-                        Xem kết quả
-                      </button>
-                    ) : (
-                      <button className="btn-primary py-1.5 px-3 text-xs"
-                        onClick={() => navigate(`/student/exam/${exam.examId}`)}>
-                        Làm bài
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
