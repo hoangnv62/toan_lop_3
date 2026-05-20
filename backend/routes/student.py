@@ -132,6 +132,8 @@ def upload_students(class_id):
         cur.close(); conn.close()
 
         msg = f"Thêm thành công {success_count} học sinh."
+        if(success_count == 0):
+            return jsonify({"success": False, "message": "Không tìm thấy học sinh"}), 404
         if errors:
             msg += f" Có {len(errors)} lỗi: " + "; ".join(errors[:3])
         return jsonify({"success": True, "message": msg, "count": success_count})
@@ -225,17 +227,17 @@ def _parse_date(s):
 @student_bp.route("/api/dashboard/student", methods=["GET"])
 @require_auth
 def student_dashboard():
-    uid = g.user["user_id"]
+    uid      = g.user["user_id"]
+    show_all = request.args.get("all") == "true"
     date_from = _parse_date(request.args.get("dateFrom", ""))
     date_to   = _parse_date(request.args.get("dateTo", ""))
 
-    if date_from and date_to and date_from > date_to:
+    if not show_all and date_from and date_to and date_from > date_to:
         return jsonify({"success": False, "message": "dateFrom phải nhỏ hơn hoặc bằng dateTo"}), 400
 
     conn = get_db()
     cur = conn.cursor(dictionary=True)
 
-    # Lấy teacher_id qua class
     cur.execute(
         "SELECT c.teacher_id FROM users u JOIN classes c ON u.class_id=c.id WHERE u.id=%s",
         (uid,)
@@ -249,8 +251,10 @@ def student_dashboard():
         }})
     teacher_id = row["teacher_id"]
 
-    lesson_rows  = _lessons_with_stats(cur, uid, date_from, date_to)
-    ranking_rows = _class_ranking(cur, teacher_id, date_from, date_to)
+    df = None if show_all else date_from
+    dt = None if show_all else date_to
+    lesson_rows  = _lessons_with_stats(cur, uid, df, dt)
+    ranking_rows = _class_ranking(cur, teacher_id, df, dt)
     cur.close(); conn.close()
 
     exams  = []
@@ -285,6 +289,39 @@ def student_dashboard():
         "exams": exams, "scores": scores, "ranking": ranking,
         "progress": {"totalExams": len(exams), "done": done_count, "avg": avg},
     }})
+
+
+@student_bp.route("/api/students/<int:student_id>/progress", methods=["GET"])
+@require_auth
+def get_student_progress(student_id):
+    conn = get_db()
+    cur  = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            """
+            SELECT e.name AS examName,
+                ROUND(
+                    SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END)
+                    / NULLIF(COUNT(DISTINCT q.id),0) * 10
+                , 1) AS score,
+                MAX(sa.submitted_at) AS submittedAt
+            FROM student_answers sa
+            JOIN answers a ON sa.answer_id=a.id
+            JOIN questions q ON a.question_id=q.id
+            JOIN exams e ON sa.exam_id=e.id
+            WHERE sa.student_id=%s
+            GROUP BY sa.exam_id
+            ORDER BY MAX(sa.submitted_at) ASC
+            """,
+            (student_id,),
+        )
+        rows = cur.fetchall()
+        for r in rows:
+            r["submittedAt"] = str(r["submittedAt"]) if r["submittedAt"] else None
+            r["score"] = float(r["score"] or 0)
+        return jsonify({"success": True, "data": rows})
+    finally:
+        cur.close(); conn.close()
 
 
 def _lessons_with_stats(cur, student_id, date_from=None, date_to=None):

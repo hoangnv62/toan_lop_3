@@ -7,8 +7,12 @@ import {
 } from 'chart.js';
 import { useAuth } from '../../context/AuthContext';
 import { fetchDashboard } from '../../api/studentService';
-import { logout } from '../../api/auth';
-import { FiChevronLeft, FiChevronRight, FiLogOut, FiFileText, FiCheckCircle, FiStar, FiTrendingUp, FiUsers, FiPlus, FiEdit2, FiTrash2, FiX, FiPhone, FiUser, FiClock } from 'react-icons/fi';
+import { logout, changePassword } from '../../api/auth';
+import {
+  FiChevronLeft, FiChevronRight, FiLogOut, FiFileText, FiCheckCircle, FiStar,
+  FiTrendingUp, FiUsers, FiPlus, FiEdit2, FiTrash2, FiX, FiPhone, FiUser,
+  FiClock, FiLock, FiList, FiLoader,
+} from 'react-icons/fi';
 import { getRelatives, addRelative, updateRelative, deleteRelative } from '../../api/relativeService';
 import { toast } from 'react-toastify';
 
@@ -30,6 +34,64 @@ function toISO(ddmmyyyy) {
 }
 
 const rankBadge = ['bg-yellow-400', 'bg-gray-300', 'bg-orange-400'];
+
+function ChangePasswordModal({ onClose }) {
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw]         = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [loading, setLoading]     = useState(false);
+
+  async function handleSave() {
+    if (!currentPw || !newPw || !confirmPw) return toast.error('Vui lòng điền đầy đủ thông tin');
+    if (newPw !== confirmPw) return toast.error('Mật khẩu mới không khớp');
+    if (newPw.length < 6) return toast.error('Mật khẩu mới phải có ít nhất 6 ký tự');
+    setLoading(true);
+    try {
+      await changePassword(currentPw, newPw);
+      toast.success('Đổi mật khẩu thành công');
+      onClose();
+    } catch (err) {
+      toast.error(err.message || 'Đổi mật khẩu thất bại');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-semibold text-gray-900">Đổi mật khẩu</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+            <FiX size={17} />
+          </button>
+        </div>
+        <div className="space-y-3.5 mb-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Mật khẩu hiện tại</label>
+            <input className="input" type="password" placeholder="••••••••"
+              value={currentPw} onChange={e => setCurrentPw(e.target.value)} autoFocus />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Mật khẩu mới</label>
+            <input className="input" type="password" placeholder="Ít nhất 6 ký tự"
+              value={newPw} onChange={e => setNewPw(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Xác nhận mật khẩu mới</label>
+            <input className="input" type="password" placeholder="Nhập lại mật khẩu mới"
+              value={confirmPw} onChange={e => setConfirmPw(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSave()} />
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
+          <button className="btn-primary flex-1" onClick={handleSave} disabled={loading}>
+            {loading ? <><FiLoader size={14} className="animate-spin" /> Đang lưu...</> : 'Đổi mật khẩu'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const RELATIONSHIPS = ['Bố', 'Mẹ', 'Ông', 'Bà', 'Anh', 'Chị', 'Chú', 'Bác', 'Cô', 'Dì', 'Người giám hộ'];
 
@@ -110,16 +172,23 @@ export default function StudentHome() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const [weekOffset, setWeekOffset] = useState(0);
+  const [viewAll, setViewAll]       = useState(false);
   const [data, setData]             = useState(null);
   const [relatives, setRelatives]   = useState([]);
   const [relModal, setRelModal]     = useState(null); // null | { mode:'add' } | { mode:'edit', item } | { mode:'delete', item }
   const [relLoading, setRelLoading] = useState(false);
+  const [pwModal, setPwModal]       = useState(false);
 
   const week = getWeekRange(weekOffset);
 
   useEffect(() => {
-    fetchDashboard(toISO(week.from), toISO(week.to)).then(setData).catch(() => {});
-  }, [weekOffset]);
+    setData(null);
+    if (viewAll) {
+      fetchDashboard(null, null, true).then(setData).catch(() => {});
+    } else {
+      fetchDashboard(toISO(week.from), toISO(week.to)).then(setData).catch(() => {});
+    }
+  }, [weekOffset, viewAll]);
 
   useEffect(() => {
     if (user?.user_id) loadRelatives();
@@ -194,25 +263,47 @@ export default function StudentHome() {
               <p className="text-xs text-gray-400">Toán Lớp 3</p>
             </div>
           </div>
-          <button onClick={handleLogout}
-            className="btn-ghost text-gray-500 py-1.5 px-2.5 gap-1.5">
-            <FiLogOut size={15} /> Đăng xuất
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setPwModal(true)}
+              className="btn-ghost text-gray-500 py-1.5 px-2.5 gap-1.5">
+              <FiLock size={15} />
+            </button>
+            <button onClick={handleLogout}
+              className="btn-ghost text-gray-500 py-1.5 px-2.5 gap-1.5">
+              <FiLogOut size={15} /> Đăng xuất
+            </button>
+          </div>
         </div>
       </header>
 
       <div className="max-w-3xl mx-auto p-4 space-y-4 pb-8">
-        {/* Week navigator */}
-        <div className="card flex items-center justify-between gap-2 py-3.5">
-          <button onClick={() => setWeekOffset(o => o - 1)}
-            className="btn-secondary py-1.5 px-3 gap-1">
-            <FiChevronLeft size={15} /> Tuần trước
-          </button>
-          <span className="text-sm font-medium text-gray-700 text-center">{week.label}</span>
-          <button onClick={() => setWeekOffset(o => o + 1)}
-            className="btn-secondary py-1.5 px-3 gap-1" disabled={weekOffset >= 0}>
-            Tuần sau <FiChevronRight size={15} />
-          </button>
+        {/* View toggle + Week navigator */}
+        <div className="card py-3.5 space-y-3">
+          <div className="flex items-center gap-2">
+            <button
+              className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${!viewAll ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              onClick={() => setViewAll(false)}>
+              <FiChevronLeft size={14} className="inline mr-1" />Theo tuần
+            </button>
+            <button
+              className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${viewAll ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              onClick={() => setViewAll(true)}>
+              <FiList size={14} className="inline mr-1" />Tất cả
+            </button>
+          </div>
+          {!viewAll && (
+            <div className="flex items-center justify-between gap-2">
+              <button onClick={() => setWeekOffset(o => o - 1)}
+                className="btn-secondary py-1.5 px-3 gap-1">
+                <FiChevronLeft size={15} /> Tuần trước
+              </button>
+              <span className="text-sm font-medium text-gray-700 text-center">{week.label}</span>
+              <button onClick={() => setWeekOffset(o => o + 1)}
+                className="btn-secondary py-1.5 px-3 gap-1" disabled={weekOffset >= 0}>
+                Tuần sau <FiChevronRight size={15} />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Stats */}
@@ -261,7 +352,9 @@ export default function StudentHome() {
         <div className="card">
           <h3 className="text-sm font-semibold text-gray-900 mb-4">Danh sách đề thi</h3>
           {exams.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-8">Không có đề thi trong tuần này.</p>
+            <p className="text-gray-400 text-sm text-center py-8">
+              {viewAll ? 'Chưa có đề thi nào.' : 'Không có đề thi trong tuần này.'}
+            </p>
           ) : (
             <div className="space-y-2">
               {exams.map(exam => {
@@ -390,6 +483,8 @@ export default function StudentHome() {
           )}
         </div>
       </div>
+
+      {pwModal && <ChangePasswordModal onClose={() => setPwModal(false)} />}
 
       {/* Modals */}
       {(relModal?.mode === 'add' || relModal?.mode === 'edit') && (

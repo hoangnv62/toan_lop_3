@@ -1,19 +1,26 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS, CategoryScale, LinearScale,
+  PointElement, LineElement, Tooltip, Legend, Filler,
+} from 'chart.js';
 import TeacherLayout from '../../components/TeacherLayout';
 import {
   getClassDetail, searchStudents, assignStudent, removeStudent,
   uploadStudents, updateClass, getClassExams, unassignExam,
 } from '../../api/classService';
-import { exportExam, getStudentSubmission } from '../../api/examService';
-import { getStudentResults } from '../../api/studentService';
+import { exportExam, getStudentSubmission, saveComment } from '../../api/examService';
+import { getStudentResults, getStudentProgress } from '../../api/studentService';
 import { getRelatives } from '../../api/relativeService';
 import { toast } from 'react-toastify';
 import {
   FiSearch, FiUpload, FiUserX, FiUserPlus, FiLoader, FiUsers, FiPhone,
   FiUser, FiX, FiDownload, FiEye, FiFileText, FiChevronLeft,
-  FiCheckCircle, FiXCircle, FiClock,
+  FiCheckCircle, FiXCircle, FiClock, FiSave, FiTrendingUp,
 } from 'react-icons/fi';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
 function formatDate(str) {
   if (!str) return '--';
@@ -23,24 +30,43 @@ function formatDate(str) {
 
 // ── Modal: Xem bài làm học sinh ───────────────────────────────────────────────
 function StudentResultsModal({ student, onClose }) {
-  const [results, setResults]     = useState(null);
-  const [detail, setDetail]       = useState(null);
+  const [results, setResults]           = useState(null);
+  const [progress, setProgress]         = useState([]);
+  const [detail, setDetail]             = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [comment, setComment]           = useState('');
+  const [savingComment, setSavingComment] = useState(false);
 
   useEffect(() => {
     getStudentResults(student.id)
       .then(data => setResults(data))
       .catch(() => setResults({ studentName: student.full_name, results: [] }));
+    getStudentProgress(student.id)
+      .then(rows => setProgress(rows))
+      .catch(() => {});
   }, [student.id]);
 
   async function viewDetail(examId, examName) {
     setLoadingDetail(true);
     try {
       const data = await getStudentSubmission(examId, student.id);
-      setDetail({ ...data, examNameLabel: examName });
+      setDetail({ ...data, examNameLabel: examName, examId });
+      setComment(data.teacherComment || '');
     } catch (err) {
       toast.error(err.message || 'Không tải được bài làm');
     } finally { setLoadingDetail(false); }
+  }
+
+  async function handleSaveComment() {
+    if (!comment.trim()) return toast.error('Nhận xét không được trống');
+    setSavingComment(true);
+    try {
+      await saveComment(detail.examId, student.id, comment.trim());
+      toast.success('Đã lưu nhận xét');
+      setDetail(d => ({ ...d, teacherComment: comment.trim() }));
+    } catch (err) {
+      toast.error(err.message || 'Lưu nhận xét thất bại');
+    } finally { setSavingComment(false); }
   }
 
   // ── Detail view ──
@@ -81,48 +107,68 @@ function StudentResultsModal({ student, onClose }) {
 
           {/* Questions */}
           <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
-            {detail.questions.map((q, qi) => {
-              const correctAns = q.answers.find(a => a.isCorrected === 1);
-              const selectedAns = q.answers.find(a => a.isSelected);
-              return (
-                <div key={q.questionId}
-                  className={`rounded-xl border-2 p-4 ${q.isCorrect ? 'border-emerald-200 bg-emerald-50/30' : 'border-red-200 bg-red-50/20'}`}>
-                  <div className="flex items-start gap-2 mb-3">
-                    <span className={`mt-0.5 shrink-0 ${q.isCorrect ? 'text-emerald-500' : 'text-red-400'}`}>
-                      {q.isCorrect ? <FiCheckCircle size={16} /> : <FiXCircle size={16} />}
-                    </span>
-                    <p className="text-sm font-medium text-gray-900 leading-relaxed">
-                      <span className="badge-indigo mr-2 text-xs">Câu {qi + 1}</span>
-                      {q.questionContent}
-                    </p>
-                  </div>
-                  <div className="space-y-1.5 ml-6">
-                    {q.answers.map(a => {
-                      const isCorrect  = a.isCorrected === 1;
-                      const isSelected = a.isSelected;
-                      let cls = 'border-gray-200 text-gray-600';
-                      if (isCorrect)               cls = 'border-emerald-400 bg-emerald-50 text-emerald-700 font-medium';
-                      if (isSelected && !isCorrect) cls = 'border-red-400 bg-red-50 text-red-600 font-medium';
-                      return (
-                        <div key={a.answerId}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm ${cls}`}>
-                          {isCorrect && <FiCheckCircle size={13} className="text-emerald-500 shrink-0" />}
-                          {isSelected && !isCorrect && <FiXCircle size={13} className="text-red-400 shrink-0" />}
-                          {!isCorrect && !isSelected && <span className="w-3.5 shrink-0" />}
-                          <span>{a.content}</span>
-                          {isSelected && <span className="ml-auto text-xs opacity-60">(Đã chọn)</span>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {q.explanation && (
-                    <p className="mt-2 ml-6 text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2">
-                      {q.explanation}
-                    </p>
-                  )}
+            {detail.questions.map((q, qi) => (
+              <div key={q.questionId}
+                className={`rounded-xl border-2 p-4 ${q.isCorrect ? 'border-emerald-200 bg-emerald-50/30' : 'border-red-200 bg-red-50/20'}`}>
+                <div className="flex items-start gap-2 mb-3">
+                  <span className={`mt-0.5 shrink-0 ${q.isCorrect ? 'text-emerald-500' : 'text-red-400'}`}>
+                    {q.isCorrect ? <FiCheckCircle size={16} /> : <FiXCircle size={16} />}
+                  </span>
+                  <p className="text-sm font-medium text-gray-900 leading-relaxed">
+                    <span className="badge-indigo mr-2 text-xs">Câu {qi + 1}</span>
+                    {q.questionContent}
+                  </p>
                 </div>
-              );
-            })}
+                <div className="space-y-1.5 ml-6">
+                  {q.answers.map(a => {
+                    const isCorrect   = a.isCorrected === 1;
+                    const isSelected  = a.isSelected;
+                    let cls = 'border-gray-200 text-gray-600';
+                    if (isCorrect)                cls = 'border-emerald-400 bg-emerald-50 text-emerald-700 font-medium';
+                    if (isSelected && !isCorrect) cls = 'border-red-400 bg-red-50 text-red-600 font-medium';
+                    return (
+                      <div key={a.answerId}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm ${cls}`}>
+                        {isCorrect  && <FiCheckCircle size={13} className="text-emerald-500 shrink-0" />}
+                        {isSelected && !isCorrect && <FiXCircle size={13} className="text-red-400 shrink-0" />}
+                        {!isCorrect && !isSelected && <span className="w-3.5 shrink-0" />}
+                        <span>{a.content}</span>
+                        {isSelected && <span className="ml-auto text-xs opacity-60">(Đã chọn)</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+                {q.explanation && (
+                  <p className="mt-2 ml-6 text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2">
+                    {q.explanation}
+                  </p>
+                )}
+              </div>
+            ))}
+
+            {/* Teacher comment */}
+            <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4">
+              <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">
+                Nhận xét của giáo viên
+              </p>
+              <textarea
+                className="input resize-none text-sm w-full"
+                rows={3}
+                placeholder="Nhập nhận xét cho học sinh..."
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+              />
+              <div className="flex justify-end mt-2">
+                <button
+                  className="btn-primary py-1.5 px-4 text-sm gap-1.5"
+                  onClick={handleSaveComment}
+                  disabled={savingComment}>
+                  {savingComment
+                    ? <><FiLoader size={13} className="animate-spin" /> Đang lưu...</>
+                    : <><FiSave size={13} /> Lưu nhận xét</>}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -132,7 +178,7 @@ function StudentResultsModal({ student, onClose }) {
   // ── List view ──
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h3 className="font-semibold text-gray-900">Bài làm của học sinh</h3>
@@ -143,6 +189,39 @@ function StudentResultsModal({ student, onClose }) {
           </button>
         </div>
 
+        {/* Progress chart */}
+        {progress.length > 1 && (
+          <div className="mb-5 bg-gray-50 rounded-xl p-4 border border-gray-100">
+            <div className="flex items-center gap-2 mb-3">
+              <FiTrendingUp size={14} className="text-indigo-600" />
+              <p className="text-xs font-semibold text-gray-700">Tiến bộ qua thời gian</p>
+            </div>
+            <Line
+              data={{
+                labels: progress.map(p => p.examName),
+                datasets: [{
+                  label: 'Điểm',
+                  data: progress.map(p => p.score),
+                  borderColor: '#4F46E5',
+                  backgroundColor: 'rgba(79,70,229,0.08)',
+                  tension: 0.4,
+                  pointRadius: 4,
+                  pointBackgroundColor: '#4F46E5',
+                  fill: true,
+                }],
+              }}
+              options={{
+                responsive: true,
+                scales: {
+                  y: { min: 0, max: 10, grid: { color: '#F3F4F6' } },
+                  x: { grid: { display: false }, ticks: { maxRotation: 30, font: { size: 10 } } },
+                },
+                plugins: { legend: { display: false } },
+              }}
+            />
+          </div>
+        )}
+
         {results === null ? (
           <div className="flex justify-center py-10">
             <FiLoader size={20} className="animate-spin text-gray-300" />
@@ -150,7 +229,7 @@ function StudentResultsModal({ student, onClose }) {
         ) : results.results.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-10">Học sinh chưa làm bài nào.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-64 overflow-y-auto">
             {results.results.map(r => {
               const passed = r.score >= 5;
               return (
@@ -443,19 +522,19 @@ export default function ClassDetail() {
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
             <FiFileText size={16} className="text-indigo-600" />
-            <h3 className="text-sm font-semibold text-gray-900">Đề thi đã giao</h3>
+            <h3 className="text-sm font-semibold text-gray-900">Bài tập đã giao</h3>
             <span className="badge-indigo">{assignedExams.length}</span>
           </div>
           {assignedExams.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-6">
-              Chưa có đề thi nào được giao cho lớp này.
+              Chưa có bài tập nào được giao cho lớp này.
             </p>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-gray-200">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="table-head">Tên đề thi</th>
+                    <th className="table-head">Tên bài tập</th>
                     <th className="table-head">Bài học</th>
                     <th className="table-head text-center">Hoàn thành</th>
                     <th className="table-head">Hạn nộp</th>
@@ -508,7 +587,6 @@ export default function ClassDetail() {
         <div className="card space-y-4">
           <div>
             <h3 className="text-sm font-semibold text-gray-900 mb-1">Thêm học sinh theo username</h3>
-            <p className="text-xs text-gray-400">Tìm kiếm sau 1 giây khi ngừng nhập</p>
           </div>
           <div className="relative">
             <FiSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />

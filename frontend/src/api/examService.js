@@ -16,6 +16,15 @@ export const getStudentSubmission  = (examId, studentId) =>
 export const getExamAssignments = (examId) =>
   apiFetch(`/api/exams/${examId}/assignments`);
 
+export const cloneExam = (examId) =>
+  apiFetch(`/api/exams/${examId}/clone`, { method: 'POST' });
+
+export const saveComment = (examId, studentId, comment) =>
+  apiFetch(`/api/exams/${examId}/submissions/${studentId}/comment`, {
+    method: 'POST',
+    body: JSON.stringify({ comment }),
+  });
+
 export async function exportExam(examId, filename) {
   const response = await fetch(`${API_BASE}/api/exams/${examId}/export`, {
     headers: { Authorization: `Bearer ${getToken()}` },

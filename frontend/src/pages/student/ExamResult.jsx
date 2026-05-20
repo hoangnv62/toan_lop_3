@@ -50,6 +50,16 @@ export default function ExamResult() {
           <p className="text-sm font-medium text-gray-700 mt-2">{result.examName}</p>
         </div>
 
+        {/* Teacher comment */}
+        {result.teacherComment && (
+          <div className="card border-l-4 border-l-indigo-400 bg-indigo-50/40">
+            <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-1.5">
+              Nhận xét của giáo viên
+            </p>
+            <p className="text-sm text-gray-700 leading-relaxed">{result.teacherComment}</p>
+          </div>
+        )}
+
         {/* Review */}
         <div className="space-y-3">
           {result.questions?.map((q, qi) => (

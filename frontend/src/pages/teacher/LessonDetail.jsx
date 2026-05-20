@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import TeacherLayout from '../../components/TeacherLayout';
 import { fetchLesson } from '../../api/lessonService';
-import { fetchExam, saveExam, deleteExam, getExamAssignments } from '../../api/examService';
-import { generateQuestions } from '../../api/questionService';
+import { fetchExam, saveExam, deleteExam, getExamAssignments, cloneExam } from '../../api/examService';
+import { generateQuestions, importQuestionsFromExcel } from '../../api/questionService';
 import { assignExam, unassignExam } from '../../api/classService';
 import { toast } from 'react-toastify';
 import {
-  FiPlus, FiTrash2, FiEdit2, FiEye, FiZap, FiSave, FiX, FiCheckCircle, FiLoader, FiSend, FiClock,
+  FiPlus, FiTrash2, FiEdit2, FiEye, FiZap, FiSave, FiX, FiCheckCircle, FiLoader,
+  FiSend, FiClock, FiCopy, FiUpload,
 } from 'react-icons/fi';
 
 const ANSWER_LABELS = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -171,8 +172,10 @@ function ExamModal({ lesson, examId, initialData, onClose, onSaved }) {
   const [examDesc, setExamDesc]   = useState(initialData?.description || '');
   const [questions, setQuestions] = useState(initialData?.questions || []);
   const [qCount, setQCount]       = useState('5');
-  const [generating, setGenerating] = useState(false);
-  const [saving, setSaving]         = useState(false);
+  const [generating, setGenerating]   = useState(false);
+  const [saving, setSaving]           = useState(false);
+  const [importing, setImporting]     = useState(false);
+  const importRef = useRef(null);
 
   const addQ     = () => setQuestions(p => [...p, emptyQuestion()]);
   const removeQ  = (qi) => setQuestions(p => p.filter((_, i) => i !== qi));
@@ -196,6 +199,27 @@ function ExamModal({ lesson, examId, initialData, onClose, onSaved }) {
     setQuestions(p => p.map((q, i) =>
       i === qi ? { ...q, answers: q.answers.filter((_, j) => j !== ai) } : q
     ));
+
+  async function handleImportExcel(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const res = await importQuestionsFromExcel(file);
+      const imported = res.data.map(q => ({
+        questionId: null, content: q.questionContent, explanation: q.explanation || '',
+        answers: q.answers.map(a => ({ answerId: null, content: a.content, correct: a.isCorrected === 1 })),
+      }));
+      setQuestions(p => [...p, ...imported]);
+      toast.success(`Đã import ${imported.length} câu hỏi`);
+      if (res.errors?.length) toast.warning(`${res.errors.length} dòng bị lỗi`);
+    } catch (err) {
+      toast.error(err.message || 'Import thất bại');
+    } finally {
+      setImporting(false);
+      if (importRef.current) importRef.current.value = '';
+    }
+  }
 
   async function handleGenerate() {
     if (!examDesc.trim()) return toast.error('Vui lòng nhập mô tả trước');
@@ -291,6 +315,16 @@ function ExamModal({ lesson, examId, initialData, onClose, onSaved }) {
                 ? <><FiLoader size={13} className="animate-spin" /> Đang tạo...</>
                 : <><FiZap size={13} /> Tạo bằng AI</>}
             </button>
+            <label className={`btn-secondary text-sm py-1.5 gap-1.5 cursor-pointer ${importing ? 'opacity-60 pointer-events-none' : ''}`}>
+              {importing
+                ? <><FiLoader size={13} className="animate-spin" /> Đang import...</>
+                : <><FiUpload size={13} /> Import Excel</>}
+              <input
+                ref={importRef}
+                type="file" accept=".xlsx,.xls" className="hidden"
+                onChange={handleImportExcel}
+              />
+            </label>
             <div className="flex-1" />
             <button className="btn-secondary text-sm py-1.5 gap-1.5" onClick={addQ}>
               <FiPlus size={13} /> Thêm câu hỏi
@@ -429,6 +463,7 @@ export default function LessonDetail() {
   const [modal, setModal]             = useState(null);
   const [assignModal, setAssignModal] = useState(null); // { exam: { id, name } }
   const [deleting, setDeleting]       = useState(null);
+  const [cloning, setCloning]         = useState(null);
 
   useEffect(() => { load(); }, [lessonId]);
 
@@ -470,13 +505,24 @@ export default function LessonDetail() {
     } finally { setDeleting(null); }
   }
 
+  async function handleClone(id) {
+    setCloning(id);
+    try {
+      await cloneExam(id);
+      toast.success('Đã sao chép bài thi');
+      load();
+    } catch (err) {
+      toast.error(err.message || 'Sao chép thất bại');
+    } finally { setCloning(null); }
+  }
+
   return (
     <TeacherLayout>
       {/* Header */}
       <div className="page-header">
         <div>
           <h1 className="page-title">{lesson?.lessonTitle || '...'}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{lesson?.exams?.length ?? 0} đề thi</p>
+          <p className="text-sm text-gray-500 mt-0.5">{lesson?.exams?.length ?? 0} bài tập</p>
         </div>
         <button className="btn-primary" onClick={() => setModal({ examId: null, initialData: null })}>
           <FiPlus size={16} /> Tạo bài thi
@@ -489,8 +535,8 @@ export default function LessonDetail() {
           <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
             <FiEdit2 size={22} className="text-gray-400" />
           </div>
-          <p className="text-gray-500 font-medium">Chưa có đề thi nào</p>
-          <p className="text-sm text-gray-400 mt-1">Tạo đề thi đầu tiên cho bài học này</p>
+          <p className="text-gray-500 font-medium">Chưa có bài tập nào</p>
+          <p className="text-sm text-gray-400 mt-1">Tạo bài tập đầu tiên cho bài học này</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -511,6 +557,14 @@ export default function LessonDetail() {
                   className="btn-ghost text-indigo-600 hover:bg-indigo-50 p-2"
                   onClick={() => setAssignModal({ exam })}>
                   <FiSend size={15} />
+                </button>
+                <button title="Sao chép"
+                  className="btn-ghost text-gray-500 hover:bg-gray-100 p-2"
+                  disabled={cloning === exam.id}
+                  onClick={() => handleClone(exam.id)}>
+                  {cloning === exam.id
+                    ? <FiLoader size={15} className="animate-spin" />
+                    : <FiCopy size={15} />}
                 </button>
                 <button title="Chỉnh sửa"
                   className="btn-ghost p-2"

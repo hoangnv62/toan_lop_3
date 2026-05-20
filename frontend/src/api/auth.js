@@ -44,3 +44,9 @@ export const registerStudent = async ({ username, password, fullName, dob }) => 
 export const logout = () => { clearToken(); return Promise.resolve(); };
 
 export const getMe = () => apiFetch('/api/auth/me');
+
+export const changePassword = (currentPassword, newPassword) =>
+  apiFetch('/api/auth/password', {
+    method: 'PUT',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });

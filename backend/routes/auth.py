@@ -120,3 +120,28 @@ def me():
         "role":    g.user["role"],
         "name":    g.user["name"],
     }})
+
+
+@auth_bp.route("/api/auth/password", methods=["PUT"])
+@require_auth
+def change_password():
+    d = request.json or {}
+    current_pw = d.get("currentPassword", "")
+    new_pw     = d.get("newPassword", "")
+    if not current_pw or not new_pw:
+        return jsonify({"success": False, "message": "Vui lòng điền đầy đủ thông tin"}), 400
+    if len(new_pw) < 6:
+        return jsonify({"success": False, "message": "Mật khẩu mới phải có ít nhất 6 ký tự"}), 400
+
+    conn = get_db()
+    cur  = conn.cursor(dictionary=True)
+    cur.execute("SELECT password FROM users WHERE id=%s", (g.user["user_id"],))
+    u = cur.fetchone()
+    if not u or not verify_password(u["password"], current_pw):
+        cur.close(); conn.close()
+        return jsonify({"success": False, "message": "Mật khẩu hiện tại không đúng"}), 401
+
+    cur.execute("UPDATE users SET password=%s WHERE id=%s", (hash_password(new_pw), g.user["user_id"]))
+    conn.commit()
+    cur.close(); conn.close()
+    return jsonify({"success": True, "message": "Đổi mật khẩu thành công"})

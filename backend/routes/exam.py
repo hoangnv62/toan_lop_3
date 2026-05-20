@@ -72,15 +72,23 @@ def _build_exam_result(cur, exam_id, student_id):
             correct_count += 1
 
     score = round(correct_count / len(questions) * 10, 1) if questions else 0
+
+    cur.execute(
+        "SELECT comment FROM student_exam_comments WHERE exam_id=%s AND student_id=%s",
+        (exam_id, student_id),
+    )
+    cmt = cur.fetchone()
+
     return {
-        "examName":    exam_info["exam_name"],
-        "lessonName":  exam_info["lesson_name"],
-        "timeSpent":   exam_info["time_spent"] or 0,
-        "submittedAt": str(exam_info["submitted_at"]) if exam_info["submitted_at"] else None,
-        "score":       score,
-        "correct":     correct_count,
-        "total":       len(questions),
-        "questions":   questions,
+        "examName":      exam_info["exam_name"],
+        "lessonName":    exam_info["lesson_name"],
+        "timeSpent":     exam_info["time_spent"] or 0,
+        "submittedAt":   str(exam_info["submitted_at"]) if exam_info["submitted_at"] else None,
+        "score":         score,
+        "correct":       correct_count,
+        "total":         len(questions),
+        "questions":     questions,
+        "teacherComment": cmt["comment"] if cmt else None,
     }
 
 
@@ -469,6 +477,96 @@ def export_exam_results(exam_id):
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{safe_name}.xlsx"},
     )
+
+
+# ── CLONE exam ───────────────────────────────────────────────────────────────
+
+@exam_bp.route("/api/exams/<int:exam_id>/clone", methods=["POST"])
+@require_auth
+def clone_exam(exam_id):
+    if g.user["role"] != "teacher":
+        return jsonify({"success": False, "message": "Không có quyền"}), 403
+    conn = get_db()
+    cur  = conn.cursor(dictionary=True)
+    try:
+        cur.execute("SELECT lesson_id, name, description FROM exams WHERE id=%s", (exam_id,))
+        orig = cur.fetchone()
+        if not orig:
+            return jsonify({"success": False, "message": "Bài thi không tồn tại"}), 404
+
+        cur.execute(
+            "INSERT INTO exams (lesson_id, name, description) VALUES (%s,%s,%s)",
+            (orig["lesson_id"], f"{orig['name']} (Bản sao)", orig["description"]),
+        )
+        new_exam_id = cur.lastrowid
+
+        cur.execute(
+            """
+            SELECT q.id AS qid, q.content AS qcontent, q.explanation,
+                   a.content AS acontent, a.is_correct
+            FROM questions q JOIN answers a ON a.question_id=q.id
+            WHERE q.exam_id=%s ORDER BY q.id, a.id
+            """,
+            (exam_id,),
+        )
+        q_map = {}
+        for r in cur.fetchall():
+            qid = r["qid"]
+            if qid not in q_map:
+                q_map[qid] = {"content": r["qcontent"], "explanation": r["explanation"], "answers": []}
+            q_map[qid]["answers"].append({"content": r["acontent"], "is_correct": r["is_correct"]})
+
+        for q in q_map.values():
+            cur.execute(
+                "INSERT INTO questions (exam_id, content, explanation) VALUES (%s,%s,%s)",
+                (new_exam_id, q["content"], q["explanation"]),
+            )
+            new_q_id = cur.lastrowid
+            for a in q["answers"]:
+                cur.execute(
+                    "INSERT INTO answers (question_id, content, is_correct) VALUES (%s,%s,%s)",
+                    (new_q_id, a["content"], a["is_correct"]),
+                )
+
+        conn.commit()
+        return jsonify({"success": True, "message": "Đã sao chép bài thi", "examId": new_exam_id})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cur.close(); conn.close()
+
+
+# ── SAVE teacher comment on a student submission ──────────────────────────────
+
+@exam_bp.route("/api/exams/<int:exam_id>/submissions/<int:student_id>/comment", methods=["POST"])
+@require_auth
+def save_submission_comment(exam_id, student_id):
+    if g.user["role"] != "teacher":
+        return jsonify({"success": False, "message": "Không có quyền"}), 403
+    d = request.json or {}
+    comment = d.get("comment", "").strip()
+    if not comment:
+        return jsonify({"success": False, "message": "Nhận xét không được trống"}), 400
+    teacher_id = g.user["user_id"]
+    conn = get_db()
+    cur  = conn.cursor()
+    try:
+        cur.execute(
+            """
+            INSERT INTO student_exam_comments (exam_id, student_id, teacher_id, comment)
+            VALUES (%s,%s,%s,%s)
+            ON DUPLICATE KEY UPDATE comment=%s, teacher_id=%s
+            """,
+            (exam_id, student_id, teacher_id, comment, comment, teacher_id),
+        )
+        conn.commit()
+        return jsonify({"success": True, "message": "Đã lưu nhận xét"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cur.close(); conn.close()
 
 
 # ── GET exam stats ────────────────────────────────────────────────────────────
