@@ -5,16 +5,20 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale,
   PointElement, LineElement, Tooltip, Legend, Filler,
 } from 'chart.js';
-import { useAuth } from '../../context/AuthContext';
-import { fetchDashboard } from '../../api/studentService';
-import { logout, changePassword, updateProfile } from '../../api/auth';
+import { useAuth } from '../../../context/AuthContext';
+import { fetchDashboard } from '../../../api/studentService';
+import { logout } from '../../../api/auth';
 import {
   FiChevronLeft, FiChevronRight, FiLogOut, FiFileText, FiCheckCircle, FiStar,
-  FiTrendingUp, FiUsers, FiPlus, FiEdit2, FiTrash2, FiX, FiPhone, FiUser,
-  FiClock, FiLock, FiList, FiLoader, FiBell,
+  FiTrendingUp, FiUsers, FiPlus, FiEdit2, FiTrash2, FiUser,
+  FiPhone, FiClock, FiLock, FiList, FiBell,
 } from 'react-icons/fi';
-import { getRelatives, addRelative, updateRelative, deleteRelative } from '../../api/relativeService';
+import { getRelatives, addRelative, updateRelative, deleteRelative } from '../../../api/relativeService';
 import { toast } from 'react-toastify';
+import ChangePasswordModal from '../../../components/shared/ChangePasswordModal';
+import ProfileModal from '../../../components/shared/ProfileModal';
+import RelativeFormModal from './RelativeFormModal';
+import RelativeDeleteModal from './RelativeDeleteModal';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
@@ -34,185 +38,6 @@ function toISO(ddmmyyyy) {
 }
 
 const rankBadge = ['bg-yellow-400', 'bg-gray-300', 'bg-orange-400'];
-
-function ChangePasswordModal({ onClose }) {
-  const [currentPw, setCurrentPw] = useState('');
-  const [newPw, setNewPw]         = useState('');
-  const [confirmPw, setConfirmPw] = useState('');
-  const [loading, setLoading]     = useState(false);
-
-  async function handleSave() {
-    if (!currentPw || !newPw || !confirmPw) return toast.error('Vui lòng điền đầy đủ thông tin');
-    if (newPw !== confirmPw) return toast.error('Mật khẩu mới không khớp');
-    if (newPw.length < 6) return toast.error('Mật khẩu mới phải có ít nhất 6 ký tự');
-    setLoading(true);
-    try {
-      await changePassword(currentPw, newPw);
-      toast.success('Đổi mật khẩu thành công');
-      onClose();
-    } catch (err) {
-      toast.error(err.message || 'Đổi mật khẩu thất bại');
-    } finally { setLoading(false); }
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-semibold text-gray-900">Đổi mật khẩu</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
-            <FiX size={17} />
-          </button>
-        </div>
-        <div className="space-y-3.5 mb-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Mật khẩu hiện tại</label>
-            <input className="input" type="password" placeholder="••••••••"
-              value={currentPw} onChange={e => setCurrentPw(e.target.value)} autoFocus />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Mật khẩu mới</label>
-            <input className="input" type="password" placeholder="Ít nhất 6 ký tự"
-              value={newPw} onChange={e => setNewPw(e.target.value)} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Xác nhận mật khẩu mới</label>
-            <input className="input" type="password" placeholder="Nhập lại mật khẩu mới"
-              value={confirmPw} onChange={e => setConfirmPw(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSave()} />
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
-          <button className="btn-primary flex-1" onClick={handleSave} disabled={loading}>
-            {loading ? <><FiLoader size={14} className="animate-spin" /> Đang lưu...</> : 'Đổi mật khẩu'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProfileModal({ onClose }) {
-  const { user, setUser } = useAuth();
-  const [fullName, setFullName] = useState(user?.name || '');
-  const [loading, setLoading]   = useState(false);
-
-  async function handleSave() {
-    if (!fullName.trim()) return toast.error('Họ và tên không được trống');
-    setLoading(true);
-    try {
-      await updateProfile(fullName.trim());
-      setUser({ ...user, name: fullName.trim() });
-      toast.success('Cập nhật thành công');
-      onClose();
-    } catch (err) {
-      toast.error(err.message || 'Cập nhật thất bại');
-    } finally { setLoading(false); }
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-semibold text-gray-900">Cập nhật hồ sơ</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
-            <FiX size={17} />
-          </button>
-        </div>
-        <div className="space-y-3.5 mb-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Họ và tên</label>
-            <input className="input" placeholder="Nguyễn Văn A"
-              value={fullName} onChange={e => setFullName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSave()} autoFocus />
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
-          <button className="btn-primary flex-1" onClick={handleSave} disabled={loading}>
-            {loading ? <><FiLoader size={14} className="animate-spin" /> Đang lưu...</> : 'Lưu'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const RELATIONSHIPS = ['Bố', 'Mẹ', 'Ông', 'Bà', 'Anh', 'Chị', 'Chú', 'Bác', 'Cô', 'Dì', 'Người giám hộ'];
-
-function RelativeFormModal({ initial, onClose, onSubmit, loading }) {
-  const [name, setName]             = useState(initial?.name || '');
-  const [phone, setPhone]           = useState(initial?.phone || '');
-  const [relationship, setRelationship] = useState(initial?.relationship || '');
-
-  return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-semibold text-gray-900">{initial ? 'Sửa người thân' : 'Thêm người thân'}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
-            <FiX size={17} />
-          </button>
-        </div>
-        <div className="space-y-3.5 mb-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Họ và tên <span className="text-red-500">*</span>
-            </label>
-            <input className="input" placeholder="Nguyễn Văn A" value={name}
-              onChange={e => setName(e.target.value)} autoFocus />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Số điện thoại <span className="text-red-500">*</span>
-            </label>
-            <input className="input" placeholder="0912345678" value={phone}
-              onChange={e => setPhone(e.target.value)} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Quan hệ</label>
-            <select className="input" value={relationship} onChange={e => setRelationship(e.target.value)}>
-              <option value="">-- Chọn quan hệ --</option>
-              {RELATIONSHIPS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
-          <button className="btn-primary flex-1" disabled={loading}
-            onClick={() => onSubmit({ name, phone, relationship })}>
-            {loading ? 'Đang lưu...' : (initial ? 'Cập nhật' : 'Thêm')}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RelativeDeleteModal({ relative, onClose, onConfirm, loading }) {
-  return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-        <div className="text-center mb-5">
-          <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mx-auto mb-3">
-            <FiTrash2 size={22} className="text-red-500" />
-          </div>
-          <h3 className="font-semibold text-gray-900">Xóa người thân</h3>
-          <p className="text-sm text-gray-500 mt-2">
-            Xóa <span className="font-semibold text-gray-800">{relative.name}</span> khỏi danh sách?
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
-          <button className="btn-danger flex-1" onClick={onConfirm} disabled={loading}>
-            {loading ? 'Đang xóa...' : 'Xóa'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function StudentHome() {
   const { user, setUser } = useAuth();

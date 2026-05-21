@@ -1,92 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import TeacherLayout from '../../components/TeacherLayout';
-import { fetchLessons, createLesson, updateLesson, deleteLesson } from '../../api/lessonService';
+import TeacherLayout from '../../../components/TeacherLayout';
+import { fetchLessons, createLesson, updateLesson } from '../../../api/lessonService';
 import { toast } from 'react-toastify';
-import { FiSearch, FiPlus, FiEdit2, FiTrash2, FiArrowRight, FiBook, FiLoader, FiX } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiEdit2, FiTrash2, FiArrowRight, FiBook, FiLoader } from 'react-icons/fi';
+import LessonFormModal from './LessonFormModal';
+import DeleteLessonModal from './DeleteLessonModal';
 
 function formatDate(str) {
   if (!str) return '--';
   const d = new Date(str);
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
-}
-
-function LessonModal({ title, initialValue = '', onClose, onSubmit, loading }) {
-  const [value, setValue] = useState(initialValue);
-  const inputRef = useRef();
-
-  useEffect(() => {
-    inputRef.current?.focus();
-    if (initialValue) inputRef.current?.select();
-  }, []);
-
-  return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-semibold text-gray-900">{title}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
-            <FiX size={17} />
-          </button>
-        </div>
-        <div className="mb-5">
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên bài học</label>
-          <input
-            ref={inputRef}
-            className="input"
-            placeholder="VD: Phép cộng trong phạm vi 100"
-            value={value}
-            onChange={e => setValue(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') onSubmit(value); if (e.key === 'Escape') onClose(); }}
-          />
-        </div>
-        <div className="flex gap-3">
-          <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
-          <button className="btn-primary flex-1" onClick={() => onSubmit(value)} disabled={loading}>
-            {loading ? 'Đang xử lý...' : 'Xác nhận'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DeleteModal({ lesson, onClose, onDeleted }) {
-  const [loading, setLoading] = useState(false);
-
-  async function handleDelete() {
-    setLoading(true);
-    try {
-      await deleteLesson(lesson.id);
-      toast.success('Đã xóa bài học');
-      onDeleted();
-    } catch (err) {
-      toast.error(err.message || 'Xóa thất bại');
-    } finally { setLoading(false); }
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-        <div className="text-center mb-5">
-          <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-            <FiTrash2 size={22} className="text-red-500" />
-          </div>
-          <h3 className="font-semibold text-gray-900">Xóa bài học</h3>
-          <p className="text-sm text-gray-500 mt-2">
-            Xóa <span className="font-semibold text-gray-800">"{lesson.title}"</span>?
-          </p>
-          <p className="text-xs text-red-400 mt-1">Tất cả bài thi trong bài học này cũng sẽ bị xóa.</p>
-        </div>
-        <div className="flex gap-3">
-          <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
-          <button className="btn-danger flex-1" onClick={handleDelete} disabled={loading}>
-            {loading ? 'Đang xóa...' : 'Xóa'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export default function ManageLesson() {
@@ -149,7 +73,7 @@ export default function ManageLesson() {
   return (
     <TeacherLayout>
       {showAdd && (
-        <LessonModal
+        <LessonFormModal
           title="Thêm bài học mới"
           onClose={() => setShowAdd(false)}
           onSubmit={handleCreate}
@@ -157,7 +81,7 @@ export default function ManageLesson() {
         />
       )}
       {editLesson && (
-        <LessonModal
+        <LessonFormModal
           title="Sửa tên bài học"
           initialValue={editLesson.title}
           onClose={() => setEditLesson(null)}
@@ -166,7 +90,7 @@ export default function ManageLesson() {
         />
       )}
       {deleteLesson_ && (
-        <DeleteModal
+        <DeleteLessonModal
           lesson={deleteLesson_}
           onClose={() => setDeleteLesson(null)}
           onDeleted={() => { setDeleteLesson(null); load(query); }}

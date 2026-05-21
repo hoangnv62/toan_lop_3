@@ -1,0 +1,101 @@
+import { useEffect, useState } from 'react';
+import { FiX, FiLoader } from 'react-icons/fi';
+import { getQuestionBank } from '../../../api/questionBankService';
+import { toast } from 'react-toastify';
+
+export default function QuestionBankPickerModal({ onClose, onAdd }) {
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [selected, setSelected]   = useState(new Set());
+
+  useEffect(() => {
+    getQuestionBank()
+      .then(data => setQuestions(Array.isArray(data) ? data : []))
+      .catch(() => toast.error('Không tải được từ ngân hàng câu hỏi'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  function toggle(id) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function handleAdd() {
+    const picked = questions.filter(q => selected.has(q.id));
+    const mapped = picked.map(q => ({
+      questionId: null,
+      content: q.content,
+      explanation: q.explanation || '',
+      answers: (q.answers || []).map(a => ({
+        answerId: null,
+        content: a.content,
+        correct: a.is_correct === 1 || a.is_correct === true,
+      })),
+    }));
+    onAdd(mapped);
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+          <div>
+            <h3 className="font-semibold text-gray-900">Chọn từ ngân hàng câu hỏi</h3>
+            {selected.size > 0 && (
+              <p className="text-xs text-indigo-600 mt-0.5">Đã chọn {selected.size} cau</p>
+            )}
+          </div>
+          <button onClick={onClose}
+            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+            <FiX size={17} />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-4 py-3">
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <FiLoader size={20} className="animate-spin text-gray-300" />
+            </div>
+          ) : questions.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-12">Ngân hàng câu hỏi trống.</p>
+          ) : (
+            <div className="space-y-2">
+              {questions.map(q => (
+                <label key={q.id}
+                  className={'flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ' +
+                    (selected.has(q.id)
+                      ? 'border-indigo-400 bg-indigo-50'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50')}>
+                  <input
+                    type="checkbox"
+                    checked={selected.has(q.id)}
+                    onChange={() => toggle(q.id)}
+                    className="accent-indigo-600 mt-0.5 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-800 leading-relaxed line-clamp-2">{q.content}</p>
+                    <p className="text-xs text-gray-400 mt-1">{q.answers?.length ?? 0} đáp án</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+          <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
+          <button
+            className="btn-primary flex-1"
+            disabled={selected.size === 0}
+            onClick={handleAdd}>
+            Thêm {selected.size > 0 ? selected.size + ' cau' : ''} đã chọn
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
