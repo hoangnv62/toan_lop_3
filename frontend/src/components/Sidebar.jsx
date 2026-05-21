@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { logout, changePassword } from '../api/auth';
+import { logout, changePassword, updateProfile } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { FiBarChart2, FiUsers, FiBook, FiLogOut, FiLock, FiX, FiLoader } from 'react-icons/fi';
+import { FiBarChart2, FiUsers, FiBook, FiLogOut, FiLock, FiX, FiLoader, FiDatabase, FiUser } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 
 const links = [
   { to: '/dashboard',     label: 'Báo cáo & Phân tích', icon: FiBarChart2 },
   { to: '/manage-class',  label: 'Quản lý lớp',          icon: FiUsers },
   { to: '/manage-lesson', label: 'Bài học & Bài tập',      icon: FiBook },
+  { to: '/question-bank', label: 'Ngân hàng câu hỏi',    icon: FiDatabase },
 ];
 
 function ChangePasswordModal({ onClose }) {
@@ -70,10 +71,57 @@ function ChangePasswordModal({ onClose }) {
   );
 }
 
+function ProfileModal({ onClose }) {
+  const { user, setUser } = useAuth();
+  const [fullName, setFullName] = useState(user?.name || '');
+  const [loading, setLoading]   = useState(false);
+
+  async function handleSave() {
+    if (!fullName.trim()) return toast.error('Họ và tên không được trống');
+    setLoading(true);
+    try {
+      await updateProfile(fullName.trim());
+      setUser({ ...user, name: fullName.trim() });
+      toast.success('Cập nhật thông tin thành công');
+      onClose();
+    } catch (err) {
+      toast.error(err.message || 'Cập nhật thất bại');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-semibold text-gray-900">Cập nhật hồ sơ</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+            <FiX size={17} />
+          </button>
+        </div>
+        <div className="space-y-3.5 mb-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Họ và tên</label>
+            <input className="input" placeholder="Nguyễn Văn A"
+              value={fullName} onChange={e => setFullName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSave()} autoFocus />
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
+          <button className="btn-primary flex-1" onClick={handleSave} disabled={loading}>
+            {loading ? <><FiLoader size={14} className="animate-spin" /> Đang lưu...</> : 'Lưu'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Sidebar() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
-  const [pwModal, setPwModal] = useState(false);
+  const [pwModal, setPwModal]         = useState(false);
+  const [profileModal, setProfileModal] = useState(false);
 
   async function handleLogout() {
     await logout();
@@ -124,6 +172,12 @@ export default function Sidebar() {
             <p className="text-xs text-gray-400">Giáo viên</p>
           </div>
         )}
+        <button onClick={() => setProfileModal(true)}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                     text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 transition-all">
+          <FiUser size={16} />
+          Cập nhật hồ sơ
+        </button>
         <button onClick={() => setPwModal(true)}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
                      text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 transition-all">
@@ -139,6 +193,7 @@ export default function Sidebar() {
       </div>
 
       {pwModal && <ChangePasswordModal onClose={() => setPwModal(false)} />}
+      {profileModal && <ProfileModal onClose={() => setProfileModal(false)} />}
     </aside>
   );
 }

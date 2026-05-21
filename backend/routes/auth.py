@@ -122,6 +122,21 @@ def me():
     }})
 
 
+@auth_bp.route("/api/auth/profile", methods=["PUT"])
+@require_auth
+def update_profile():
+    d = request.json or {}
+    full_name = d.get("fullName", "").strip()
+    if not full_name:
+        return jsonify({"success": False, "message": "Họ tên không được trống"}), 400
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("UPDATE users SET full_name=%s WHERE id=%s", (full_name, g.user["user_id"]))
+    conn.commit()
+    cur.close(); conn.close()
+    return jsonify({"success": True, "message": "Đã cập nhật"})
+
+
 @auth_bp.route("/api/auth/password", methods=["PUT"])
 @require_auth
 def change_password():

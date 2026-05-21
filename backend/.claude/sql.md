@@ -170,3 +170,55 @@ create table student_exam_comments
         foreign key (teacher_id) references users (id)
             on delete cascade
 );
+
+-- Ngân hàng câu hỏi (câu hỏi độc lập, tái sử dụng được)
+create table question_bank
+(
+    id          int auto_increment
+        primary key,
+    teacher_id  int                                   not null,
+    content     text                                  not null,
+    explanation text                                  null,
+    created_at  timestamp default current_timestamp() not null,
+    constraint fk_qb_teacher
+        foreign key (teacher_id) references users (id)
+            on delete cascade
+);
+
+create table question_bank_answers
+(
+    id          int auto_increment
+        primary key,
+    question_id int                  not null,
+    content     text                 not null,
+    is_correct  tinyint(1) default 0 not null,
+    constraint fk_qba_question
+        foreign key (question_id) references question_bank (id)
+            on delete cascade
+);
+
+-- Thông báo của giáo viên gửi cho lớp
+create table announcements
+(
+    id         int auto_increment
+        primary key,
+    class_id   int                                   not null,
+    teacher_id int                                   not null,
+    title      varchar(255)                          not null,
+    content    text                                  not null,
+    created_at timestamp default current_timestamp() not null,
+    constraint fk_ann_class
+        foreign key (class_id) references classes (id)
+            on delete cascade,
+    constraint fk_ann_teacher
+        foreign key (teacher_id) references users (id)
+            on delete cascade
+);
+
+-- Thêm thời gian mở bài vào class_exams
+alter table class_exams
+    add column open_time datetime null comment 'NULL = mở ngay, có giá trị = chỉ hiện sau thời điểm này';
+
+-- Thêm giới hạn thời gian làm bài vào exams
+alter table exams
+    add column time_limit int null comment 'giây, NULL = không giới hạn';

@@ -8,16 +8,17 @@ import {
 import TeacherLayout from '../../components/TeacherLayout';
 import {
   getClassDetail, searchStudents, assignStudent, removeStudent,
-  uploadStudents, updateClass, getClassExams, unassignExam,
+  uploadStudents, updateClass, getClassExams, unassignExam, exportStudents,
 } from '../../api/classService';
 import { exportExam, getStudentSubmission, saveComment } from '../../api/examService';
+import { getAnnouncements, createAnnouncement, deleteAnnouncement } from '../../api/announcementService';
 import { getStudentResults, getStudentProgress } from '../../api/studentService';
 import { getRelatives } from '../../api/relativeService';
 import { toast } from 'react-toastify';
 import {
   FiSearch, FiUpload, FiUserX, FiUserPlus, FiLoader, FiUsers, FiPhone,
   FiUser, FiX, FiDownload, FiEye, FiFileText, FiChevronLeft,
-  FiCheckCircle, FiXCircle, FiClock, FiSave, FiTrendingUp,
+  FiCheckCircle, FiXCircle, FiClock, FiSave, FiTrendingUp, FiBell, FiTrash2,
 } from 'react-icons/fi';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
@@ -353,6 +354,11 @@ export default function ClassDetail() {
   const [relLoading, setRelLoading]       = useState(false);
   const [studentModal, setStudentModal]   = useState(null); // { student }
   const [exportingId, setExportingId]     = useState(null);
+  const [exportingStudents, setExportingStudents] = useState(false);
+  const [announcements, setAnnouncements] = useState([]);
+  const [annForm, setAnnForm]             = useState({ open: false, title: '', content: '' });
+  const [annSaving, setAnnSaving]         = useState(false);
+  const [confirmAnn, setConfirmAnn]       = useState(null);
   const [file, setFile]                   = useState(null);
   const fileRef     = useRef();
   const debounceRef = useRef();
@@ -368,13 +374,15 @@ export default function ClassDetail() {
 
   async function load() {
     try {
-      const [data, exams] = await Promise.all([
+      const [data, exams, ann] = await Promise.all([
         getClassDetail(classId),
         getClassExams(classId),
+        getAnnouncements(classId).catch(() => []),
       ]);
       setDetail(data);
       setClassName(data.className);
       setAssignedExams(exams);
+      setAnnouncements(Array.isArray(ann) ? ann : []);
     } catch (err) {
       toast.error(err.message || 'Không tải được thông tin lớp');
     }
@@ -470,6 +478,45 @@ export default function ClassDetail() {
     }
   }
 
+  async function handleExportStudents() {
+    setExportingStudents(true);
+    try {
+      await exportStudents(classId, detail.className);
+    } catch (err) {
+      toast.error(err.message || 'Xuất file thất bại');
+    } finally { setExportingStudents(false); }
+  }
+
+  async function handleCreateAnn() {
+    if (!annForm.title.trim()) return toast.error('Tiêu đề không được trống');
+    if (!annForm.content.trim()) return toast.error('Nội dung không được trống');
+    setAnnSaving(true);
+    try {
+      await createAnnouncement(classId, { title: annForm.title.trim(), content: annForm.content.trim() });
+      toast.success('Đã tạo thông báo');
+      setAnnForm({ open: false, title: '', content: '' });
+      load();
+    } catch (err) {
+      toast.error(err.message || 'Tạo thông báo thất bại');
+    } finally { setAnnSaving(false); }
+  }
+
+  async function handleDeleteAnn(ann) {
+    setConfirmAnn(ann);
+  }
+
+  async function confirmDeleteAnn() {
+    const id = confirmAnn.id;
+    setConfirmAnn(null);
+    try {
+      await deleteAnnouncement(id);
+      toast.success('Đã xóa thông báo');
+      load();
+    } catch (err) {
+      toast.error(err.message || 'Xóa thất bại');
+    }
+  }
+
   if (!detail) return (
     <TeacherLayout>
       <div className="flex items-center justify-center h-64">
@@ -482,6 +529,26 @@ export default function ClassDetail() {
     <TeacherLayout>
       {confirm && (
         <ConfirmModal student={confirm} onConfirm={handleConfirmRemove} onCancel={() => setConfirm(null)} />
+      )}
+      {confirmAnn && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900">Xác nhận xóa thông báo</h3>
+              <button onClick={() => setConfirmAnn(null)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+                <FiX size={17} />
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-1.5">Bạn có chắc muốn xóa thông báo sau không?</p>
+            <p className="text-sm font-medium text-gray-900 bg-gray-50 rounded-lg px-3 py-2 mb-5 line-clamp-2">
+              {confirmAnn.title}
+            </p>
+            <div className="flex gap-3">
+              <button className="btn-secondary flex-1" onClick={() => setConfirmAnn(null)}>Hủy</button>
+              <button className="btn-danger flex-1" onClick={confirmDeleteAnn}>Xóa</button>
+            </div>
+          </div>
+        </div>
       )}
       {relModal && (
         <RelativesModal
@@ -661,12 +728,98 @@ export default function ClassDetail() {
           </div>
         </div>
 
+        {/* Announcements */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <FiBell size={16} className="text-indigo-600" />
+              <h3 className="text-sm font-semibold text-gray-900">Thông báo lớp</h3>
+              <span className="badge-indigo">{announcements.length}</span>
+            </div>
+            <button
+              className="btn-primary py-1.5 px-3 text-xs gap-1.5"
+              onClick={() => setAnnForm(f => ({ ...f, open: !f.open }))}>
+              <FiBell size={13} /> Thêm thông báo
+            </button>
+          </div>
+
+          {annForm.open && (
+            <div className="mb-4 p-4 rounded-xl border border-indigo-200 bg-indigo-50/40 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Tiêu đề</label>
+                <input
+                  className="input text-sm"
+                  placeholder="Nhập tiêu đề thông báo..."
+                  value={annForm.title}
+                  onChange={e => setAnnForm(f => ({ ...f, title: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Nội dung</label>
+                <textarea
+                  className="input text-sm resize-none"
+                  rows={3}
+                  placeholder="Nhập nội dung thông báo..."
+                  value={annForm.content}
+                  onChange={e => setAnnForm(f => ({ ...f, content: e.target.value }))}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  className="btn-secondary text-xs py-1.5 px-3"
+                  onClick={() => setAnnForm({ open: false, title: '', content: '' })}>
+                  Hủy
+                </button>
+                <button
+                  className="btn-primary text-xs py-1.5 px-3 gap-1"
+                  onClick={handleCreateAnn}
+                  disabled={annSaving}>
+                  {annSaving ? <><FiLoader size={12} className="animate-spin" /> Đang lưu...</> : <><FiSave size={12} /> Lưu</>}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {announcements.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">Chưa có thông báo nào.</p>
+          ) : (
+            <div className="space-y-2">
+              {announcements.map(a => (
+                <div key={a.id} className="flex items-start justify-between gap-3 p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900">{a.title}</p>
+                    <p className="text-sm text-gray-600 mt-0.5 leading-relaxed">{a.content}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(a.created_at).toLocaleDateString('vi-VN')}
+                    </p>
+                  </div>
+                  <button
+                    className="btn-ghost text-red-500 hover:bg-red-50 p-1.5 shrink-0"
+                    onClick={() => handleDeleteAnn(a)}>
+                    <FiTrash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Student roster */}
         <div className="card">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4">
-            Danh sách học sinh
-            <span className="ml-2 badge-indigo">{detail.students?.length ?? 0}</span>
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-gray-900">
+                Danh sách học sinh
+                <span className="ml-2 badge-indigo">{detail.students?.length ?? 0}</span>
+              </h3>
+            </div>
+            <button
+              className="btn-secondary py-1.5 px-3 text-xs gap-1"
+              onClick={handleExportStudents}
+              disabled={exportingStudents}>
+              <FiDownload size={13} /> {exportingStudents ? 'Đang xuất...' : 'Xuất Excel'}
+            </button>
+          </div>
           <div className="overflow-x-auto rounded-xl border border-gray-200">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">

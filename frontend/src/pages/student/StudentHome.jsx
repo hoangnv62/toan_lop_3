@@ -7,11 +7,11 @@ import {
 } from 'chart.js';
 import { useAuth } from '../../context/AuthContext';
 import { fetchDashboard } from '../../api/studentService';
-import { logout, changePassword } from '../../api/auth';
+import { logout, changePassword, updateProfile } from '../../api/auth';
 import {
   FiChevronLeft, FiChevronRight, FiLogOut, FiFileText, FiCheckCircle, FiStar,
   FiTrendingUp, FiUsers, FiPlus, FiEdit2, FiTrash2, FiX, FiPhone, FiUser,
-  FiClock, FiLock, FiList, FiLoader,
+  FiClock, FiLock, FiList, FiLoader, FiBell,
 } from 'react-icons/fi';
 import { getRelatives, addRelative, updateRelative, deleteRelative } from '../../api/relativeService';
 import { toast } from 'react-toastify';
@@ -86,6 +86,52 @@ function ChangePasswordModal({ onClose }) {
           <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
           <button className="btn-primary flex-1" onClick={handleSave} disabled={loading}>
             {loading ? <><FiLoader size={14} className="animate-spin" /> Đang lưu...</> : 'Đổi mật khẩu'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProfileModal({ onClose }) {
+  const { user, setUser } = useAuth();
+  const [fullName, setFullName] = useState(user?.name || '');
+  const [loading, setLoading]   = useState(false);
+
+  async function handleSave() {
+    if (!fullName.trim()) return toast.error('Họ và tên không được trống');
+    setLoading(true);
+    try {
+      await updateProfile(fullName.trim());
+      setUser({ ...user, name: fullName.trim() });
+      toast.success('Cập nhật thành công');
+      onClose();
+    } catch (err) {
+      toast.error(err.message || 'Cập nhật thất bại');
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-semibold text-gray-900">Cập nhật hồ sơ</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+            <FiX size={17} />
+          </button>
+        </div>
+        <div className="space-y-3.5 mb-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Họ và tên</label>
+            <input className="input" placeholder="Nguyễn Văn A"
+              value={fullName} onChange={e => setFullName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSave()} autoFocus />
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
+          <button className="btn-primary flex-1" onClick={handleSave} disabled={loading}>
+            {loading ? <><FiLoader size={14} className="animate-spin" /> Đang lưu...</> : 'Lưu'}
           </button>
         </div>
       </div>
@@ -178,6 +224,7 @@ export default function StudentHome() {
   const [relModal, setRelModal]     = useState(null); // null | { mode:'add' } | { mode:'edit', item } | { mode:'delete', item }
   const [relLoading, setRelLoading] = useState(false);
   const [pwModal, setPwModal]       = useState(false);
+  const [profileModal, setProfileModal] = useState(false);
 
   const week = getWeekRange(weekOffset);
 
@@ -264,6 +311,10 @@ export default function StudentHome() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => setProfileModal(true)}
+              className="btn-ghost text-gray-500 py-1.5 px-2.5 gap-1.5">
+              <FiUser size={15} />
+            </button>
             <button onClick={() => setPwModal(true)}
               className="btn-ghost text-gray-500 py-1.5 px-2.5 gap-1.5">
               <FiLock size={15} />
@@ -345,6 +396,25 @@ export default function StudentHome() {
                 plugins: { legend: { display: false } },
               }}
             />
+          </div>
+        )}
+
+        {/* Announcements */}
+        {data?.announcements?.length > 0 && (
+          <div className="card">
+            <div className="flex items-center gap-2 mb-3">
+              <FiBell size={15} className="text-indigo-600" />
+              <h3 className="text-sm font-semibold text-gray-900">Thông báo từ giáo viên</h3>
+            </div>
+            <div className="space-y-2">
+              {data.announcements.map(a => (
+                <div key={a.id} className="p-3 rounded-xl bg-indigo-50/60 border border-indigo-100">
+                  <p className="text-sm font-semibold text-gray-900">{a.title}</p>
+                  <p className="text-sm text-gray-600 mt-0.5 leading-relaxed">{a.content}</p>
+                  <p className="text-xs text-gray-400 mt-1">{new Date(a.created_at).toLocaleDateString('vi-VN')}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -485,6 +555,7 @@ export default function StudentHome() {
       </div>
 
       {pwModal && <ChangePasswordModal onClose={() => setPwModal(false)} />}
+      {profileModal && <ProfileModal onClose={() => setProfileModal(false)} />}
 
       {/* Modals */}
       {(relModal?.mode === 'add' || relModal?.mode === 'edit') && (

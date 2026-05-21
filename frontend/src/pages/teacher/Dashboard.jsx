@@ -25,7 +25,6 @@ export default function Dashboard() {
     try {
       const d = await fetchTeacherDashboard();
       setData(d);
-      fetchAdvice(d);
     } catch (err) {
       toast.error(err.message || 'Không tải được dashboard');
     }

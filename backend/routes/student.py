@@ -255,6 +255,16 @@ def student_dashboard():
     dt = None if show_all else date_to
     lesson_rows  = _lessons_with_stats(cur, uid, df, dt)
     ranking_rows = _class_ranking(cur, teacher_id, df, dt)
+
+    # Feature 4: fetch latest 3 announcements for student's class
+    cur.execute(
+        "SELECT id, title, content, created_at FROM announcements WHERE class_id=(SELECT class_id FROM users WHERE id=%s) ORDER BY created_at DESC LIMIT 3",
+        (uid,)
+    )
+    announcements = cur.fetchall()
+    for a in announcements:
+        a["created_at"] = str(a["created_at"])
+
     cur.close(); conn.close()
 
     exams  = []
@@ -268,6 +278,7 @@ def student_dashboard():
             "examId": r["exam_id"], "examName": r["exam_name"],
             "lessonTitle": r["lesson_name"], "done": done, "score": score,
             "deadline": str(r["deadline"]) if r.get("deadline") else None,
+            "openTime": str(r["open_time"]) if r.get("open_time") else None,
         })
         if done and score is not None:
             scores.append({"examName": r["exam_name"], "score": score})
@@ -288,6 +299,7 @@ def student_dashboard():
     return jsonify({"success": True, "data": {
         "exams": exams, "scores": scores, "ranking": ranking,
         "progress": {"totalExams": len(exams), "done": done_count, "avg": avg},
+        "announcements": announcements,
     }})
 
 
@@ -328,7 +340,7 @@ def _lessons_with_stats(cur, student_id, date_from=None, date_to=None):
     sql = """
         SELECT l.id AS lesson_id, l.title AS lesson_name, l.created_at,
             e.id AS exam_id, e.name AS exam_name,
-            ce.deadline,
+            ce.deadline, ce.open_time,
             CASE WHEN MAX(sa.id) IS NULL THEN 0 ELSE 1 END AS done,
             COUNT(DISTINCT q.id) AS total_questions,
             SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END) AS correct_questions,
@@ -340,6 +352,7 @@ def _lessons_with_stats(cur, student_id, date_from=None, date_to=None):
         LEFT JOIN answers a ON sa.answer_id=a.id
         LEFT JOIN questions q ON a.question_id=q.id
         WHERE ce.class_id=(SELECT class_id FROM users WHERE id=%s)
+          AND (ce.open_time IS NULL OR ce.open_time <= NOW())
     """
     params = [student_id, student_id]
     if date_from:

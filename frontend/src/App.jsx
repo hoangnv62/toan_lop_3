@@ -8,6 +8,7 @@ import ManageClass from './pages/teacher/ManageClass';
 import ClassDetail from './pages/teacher/ClassDetail';
 import ManageLesson from './pages/teacher/ManageLesson';
 import LessonDetail from './pages/teacher/LessonDetail';
+import QuestionBank from './pages/teacher/QuestionBank';
 import StudentHome from './pages/student/StudentHome';
 import StudentExam from './pages/student/StudentExam';
 import ExamResult from './pages/student/ExamResult';
@@ -41,6 +42,9 @@ export default function App() {
         } />
         <Route path="/lesson-detail/:lessonId" element={
           <RequireAuth role="teacher"><LessonDetail /></RequireAuth>
+        } />
+        <Route path="/question-bank" element={
+          <RequireAuth role="teacher"><QuestionBank /></RequireAuth>
         } />
 
         <Route path="/student" element={

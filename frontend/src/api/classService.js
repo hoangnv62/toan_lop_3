@@ -1,4 +1,5 @@
-import { apiFetch } from './index';
+import { apiFetch, getToken } from './index';
+import { API_BASE } from '../config';
 
 export const fetchClasses    = ()              => apiFetch('/api/classes');
 export const createClass     = (class_name)    => apiFetch('/api/classes', { method: 'POST', body: JSON.stringify({ class_name }) });
@@ -22,10 +23,26 @@ export const uploadStudents  = (classId, file) => {
 };
 
 export const getClassExams   = (classId)                   => apiFetch(`/api/classes/${classId}/exams`);
-export const assignExam      = (classId, examId, deadline) =>
+export const assignExam      = (classId, examId, deadline, openTime) =>
   apiFetch(`/api/classes/${classId}/exams`, {
     method: 'POST',
-    body: JSON.stringify({ exam_id: examId, deadline: deadline || null }),
+    body: JSON.stringify({ exam_id: examId, deadline: deadline || null, open_time: openTime || null }),
   });
 export const unassignExam    = (classId, examId)           =>
   apiFetch(`/api/classes/${classId}/exams/${examId}`, { method: 'DELETE' });
+
+export async function exportStudents(classId, className) {
+  const response = await fetch(`${API_BASE}/api/classes/${classId}/students/export`, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  });
+  if (!response.ok) throw new Error('Export thất bại');
+  const blob = await response.blob();
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `${className}-hocsinh.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}

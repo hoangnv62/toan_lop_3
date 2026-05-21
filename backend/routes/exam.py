@@ -105,7 +105,7 @@ def get_exam_assignments(exam_id):
         """
         SELECT c.id AS class_id, c.class_name,
                (ce.exam_id IS NOT NULL) AS assigned,
-               ce.deadline, ce.assigned_at
+               ce.deadline, ce.assigned_at, ce.open_time
         FROM classes c
         LEFT JOIN class_exams ce ON ce.class_id=c.id AND ce.exam_id=%s
         WHERE c.teacher_id=%s
@@ -119,6 +119,7 @@ def get_exam_assignments(exam_id):
         r["assigned"]    = bool(r["assigned"])
         r["deadline"]    = str(r["deadline"])    if r["deadline"]    else None
         r["assigned_at"] = str(r["assigned_at"]) if r["assigned_at"] else None
+        r["open_time"]   = str(r["open_time"])   if r["open_time"]   else None
     return jsonify({"success": True, "data": rows})
 
 
@@ -171,6 +172,7 @@ def get_exam(exam_id):
         "name":        exam["name"],
         "description": exam["description"],
         "dateCreated": exam["date_created"],
+        "timeLimit":   exam["time_limit"],
         "questions":   list(questions_map.values()),
     }})
 
@@ -184,9 +186,10 @@ def create_exam(lesson_id):
     conn = get_db()
     cur = conn.cursor(dictionary=True)
     try:
+        time_limit = data.get("timeLimit") or None
         cur.execute(
-            "INSERT INTO exams(lesson_id, name, description) VALUES(%s,%s,%s)",
-            (lesson_id, data.get("name"), data.get("description")),
+            "INSERT INTO exams(lesson_id, name, description, time_limit) VALUES(%s,%s,%s,%s)",
+            (lesson_id, data.get("name"), data.get("description"), time_limit),
         )
         exam_id = cur.lastrowid
         for q in data.get("questions", []):
@@ -218,9 +221,10 @@ def update_exam(lesson_id, exam_id):
     conn = get_db()
     cur = conn.cursor(dictionary=True)
     try:
+        time_limit = data.get("timeLimit") or None
         cur.execute(
-            "UPDATE exams SET name=%s, description=%s WHERE id=%s AND lesson_id=%s",
-            (data.get("name"), data.get("description"), exam_id, lesson_id),
+            "UPDATE exams SET name=%s, description=%s, time_limit=%s WHERE id=%s AND lesson_id=%s",
+            (data.get("name"), data.get("description"), time_limit, exam_id, lesson_id),
         )
         cur.execute("SELECT id FROM questions WHERE exam_id=%s", (exam_id,))
         db_q_ids = {row["id"] for row in cur.fetchall()}
@@ -611,7 +615,37 @@ def get_exam_stats(exam_id):
         (exam["lesson_id"],),
     )
     total_row = cur.fetchone()
+
+    # Per-question breakdown (Feature 2)
+    cur.execute(
+        """
+        SELECT q.id AS questionId, q.content,
+            COUNT(DISTINCT sa.student_id) AS totalAnswered,
+            SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END) AS correctCount
+        FROM questions q
+        LEFT JOIN answers a ON a.question_id=q.id
+        LEFT JOIN student_answers sa ON sa.answer_id=a.id AND sa.exam_id=%s
+        WHERE q.exam_id=%s
+        GROUP BY q.id
+        ORDER BY q.id
+        """,
+        (exam_id, exam_id),
+    )
+    question_rows = cur.fetchall()
     cur.close(); conn.close()
+
+    questions_stats = []
+    for qr in question_rows:
+        total_answered = int(qr["totalAnswered"] or 0)
+        correct_count  = int(qr["correctCount"]  or 0)
+        correct_rate   = round(correct_count / total_answered * 100, 1) if total_answered > 0 else 0
+        questions_stats.append({
+            "questionId":    qr["questionId"],
+            "content":       qr["content"],
+            "totalAnswered": total_answered,
+            "correctCount":  correct_count,
+            "correctRate":   correct_rate,
+        })
 
     total_students = total_row["total"] if total_row else 0
     dist = {"0-4": 0, "4-6": 0, "6-8": 0, "8-10": 0}
@@ -629,4 +663,5 @@ def get_exam_stats(exam_id):
         "completedStudents": len(scores),
         "avgScore":          avg_score,
         "distribution":      dist,
+        "questions":         questions_stats,
     }})

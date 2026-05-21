@@ -50,3 +50,6 @@ export const changePassword = (currentPassword, newPassword) =>
     method: 'PUT',
     body: JSON.stringify({ currentPassword, newPassword }),
   });
+
+export const updateProfile = (fullName) =>
+  apiFetch('/api/auth/profile', { method: 'PUT', body: JSON.stringify({ fullName }) });

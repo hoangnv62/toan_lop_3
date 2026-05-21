@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchExam, submitExam } from '../../api/examService';
 import { toast } from 'react-toastify';
-import { FiAlertCircle } from 'react-icons/fi';
+import { FiAlertCircle, FiLoader } from 'react-icons/fi';
 
 function ConfirmSubmitModal({ answered, total, onConfirm, onCancel }) {
   const unanswered = total - answered;
@@ -34,23 +34,30 @@ function ConfirmSubmitModal({ answered, total, onConfirm, onCancel }) {
   );
 }
 
-const EXAM_DURATION = 20 * 60;
-
 export default function StudentExam() {
   const { examId }  = useParams();
   const navigate    = useNavigate();
   const [exam, setExam]           = useState(null);
   const [answers, setAnswers]     = useState({});
-  const [timeLeft, setTimeLeft]   = useState(EXAM_DURATION);
+  const [timeLeft, setTimeLeft]   = useState(null); // null = not yet loaded
   const [submitting, setSubmitting]   = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const timerRef = useRef(null);
+  const timerRef        = useRef(null);
+  const timerStartedRef = useRef(false);
+  const examDurationRef = useRef(20 * 60); // fallback default
 
   useEffect(() => {
-    fetchExam(examId).then(setExam).catch(() => toast.error('Không tải được bài tập'));
+    fetchExam(examId).then(data => {
+      setExam(data);
+      const duration = data.timeLimit || 20 * 60;
+      examDurationRef.current = duration;
+      setTimeLeft(duration);
+    }).catch(() => toast.error('Không tải được bài tập'));
   }, [examId]);
 
   useEffect(() => {
+    if (timeLeft === null || timerStartedRef.current) return;
+    timerStartedRef.current = true;
     timerRef.current = setInterval(() => {
       setTimeLeft(t => {
         if (t <= 1) { clearInterval(timerRef.current); handleSubmit(true); return 0; }
@@ -58,7 +65,7 @@ export default function StudentExam() {
       });
     }, 1000);
     return () => clearInterval(timerRef.current);
-  }, []);
+  }, [timeLeft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function selectAnswer(questionId, answerId) {
     setAnswers(prev => ({ ...prev, [questionId]: answerId }));
@@ -70,7 +77,7 @@ export default function StudentExam() {
     clearInterval(timerRef.current);
     setSubmitting(true);
     try {
-      const timeSpent = EXAM_DURATION - timeLeft;
+      const timeSpent = examDurationRef.current - (timeLeft ?? examDurationRef.current);
       await submitExam(Number(examId), {
         answers: Object.entries(answers).map(([qId, aId]) => ({
           questionId: Number(qId), answerId: Number(aId),
@@ -85,15 +92,16 @@ export default function StudentExam() {
     }
   }
 
-  const mm       = String(Math.floor(timeLeft / 60)).padStart(2, '0');
-  const ss       = String(timeLeft % 60).padStart(2, '0');
+  const safeTimeLeft = timeLeft ?? 0;
+  const mm       = String(Math.floor(safeTimeLeft / 60)).padStart(2, '0');
+  const ss       = String(safeTimeLeft % 60).padStart(2, '0');
   const answered = Object.keys(answers).length;
   const total    = exam?.questions?.length ?? 0;
   const pct      = total ? (answered / total) * 100 : 0;
 
   const timeStatus =
-    timeLeft <= 60  ? 'urgent' :
-    timeLeft <= 300 ? 'warning' : 'normal';
+    safeTimeLeft <= 60  ? 'urgent' :
+    safeTimeLeft <= 300 ? 'warning' : 'normal';
 
   const timerCls =
     timeStatus === 'urgent'  ? 'text-red-600 bg-red-50 border-red-200' :
@@ -139,9 +147,9 @@ export default function StudentExam() {
 
       {/* Questions */}
       <div className="max-w-2xl mx-auto p-4 space-y-4 pb-8">
-        {!exam ? (
+        {timeLeft === null || !exam ? (
           <div className="flex justify-center py-20">
-            <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            <FiLoader size={24} className="animate-spin text-gray-400" />
           </div>
         ) : exam.questions.map((q, qi) => (
           <div key={q.questionId} className="card">
