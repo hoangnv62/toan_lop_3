@@ -15,7 +15,6 @@ const emptyQuestion = () => ({
 export default function ExamModal({ lesson, examId, initialData, onClose, onSaved }) {
   const [examName, setExamName]   = useState(initialData?.name || '');
   const [examDesc, setExamDesc]   = useState(initialData?.description || '');
-  const [timeLimit, setTimeLimit] = useState(initialData?.timeLimit || '');
   const [questions, setQuestions] = useState(initialData?.questions || []);
   const [qCount, setQCount]       = useState('5');
   const [generating, setGenerating]   = useState(false);
@@ -96,7 +95,6 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
     try {
       await saveExam(lesson.lessonId, examId, {
         name: examName, description: examDesc,
-        timeLimit: timeLimit ? Number(timeLimit) * 60 : null,
         questions: questions.map(q => ({
           questionId: q.questionId, questionContent: q.content, explanation: q.explanation,
           answers: q.answers.map(a => ({ answerId: a.answerId, content: a.content, isCorrected: a.correct ? 1 : 0 })),
@@ -131,7 +129,7 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
 
           {/* Info */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Tên bài thi <span className="text-red-500">*</span>
@@ -145,11 +143,6 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
               </label>
               <input className="input" placeholder="VD: Phép cộng có nhớ..."
                 value={examDesc} onChange={e => setExamDesc(e.target.value)} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Giới hạn thời gian (phút)</label>
-              <input className="input" type="number" min="1" placeholder="Không giới hạn"
-                value={timeLimit} onChange={e => setTimeLimit(e.target.value)} />
             </div>
           </div>
 

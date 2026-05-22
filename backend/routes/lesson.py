@@ -11,32 +11,34 @@ def get_lessons():
     q = request.args.get("q", "").strip()
     conn = get_db()
     cur = conn.cursor(dictionary=True)
-    if q:
-        cur.execute(
-            """
-            SELECT l.*, COUNT(e.id) AS exam_count
-            FROM lessons l
-            LEFT JOIN exams e ON e.lesson_id = l.id
-            WHERE l.teacher_id=%s AND l.title LIKE %s
-            GROUP BY l.id ORDER BY l.created_at DESC
-            """,
-            (uid, f"%{q}%"),
-        )
-    else:
-        cur.execute(
-            """
-            SELECT l.*, COUNT(e.id) AS exam_count
-            FROM lessons l
-            LEFT JOIN exams e ON e.lesson_id = l.id
-            WHERE l.teacher_id=%s
-            GROUP BY l.id ORDER BY l.created_at DESC
-            """,
-            (uid,),
-        )
-    lessons = cur.fetchall()
-    cur.close()
-    conn.close()
-    return jsonify({"success": True, "data": lessons})
+    try:
+        if q:
+            cur.execute(
+                """
+                SELECT l.*, COUNT(e.id) AS exam_count
+                FROM lessons l
+                LEFT JOIN exams e ON e.lesson_id = l.id
+                WHERE l.teacher_id=%s AND l.title LIKE %s
+                GROUP BY l.id ORDER BY l.created_at DESC
+                """,
+                (uid, f"%{q}%"),
+            )
+        else:
+            cur.execute(
+                """
+                SELECT l.*, COUNT(e.id) AS exam_count
+                FROM lessons l
+                LEFT JOIN exams e ON e.lesson_id = l.id
+                WHERE l.teacher_id=%s
+                GROUP BY l.id ORDER BY l.created_at DESC
+                """,
+                (uid,),
+            )
+        lessons = cur.fetchall()
+        return jsonify({"success": True, "data": lessons})
+    finally:
+        cur.close()
+        conn.close()
 
 
 @lesson_bp.route("/api/lessons/<int:lesson_id>", methods=["GET"])
@@ -44,23 +46,23 @@ def get_lessons():
 def get_lesson(lesson_id):
     conn = get_db()
     cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT * FROM lessons WHERE id=%s", (lesson_id,))
-    lesson = cur.fetchone()
-    if not lesson:
+    try:
+        cur.execute("SELECT * FROM lessons WHERE id=%s", (lesson_id,))
+        lesson = cur.fetchone()
+        if not lesson:
+            return jsonify({"success": False, "message": "Bài học không tồn tại"}), 404
+
+        cur.execute("SELECT * FROM exams WHERE lesson_id=%s ORDER BY date_created DESC", (lesson_id,))
+        exams = cur.fetchall()
+        return jsonify({"success": True, "data": {
+            "lessonId": lesson["id"],
+            "lessonTitle": lesson["title"],
+            "description": lesson.get("description") or "",
+            "exams": exams,
+        }})
+    finally:
         cur.close()
         conn.close()
-        return jsonify({"success": False, "message": "Bài học không tồn tại"}), 404
-
-    cur.execute("SELECT * FROM exams WHERE lesson_id=%s ORDER BY date_created DESC", (lesson_id,))
-    exams = cur.fetchall()
-    cur.close()
-    conn.close()
-    return jsonify({"success": True, "data": {
-        "lessonId": lesson["id"],
-        "lessonTitle": lesson["title"],
-        "description": lesson.get("description") or "",
-        "exams": exams,
-    }})
 
 
 @lesson_bp.route("/api/lessons", methods=["POST"])

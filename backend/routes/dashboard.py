@@ -12,43 +12,44 @@ def teacher_dashboard():
     teacher_id = g.user["user_id"]
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            """
+            SELECT
+                (SELECT COUNT(*) FROM users u
+                 JOIN classes c ON u.class_id=c.id
+                 WHERE c.teacher_id=%s AND u.role='student') AS totalStudents,
+                (SELECT COUNT(*) FROM classes WHERE teacher_id=%s)  AS totalClasses,
+                (SELECT COUNT(*) FROM lessons WHERE teacher_id=%s)  AS totalLessons,
+                (SELECT COUNT(*) FROM exams e
+                 JOIN lessons l ON e.lesson_id=l.id
+                 WHERE l.teacher_id=%s) AS totalExams
+            """,
+            (teacher_id, teacher_id, teacher_id, teacher_id),
+        )
+        summary = cur.fetchone()
 
-    cur.execute(
-        """
-        SELECT
-            (SELECT COUNT(*) FROM users u
-             JOIN classes c ON u.class_id=c.id
-             WHERE c.teacher_id=%s AND u.role='student') AS totalStudents,
-            (SELECT COUNT(*) FROM classes WHERE teacher_id=%s)  AS totalClasses,
-            (SELECT COUNT(*) FROM lessons WHERE teacher_id=%s)  AS totalLessons,
-            (SELECT COUNT(*) FROM exams e
-             JOIN lessons l ON e.lesson_id=l.id
-             WHERE l.teacher_id=%s) AS totalExams
-        """,
-        (teacher_id, teacher_id, teacher_id, teacher_id),
-    )
-    summary = cur.fetchone()
-
-    cur.execute(
-        """
-        SELECT sa.student_id AS studentId,
-            ROUND(
-                SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END) * 10.0
-                / NULLIF(COUNT(q.id),0)
-            , 1) AS avgScore
-        FROM student_answers sa
-        JOIN answers  a ON sa.answer_id=a.id
-        JOIN questions q ON a.question_id=q.id
-        JOIN exams e ON sa.exam_id=e.id
-        JOIN lessons l ON e.lesson_id=l.id
-        WHERE l.teacher_id=%s
-        GROUP BY sa.student_id
-        ORDER BY avgScore DESC
-        """,
-        (teacher_id,),
-    )
-    scores = cur.fetchall()
-    cur.close(); conn.close()
+        cur.execute(
+            """
+            SELECT sa.student_id AS studentId,
+                ROUND(
+                    SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END) * 10.0
+                    / NULLIF(COUNT(q.id),0)
+                , 1) AS avgScore
+            FROM student_answers sa
+            JOIN answers  a ON sa.answer_id=a.id
+            JOIN questions q ON a.question_id=q.id
+            JOIN exams e ON sa.exam_id=e.id
+            JOIN lessons l ON e.lesson_id=l.id
+            WHERE l.teacher_id=%s
+            GROUP BY sa.student_id
+            ORDER BY avgScore DESC
+            """,
+            (teacher_id,),
+        )
+        scores = cur.fetchall()
+    finally:
+        cur.close(); conn.close()
 
     score_distribution = {"0-4": 0, "4-6": 0, "6-8": 0, "8-10": 0}
     pass_count = fail_count = 0

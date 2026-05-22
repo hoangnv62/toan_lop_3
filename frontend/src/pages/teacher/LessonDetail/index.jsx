@@ -40,7 +40,6 @@ export default function LessonDetail() {
         examId: id,
         initialData: {
           name: exam.name, description: exam.description || '',
-          timeLimit: exam.timeLimit ? Math.round(exam.timeLimit / 60) : '',
           questions: exam.questions.map(q => ({
             questionId: q.questionId, content: q.questionContent, explanation: q.explanation || '',
             answers: q.answers.map(a => ({

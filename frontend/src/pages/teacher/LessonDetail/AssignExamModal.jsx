@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 export default function AssignExamModal({ exam, onClose }) {
   const [assignments, setAssignments] = useState(null);
   const [pendingId, setPendingId]     = useState(null); // classId đang chờ nhập deadline
+  const [timeLimit, setTimeLimit]     = useState('');
   const [deadline, setDeadline]       = useState('');
   const [openTime, setOpenTime]       = useState('');
   const [actionId, setActionId]       = useState(null); // classId đang xử lý
@@ -22,11 +23,15 @@ export default function AssignExamModal({ exam, onClose }) {
   }
 
   async function handleAssign(classId) {
+    if (!timeLimit || !openTime || !deadline) {
+      return toast.error('Vui lòng điền đầy đủ thời gian làm bài, thời gian mở đề và hạn nộp bài');
+    }
     setActionId(classId);
     try {
-      await assignExam(classId, exam.id, deadline || null, openTime || null);
+      await assignExam(classId, exam.id, timeLimit, deadline, openTime);
       toast.success('Đã giao bài cho lớp');
       setPendingId(null);
+      setTimeLimit('');
       setDeadline('');
       setOpenTime('');
       load();
@@ -91,18 +96,32 @@ export default function AssignExamModal({ exam, onClose }) {
                     ) : (
                       <button
                         className="btn-primary py-0.5 px-2.5 text-xs gap-1"
-                        onClick={() => { setPendingId(cls.class_id); setDeadline(''); setOpenTime(''); }}>
+                        onClick={() => { setPendingId(cls.class_id); setTimeLimit(''); setDeadline(''); setOpenTime(''); }}>
                         <FiSend size={11} /> Giao
                       </button>
                     )}
                   </div>
                 </div>
 
-                {/* Deadline info */}
-                {cls.assigned && cls.deadline && (
-                  <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1">
-                    <FiClock size={10} /> Hạn: {new Date(cls.deadline).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
-                  </p>
+                {/* Assignment info */}
+                {cls.assigned && (
+                  <div className="mt-1.5 space-y-0.5">
+                    {cls.time_limit && (
+                      <p className="text-xs text-indigo-600 flex items-center gap-1">
+                        <FiClock size={10} /> Thời gian: {Math.round(cls.time_limit / 60)} phút
+                      </p>
+                    )}
+                    {cls.open_time && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <FiClock size={10} /> Mở: {new Date(cls.open_time).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
+                      </p>
+                    )}
+                    {cls.deadline && (
+                      <p className="text-xs text-amber-600 flex items-center gap-1">
+                        <FiClock size={10} /> Hạn: {new Date(cls.deadline).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
+                      </p>
+                    )}
+                  </div>
                 )}
 
                 {/* Inline form khi nhấn Giao */}
@@ -110,7 +129,20 @@ export default function AssignExamModal({ exam, onClose }) {
                   <div className="mt-2.5 pt-2.5 border-t border-gray-200 space-y-2">
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Thời gian mở bài <span className="text-gray-400 font-normal">(tùy chọn)</span>
+                        Thời gian làm bài (phút) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        className="input text-sm py-1.5"
+                        placeholder="VD: 20"
+                        value={timeLimit}
+                        onChange={e => setTimeLimit(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Thời gian mở bài <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="datetime-local"
@@ -121,7 +153,7 @@ export default function AssignExamModal({ exam, onClose }) {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Hạn nộp bài <span className="text-gray-400 font-normal">(tùy chọn)</span>
+                        Hạn nộp bài <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="datetime-local"
@@ -133,7 +165,7 @@ export default function AssignExamModal({ exam, onClose }) {
                     <div className="flex gap-2">
                       <button
                         className="btn-secondary flex-1 text-xs py-1.5"
-                        onClick={() => { setPendingId(null); setDeadline(''); setOpenTime(''); }}>
+                        onClick={() => { setPendingId(null); setTimeLimit(''); setDeadline(''); setOpenTime(''); }}>
                         Hủy
                       </button>
                       <button

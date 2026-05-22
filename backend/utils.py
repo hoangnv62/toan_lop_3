@@ -19,7 +19,7 @@ def _get_pool():
     if _pool is None:
         _pool = pooling.MySQLConnectionPool(
             pool_name="mathpool",
-            pool_size=5,
+            pool_size=10,
             pool_reset_session=True,
             **db_config,
         )

@@ -23,15 +23,24 @@ export const uploadStudents  = (classId, file) => {
 };
 
 export const getClassExams   = (classId)                   => apiFetch(`/api/classes/${classId}/exams`);
-export const assignExam      = (classId, examId, deadline, openTime) =>
+export const assignExam      = (classId, examId, timeLimitMin, deadline, openTime) =>
   apiFetch(`/api/classes/${classId}/exams`, {
     method: 'POST',
-    body: JSON.stringify({ exam_id: examId, deadline: deadline || null, open_time: openTime || null }),
+    body: JSON.stringify({
+      exam_id: examId,
+      time_limit: timeLimitMin ? Number(timeLimitMin) * 60 : null,
+      deadline: deadline || null,
+      open_time: openTime || null,
+    }),
   });
-export const updateExamAssignment = (classId, examId, deadline, openTime) =>
+export const updateExamAssignment = (classId, examId, timeLimitMin, deadline, openTime) =>
   apiFetch(`/api/classes/${classId}/exams/${examId}`, {
     method: 'PUT',
-    body: JSON.stringify({ deadline: deadline || null, open_time: openTime || null }),
+    body: JSON.stringify({
+      time_limit: timeLimitMin ? Number(timeLimitMin) * 60 : null,
+      deadline: deadline || null,
+      open_time: openTime || null,
+    }),
   });
 export const unassignExam    = (classId, examId)           =>
   apiFetch(`/api/classes/${classId}/exams/${examId}`, { method: 'DELETE' });

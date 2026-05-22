@@ -19,21 +19,22 @@ def search_students():
 
     conn = get_db()
     cur = conn.cursor(dictionary=True)
-    cur.execute(
-        """
-        SELECT u.id, u.username, u.full_name, u.dob,
-               u.class_id, c.class_name AS current_class
-        FROM users u
-        LEFT JOIN classes c ON c.id=u.class_id
-        WHERE u.role='student' AND u.username LIKE %s
-        LIMIT 20
-        """,
-        (f"%{q}%",),
-    )
-    students = cur.fetchall()
-    cur.close(); conn.close()
+    try:
+        cur.execute(
+            """
+            SELECT u.id, u.username, u.full_name, u.dob,
+                   u.class_id, c.class_name AS current_class
+            FROM users u
+            LEFT JOIN classes c ON c.id=u.class_id
+            WHERE u.role='student' AND u.username LIKE %s
+            LIMIT 20
+            """,
+            (f"%{q}%",),
+        )
+        students = cur.fetchall()
+    finally:
+        cur.close(); conn.close()
 
-    # Đánh dấu những học sinh đã trong lớp hiện tại
     for s in students:
         s["already_in_class"] = (class_id is not None and s["class_id"] == class_id)
 
@@ -52,28 +53,27 @@ def assign_student_to_class(class_id):
 
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute("SELECT id FROM classes WHERE id=%s AND teacher_id=%s", (class_id, uid))
+        if not cur.fetchone():
+            return jsonify({"success": False, "message": "Lớp không tồn tại"}), 404
 
-    # Xác minh lớp thuộc về giáo viên này
-    cur.execute("SELECT id FROM classes WHERE id=%s AND teacher_id=%s", (class_id, uid))
-    if not cur.fetchone():
+        cur.execute("SELECT id, full_name, class_id FROM users WHERE username=%s AND role='student'", (username,))
+        student = cur.fetchone()
+        if not student:
+            return jsonify({"success": False, "message": f'Không tìm thấy học sinh "{username}"'}), 404
+
+        if student["class_id"] == class_id:
+            return jsonify({"success": False, "message": "Học sinh đã trong lớp này"}), 409
+
+        cur.execute("UPDATE users SET class_id=%s WHERE id=%s", (class_id, student["id"]))
+        conn.commit()
+        return jsonify({"success": True, "message": f'Đã thêm {student["full_name"]} vào lớp'})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
         cur.close(); conn.close()
-        return jsonify({"success": False, "message": "Lớp không tồn tại"}), 404
-
-    cur.execute("SELECT id, full_name, class_id FROM users WHERE username=%s AND role='student'", (username,))
-    student = cur.fetchone()
-    if not student:
-        cur.close(); conn.close()
-        return jsonify({"success": False, "message": f'Không tìm thấy học sinh "{username}"'}), 404
-
-    if student["class_id"] == class_id:
-        cur.close(); conn.close()
-        return jsonify({"success": False, "message": "Học sinh đã trong lớp này"}), 409
-
-    cur.execute("UPDATE users SET class_id=%s WHERE id=%s", (class_id, student["id"]))
-    conn.commit()
-    cur.close(); conn.close()
-
-    return jsonify({"success": True, "message": f'Đã thêm {student["full_name"]} vào lớp'})
 
 
 # ─── Import học sinh từ Excel (cột "username") ────────────────────────────────
@@ -90,20 +90,17 @@ def upload_students(class_id):
     if not file.filename or not file.filename.lower().endswith((".xlsx", ".xls")):
         return jsonify({"success": False, "message": "Chỉ hỗ trợ file .xlsx hoặc .xls"}), 400
 
-    # Xác minh lớp thuộc về giáo viên này
     conn = get_db()
     cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT id FROM classes WHERE id=%s AND teacher_id=%s", (class_id, uid))
-    if not cur.fetchone():
-        cur.close(); conn.close()
-        return jsonify({"success": False, "message": "Lớp không tồn tại"}), 404
-
     try:
+        cur.execute("SELECT id FROM classes WHERE id=%s AND teacher_id=%s", (class_id, uid))
+        if not cur.fetchone():
+            return jsonify({"success": False, "message": "Lớp không tồn tại"}), 404
+
         df = pd.read_excel(BytesIO(file.read()))
         df.columns = df.columns.str.strip().str.lower()
 
         if "username" not in df.columns:
-            cur.close(); conn.close()
             return jsonify({"success": False, "message": "File thiếu cột: username"}), 400
 
         success_count = 0
@@ -129,18 +126,19 @@ def upload_students(class_id):
             success_count += 1
 
         conn.commit()
-        cur.close(); conn.close()
 
         msg = f"Thêm thành công {success_count} học sinh."
-        if(success_count == 0):
+        if success_count == 0:
             return jsonify({"success": False, "message": "Không tìm thấy học sinh"}), 404
         if errors:
             msg += f" Có {len(errors)} lỗi: " + "; ".join(errors[:3])
         return jsonify({"success": True, "message": msg, "count": success_count})
 
     except Exception as e:
-        cur.close(); conn.close()
+        conn.rollback()
         return jsonify({"success": False, "message": f"Lỗi xử lý file: {str(e)}"}), 500
+    finally:
+        cur.close(); conn.close()
 
 
 # ─── Gỡ học sinh khỏi lớp (không xóa tài khoản) ─────────────────────────────
@@ -176,39 +174,38 @@ def remove_student_from_class(class_id, student_id):
 def student_results(student_id):
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute("SELECT full_name FROM users WHERE id=%s AND role='student'", (student_id,))
+        student = cur.fetchone()
+        if not student:
+            return jsonify({"success": False, "message": "Học sinh không tồn tại"}), 404
 
-    cur.execute("SELECT full_name FROM users WHERE id=%s AND role='student'", (student_id,))
-    student = cur.fetchone()
-    if not student:
+        cur.execute(
+            """
+            SELECT e.id AS examId, e.name AS examName, l.title AS lessonName,
+                ROUND(
+                    SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END)
+                    / NULLIF(COUNT(DISTINCT q.id),0) * 10
+                , 1) AS score,
+                MAX(sa.submitted_at) AS submittedAt
+            FROM student_answers sa
+            JOIN answers  a ON sa.answer_id=a.id
+            JOIN questions q ON a.question_id=q.id
+            JOIN exams e ON sa.exam_id=e.id
+            JOIN lessons l ON e.lesson_id=l.id
+            WHERE sa.student_id=%s
+            GROUP BY sa.exam_id
+            ORDER BY MAX(sa.submitted_at) DESC
+            """,
+            (student_id,),
+        )
+        results = cur.fetchall()
+        return jsonify({"success": True, "data": {
+            "studentName": student["full_name"],
+            "results": results,
+        }})
+    finally:
         cur.close(); conn.close()
-        return jsonify({"success": False, "message": "Học sinh không tồn tại"}), 404
-
-    cur.execute(
-        """
-        SELECT e.id AS examId, e.name AS examName, l.title AS lessonName,
-            ROUND(
-                SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END)
-                / NULLIF(COUNT(DISTINCT q.id),0) * 10
-            , 1) AS score,
-            MAX(sa.submitted_at) AS submittedAt
-        FROM student_answers sa
-        JOIN answers  a ON sa.answer_id=a.id
-        JOIN questions q ON a.question_id=q.id
-        JOIN exams e ON sa.exam_id=e.id
-        JOIN lessons l ON e.lesson_id=l.id
-        WHERE sa.student_id=%s
-        GROUP BY sa.exam_id
-        ORDER BY MAX(sa.submitted_at) DESC
-        """,
-        (student_id,),
-    )
-    results = cur.fetchall()
-    cur.close(); conn.close()
-
-    return jsonify({"success": True, "data": {
-        "studentName": student["full_name"],
-        "results": results,
-    }})
 
 
 # ─── Dashboard học sinh ───────────────────────────────────────────────────────
@@ -237,36 +234,35 @@ def student_dashboard():
 
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            "SELECT c.teacher_id FROM users u JOIN classes c ON u.class_id=c.id WHERE u.id=%s",
+            (uid,)
+        )
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"success": True, "data": {
+                "exams": [], "scores": [], "ranking": [],
+                "progress": {"totalExams": 0, "done": 0, "avg": None},
+            }})
+        teacher_id = row["teacher_id"]
 
-    cur.execute(
-        "SELECT c.teacher_id FROM users u JOIN classes c ON u.class_id=c.id WHERE u.id=%s",
-        (uid,)
-    )
-    row = cur.fetchone()
-    if not row:
+        df = None if show_all else date_from
+        dt = None if show_all else date_to
+        lesson_rows  = _lessons_with_stats(cur, uid, df, dt)
+        ranking_rows = _class_ranking(cur, teacher_id, df, dt)
+
+        cur.execute(
+            "SELECT id, title, content, created_at FROM announcements WHERE class_id=(SELECT class_id FROM users WHERE id=%s) ORDER BY created_at DESC LIMIT 3",
+            (uid,)
+        )
+        announcements = cur.fetchall()
+        for a in announcements:
+            a["created_at"] = str(a["created_at"])
+
+        conn.commit()
+    finally:
         cur.close(); conn.close()
-        return jsonify({"success": True, "data": {
-            "exams": [], "scores": [], "ranking": [],
-            "progress": {"totalExams": 0, "done": 0, "avg": None},
-        }})
-    teacher_id = row["teacher_id"]
-
-    df = None if show_all else date_from
-    dt = None if show_all else date_to
-    lesson_rows  = _lessons_with_stats(cur, uid, df, dt)
-    ranking_rows = _class_ranking(cur, teacher_id, df, dt)
-
-    # Feature 4: fetch latest 3 announcements for student's class
-    cur.execute(
-        "SELECT id, title, content, created_at FROM announcements WHERE class_id=(SELECT class_id FROM users WHERE id=%s) ORDER BY created_at DESC LIMIT 3",
-        (uid,)
-    )
-    announcements = cur.fetchall()
-    for a in announcements:
-        a["created_at"] = str(a["created_at"])
-
-    conn.commit()  # end read transaction so the pooled connection gets a fresh snapshot next time
-    cur.close(); conn.close()
 
     exams  = []
     scores = []
@@ -357,14 +353,9 @@ def _lessons_with_stats(cur, student_id, date_from=None, date_to=None):
     """
     params = [student_id, student_id]
     if date_from:
-        # Done exams: must be submitted on or after date_from.
-        # Undone exams: no lower bound — always show pending work regardless of when assigned.
         sql += " AND (sa.submitted_at >= %s OR sa.submitted_at IS NULL)"
         params.append(date_from)
     if date_to:
-        # Done exams: submitted before end of the period.
-        # Undone exams: only show if the exam was assigned before the end of the period
-        # (hides exams assigned in a future week when browsing historical weeks).
         sql += " AND (sa.submitted_at < %s OR (sa.submitted_at IS NULL AND ce.assigned_at < %s))"
         params.extend([date_to + timedelta(days=1), date_to + timedelta(days=1)])
     sql += " GROUP BY l.id, e.id ORDER BY l.created_at DESC"

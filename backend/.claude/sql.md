@@ -219,6 +219,10 @@ create table announcements
 alter table class_exams
     add column open_time datetime null comment 'NULL = mở ngay, có giá trị = chỉ hiện sau thời điểm này';
 
--- Thêm giới hạn thời gian làm bài vào exams
+-- Thêm giới hạn thời gian làm bài vào exams (cột cũ, không còn dùng để tạo bài)
 alter table exams
     add column time_limit int null comment 'giây, NULL = không giới hạn';
+
+-- Di chuyển time_limit sang class_exams (mỗi lớp có thể có thời gian làm bài khác nhau)
+alter table class_exams
+    add column time_limit int not null default 1200 comment 'giây, bắt buộc khi giao bài';
