@@ -1,7 +1,20 @@
+from datetime import datetime
 from flask import Blueprint, request, jsonify, g
 from utils import get_db, require_auth
 
 classes_bp = Blueprint("classes", __name__)
+
+
+def _parse_dt(s):
+    """Accept datetime-local format (2025-05-26T10:00) or SQL format, return datetime or None."""
+    if not s:
+        return None
+    for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+        try:
+            return datetime.strptime(s, fmt)
+        except ValueError:
+            pass
+    return None
 
 
 @classes_bp.route("/api/classes", methods=["POST"])
@@ -175,7 +188,7 @@ def get_class_exams(class_id):
             ON sa.exam_id=ce.exam_id
             AND sa.student_id IN (SELECT id FROM users WHERE class_id=%s AND role='student')
         WHERE ce.class_id=%s
-        GROUP BY ce.exam_id
+        GROUP BY ce.exam_id, e.name, l.title, ce.deadline, ce.assigned_at, ce.open_time
         ORDER BY ce.assigned_at DESC
         """,
         (class_id, class_id, class_id),
@@ -197,8 +210,8 @@ def assign_exam_to_class(class_id):
     teacher_id = g.user["user_id"]
     data    = request.get_json() or {}
     exam_id  = data.get("exam_id")
-    deadline = data.get("deadline") or None
-    open_time = data.get("open_time") or None
+    deadline  = _parse_dt(data.get("deadline"))
+    open_time = _parse_dt(data.get("open_time"))
 
     if not exam_id:
         return jsonify({"success": False, "message": "Thiếu exam_id"}), 400
@@ -234,6 +247,38 @@ def assign_exam_to_class(class_id):
         conn.rollback()
         if "Duplicate entry" in str(e):
             return jsonify({"success": False, "message": "Bài thi đã được giao cho lớp này"}), 409
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cur.close(); conn.close()
+
+
+@classes_bp.route("/api/classes/<int:class_id>/exams/<int:exam_id>", methods=["PUT"])
+@require_auth
+def update_exam_assignment(class_id, exam_id):
+    teacher_id = g.user["user_id"]
+    data = request.get_json() or {}
+    deadline  = _parse_dt(data.get("deadline"))
+    open_time = _parse_dt(data.get("open_time"))
+
+    conn = get_db()
+    cur  = conn.cursor()
+
+    cur.execute("SELECT id FROM classes WHERE id=%s AND teacher_id=%s", (class_id, teacher_id))
+    if not cur.fetchone():
+        cur.close(); conn.close()
+        return jsonify({"success": False, "message": "Lớp không tồn tại"}), 404
+
+    try:
+        cur.execute(
+            "UPDATE class_exams SET deadline=%s, open_time=%s WHERE class_id=%s AND exam_id=%s",
+            (deadline, open_time, class_id, exam_id),
+        )
+        if cur.rowcount == 0:
+            return jsonify({"success": False, "message": "Bài thi chưa được giao cho lớp này"}), 404
+        conn.commit()
+        return jsonify({"success": True, "message": "Đã cập nhật hạn nộp"})
+    except Exception as e:
+        conn.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
         cur.close(); conn.close()

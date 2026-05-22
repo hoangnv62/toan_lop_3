@@ -91,7 +91,7 @@ export default function AssignExamModal({ exam, onClose }) {
                     ) : (
                       <button
                         className="btn-primary py-0.5 px-2.5 text-xs gap-1"
-                        onClick={() => { setPendingId(cls.class_id); setDeadline(''); }}>
+                        onClick={() => { setPendingId(cls.class_id); setDeadline(''); setOpenTime(''); }}>
                         <FiSend size={11} /> Giao
                       </button>
                     )}
@@ -133,7 +133,7 @@ export default function AssignExamModal({ exam, onClose }) {
                     <div className="flex gap-2">
                       <button
                         className="btn-secondary flex-1 text-xs py-1.5"
-                        onClick={() => { setPendingId(null); setDeadline(''); }}>
+                        onClick={() => { setPendingId(null); setDeadline(''); setOpenTime(''); }}>
                         Hủy
                       </button>
                       <button

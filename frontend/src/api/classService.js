@@ -28,6 +28,11 @@ export const assignExam      = (classId, examId, deadline, openTime) =>
     method: 'POST',
     body: JSON.stringify({ exam_id: examId, deadline: deadline || null, open_time: openTime || null }),
   });
+export const updateExamAssignment = (classId, examId, deadline, openTime) =>
+  apiFetch(`/api/classes/${classId}/exams/${examId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ deadline: deadline || null, open_time: openTime || null }),
+  });
 export const unassignExam    = (classId, examId)           =>
   apiFetch(`/api/classes/${classId}/exams/${examId}`, { method: 'DELETE' });
 

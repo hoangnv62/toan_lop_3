@@ -5,20 +5,12 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale,
   PointElement, LineElement, Tooltip, Legend, Filler,
 } from 'chart.js';
-import { useAuth } from '../../../context/AuthContext';
-import { fetchDashboard } from '../../../api/studentService';
-import { logout } from '../../../api/auth';
-import {
-  FiChevronLeft, FiChevronRight, FiLogOut, FiFileText, FiCheckCircle, FiStar,
-  FiTrendingUp, FiUsers, FiPlus, FiEdit2, FiTrash2, FiUser,
-  FiPhone, FiClock, FiLock, FiList, FiBell,
-} from 'react-icons/fi';
-import { getRelatives, addRelative, updateRelative, deleteRelative } from '../../../api/relativeService';
+import { useAuth } from '../../context/AuthContext';
+import { fetchDashboard } from '../../api/studentService';
+import { logout } from '../../api/auth';
+import { FiChevronLeft, FiChevronRight, FiLogOut, FiFileText, FiCheckCircle, FiStar, FiTrendingUp, FiUsers, FiPlus, FiEdit2, FiTrash2, FiX, FiPhone, FiUser, FiClock } from 'react-icons/fi';
+import { getRelatives, addRelative, updateRelative, deleteRelative } from '../../api/relativeService';
 import { toast } from 'react-toastify';
-import ChangePasswordModal from '../../../components/shared/ChangePasswordModal';
-import ProfileModal from '../../../components/shared/ProfileModal';
-import RelativeFormModal from './RelativeFormModal';
-import RelativeDeleteModal from './RelativeDeleteModal';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
@@ -39,45 +31,99 @@ function toISO(ddmmyyyy) {
 
 const rankBadge = ['bg-yellow-400', 'bg-gray-300', 'bg-orange-400'];
 
+const RELATIONSHIPS = ['Bố', 'Mẹ', 'Ông', 'Bà', 'Anh', 'Chị', 'Chú', 'Bác', 'Cô', 'Dì', 'Người giám hộ'];
+
+function RelativeFormModal({ initial, onClose, onSubmit, loading }) {
+  const [name, setName]             = useState(initial?.name || '');
+  const [phone, setPhone]           = useState(initial?.phone || '');
+  const [relationship, setRelationship] = useState(initial?.relationship || '');
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-semibold text-gray-900">{initial ? 'Sửa người thân' : 'Thêm người thân'}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+            <FiX size={17} />
+          </button>
+        </div>
+        <div className="space-y-3.5 mb-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Họ và tên <span className="text-red-500">*</span>
+            </label>
+            <input className="input" placeholder="Nguyễn Văn A" value={name}
+              onChange={e => setName(e.target.value)} autoFocus />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Số điện thoại <span className="text-red-500">*</span>
+            </label>
+            <input className="input" placeholder="0912345678" value={phone}
+              onChange={e => setPhone(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Quan hệ</label>
+            <select className="input" value={relationship} onChange={e => setRelationship(e.target.value)}>
+              <option value="">-- Chọn quan hệ --</option>
+              {RELATIONSHIPS.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
+          <button className="btn-primary flex-1" disabled={loading}
+            onClick={() => onSubmit({ name, phone, relationship })}>
+            {loading ? 'Đang lưu...' : (initial ? 'Cập nhật' : 'Thêm')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RelativeDeleteModal({ relative, onClose, onConfirm, loading }) {
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="text-center mb-5">
+          <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+            <FiTrash2 size={22} className="text-red-500" />
+          </div>
+          <h3 className="font-semibold text-gray-900">Xóa người thân</h3>
+          <p className="text-sm text-gray-500 mt-2">
+            Xóa <span className="font-semibold text-gray-800">{relative.name}</span> khỏi danh sách?
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
+          <button className="btn-danger flex-1" onClick={onConfirm} disabled={loading}>
+            {loading ? 'Đang xóa...' : 'Xóa'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function StudentHome() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const [weekOffset, setWeekOffset] = useState(0);
-  const [viewAll, setViewAll]       = useState(false);
   const [data, setData]             = useState(null);
   const [relatives, setRelatives]   = useState([]);
   const [relModal, setRelModal]     = useState(null); // null | { mode:'add' } | { mode:'edit', item } | { mode:'delete', item }
   const [relLoading, setRelLoading] = useState(false);
-  const [pwModal, setPwModal]       = useState(false);
-  const [profileModal, setProfileModal] = useState(false);
 
   const week = getWeekRange(weekOffset);
 
   useEffect(() => {
-    setData(null);
-    if (viewAll) {
-      fetchDashboard(null, null, true).then(setData).catch(() => {});
-    } else {
-      fetchDashboard(toISO(week.from), toISO(week.to)).then(setData).catch(() => {});
-    }
-  }, [weekOffset, viewAll]);
+    fetchDashboard(toISO(week.from), toISO(week.to)).then(setData).catch(() => {});
+  }, [weekOffset]);
 
   useEffect(() => {
     if (user?.user_id) loadRelatives();
   }, [user]);
-
-  useEffect(() => {
-    function onFocus() {
-      if (viewAll) {
-        fetchDashboard(null, null, true).then(setData).catch(() => {});
-      } else {
-        const w = getWeekRange(weekOffset);
-        fetchDashboard(toISO(w.from), toISO(w.to)).then(setData).catch(() => {});
-      }
-    }
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
-  }, [weekOffset, viewAll]);
 
   async function loadRelatives() {
     try { setRelatives(await getRelatives(user.user_id)); } catch { /* ignore */ }
@@ -127,7 +173,7 @@ export default function StudentHome() {
   const progress = data?.progress ?? {};
 
   const stats = [
-    { label: 'Đề thi',  value: progress.totalExams ?? 0, icon: FiFileText,    bg: 'bg-blue-50',    text: 'text-blue-600' },
+    { label: 'Bài tập',  value: progress.totalExams ?? 0, icon: FiFileText,    bg: 'bg-blue-50',    text: 'text-blue-600' },
     { label: 'Đã làm',  value: progress.done ?? 0,       icon: FiCheckCircle, bg: 'bg-emerald-50', text: 'text-emerald-600' },
     { label: 'Điểm TB', value: progress.avg != null ? (+progress.avg).toFixed(1) : '--', icon: FiStar, bg: 'bg-amber-50', text: 'text-amber-600' },
   ];
@@ -148,51 +194,25 @@ export default function StudentHome() {
               <p className="text-xs text-gray-400">Toán Lớp 3</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setProfileModal(true)}
-              className="btn-ghost text-gray-500 py-1.5 px-2.5 gap-1.5">
-              <FiUser size={15} />
-            </button>
-            <button onClick={() => setPwModal(true)}
-              className="btn-ghost text-gray-500 py-1.5 px-2.5 gap-1.5">
-              <FiLock size={15} />
-            </button>
-            <button onClick={handleLogout}
-              className="btn-ghost text-gray-500 py-1.5 px-2.5 gap-1.5">
-              <FiLogOut size={15} /> Đăng xuất
-            </button>
-          </div>
+          <button onClick={handleLogout}
+            className="btn-ghost text-gray-500 py-1.5 px-2.5 gap-1.5">
+            <FiLogOut size={15} /> Đăng xuất
+          </button>
         </div>
       </header>
 
       <div className="max-w-3xl mx-auto p-4 space-y-4 pb-8">
-        {/* View toggle + Week navigator */}
-        <div className="card py-3.5 space-y-3">
-          <div className="flex items-center gap-2">
-            <button
-              className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${!viewAll ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-              onClick={() => setViewAll(false)}>
-              <FiChevronLeft size={14} className="inline mr-1" />Theo tuần
-            </button>
-            <button
-              className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${viewAll ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-              onClick={() => setViewAll(true)}>
-              <FiList size={14} className="inline mr-1" />Tất cả
-            </button>
-          </div>
-          {!viewAll && (
-            <div className="flex items-center justify-between gap-2">
-              <button onClick={() => setWeekOffset(o => o - 1)}
-                className="btn-secondary py-1.5 px-3 gap-1">
-                <FiChevronLeft size={15} /> Tuần trước
-              </button>
-              <span className="text-sm font-medium text-gray-700 text-center">{week.label}</span>
-              <button onClick={() => setWeekOffset(o => o + 1)}
-                className="btn-secondary py-1.5 px-3 gap-1" disabled={weekOffset >= 0}>
-                Tuần sau <FiChevronRight size={15} />
-              </button>
-            </div>
-          )}
+        {/* Week navigator */}
+        <div className="card flex items-center justify-between gap-2 py-3.5">
+          <button onClick={() => setWeekOffset(o => o - 1)}
+            className="btn-secondary py-1.5 px-3 gap-1">
+            <FiChevronLeft size={15} /> Tuần trước
+          </button>
+          <span className="text-sm font-medium text-gray-700 text-center">{week.label}</span>
+          <button onClick={() => setWeekOffset(o => o + 1)}
+            className="btn-secondary py-1.5 px-3 gap-1" disabled={weekOffset >= 0}>
+            Tuần sau <FiChevronRight size={15} />
+          </button>
         </div>
 
         {/* Stats */}
@@ -237,32 +257,11 @@ export default function StudentHome() {
           </div>
         )}
 
-        {/* Announcements */}
-        {data?.announcements?.length > 0 && (
-          <div className="card">
-            <div className="flex items-center gap-2 mb-3">
-              <FiBell size={15} className="text-indigo-600" />
-              <h3 className="text-sm font-semibold text-gray-900">Thông báo từ giáo viên</h3>
-            </div>
-            <div className="space-y-2">
-              {data.announcements.map(a => (
-                <div key={a.id} className="p-3 rounded-xl bg-indigo-50/60 border border-indigo-100">
-                  <p className="text-sm font-semibold text-gray-900">{a.title}</p>
-                  <p className="text-sm text-gray-600 mt-0.5 leading-relaxed">{a.content}</p>
-                  <p className="text-xs text-gray-400 mt-1">{new Date(a.created_at).toLocaleDateString('vi-VN')}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Exam list */}
         <div className="card">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4">Danh sách đề thi</h3>
+          <h3 className="text-sm font-semibold text-gray-900 mb-4">Danh sách bài tập</h3>
           {exams.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-8">
-              {viewAll ? 'Chưa có đề thi nào.' : 'Không có đề thi trong tuần này.'}
-            </p>
+            <p className="text-gray-400 text-sm text-center py-8">Không có bài tập trong tuần này.</p>
           ) : (
             <div className="space-y-2">
               {exams.map(exam => {
@@ -391,9 +390,6 @@ export default function StudentHome() {
           )}
         </div>
       </div>
-
-      {pwModal && <ChangePasswordModal onClose={() => setPwModal(false)} />}
-      {profileModal && <ProfileModal onClose={() => setProfileModal(false)} />}
 
       {/* Modals */}
       {(relModal?.mode === 'add' || relModal?.mode === 'edit') && (

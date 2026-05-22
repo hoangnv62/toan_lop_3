@@ -265,6 +265,7 @@ def student_dashboard():
     for a in announcements:
         a["created_at"] = str(a["created_at"])
 
+    conn.commit()  # end read transaction so the pooled connection gets a fresh snapshot next time
     cur.close(); conn.close()
 
     exams  = []
@@ -273,7 +274,7 @@ def student_dashboard():
         done = bool(r["done"])
         score = None
         if done and r["total_questions"]:
-            score = round((r["correct_questions"] or 0) / r["total_questions"] * 10, 1)
+            score = round(float(r["correct_questions"] or 0) / float(r["total_questions"]) * 10, 1)
         exams.append({
             "examId": r["exam_id"], "examName": r["exam_name"],
             "lessonTitle": r["lesson_name"], "done": done, "score": score,
@@ -290,7 +291,7 @@ def student_dashboard():
         {
             "studentId": r["student_id"],
             "name": r["student_name"],
-            "avg": round((r["correct_questions"] or 0) / r["total_questions"] * 10, 1)
+            "avg": round(float(r["correct_questions"] or 0) / float(r["total_questions"]) * 10, 1)
                    if r["total_questions"] else 0,
         }
         for r in ranking_rows
@@ -356,11 +357,16 @@ def _lessons_with_stats(cur, student_id, date_from=None, date_to=None):
     """
     params = [student_id, student_id]
     if date_from:
-        sql += " AND (sa.submitted_at IS NULL OR sa.submitted_at >= %s)"
+        # Done exams: must be submitted on or after date_from.
+        # Undone exams: no lower bound — always show pending work regardless of when assigned.
+        sql += " AND (sa.submitted_at >= %s OR sa.submitted_at IS NULL)"
         params.append(date_from)
     if date_to:
-        sql += " AND (sa.submitted_at IS NULL OR sa.submitted_at < %s)"
-        params.append(date_to + timedelta(days=1))
+        # Done exams: submitted before end of the period.
+        # Undone exams: only show if the exam was assigned before the end of the period
+        # (hides exams assigned in a future week when browsing historical weeks).
+        sql += " AND (sa.submitted_at < %s OR (sa.submitted_at IS NULL AND ce.assigned_at < %s))"
+        params.extend([date_to + timedelta(days=1), date_to + timedelta(days=1)])
     sql += " GROUP BY l.id, e.id ORDER BY l.created_at DESC"
     cur.execute(sql, tuple(params))
     return cur.fetchall()
