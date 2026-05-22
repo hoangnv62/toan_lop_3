@@ -1,7 +1,7 @@
 import mysql.connector
 from werkzeug.security import generate_password_hash
 
-config = {'user': 'root', 'password': 'root', 'host': '127.0.0.1'}
+config = {'user': 'root', 'password': '', 'host': '127.0.0.1'}
 DB_NAME = 'math_learning'
 
 try:
@@ -25,7 +25,7 @@ try:
         created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
 
-    # 2. Lớp học (phải tạo trước khi thêm FK class_id vào users)
+    # 2. Lớp học
     cursor.execute("""
     CREATE TABLE classes (
         id          INT AUTO_INCREMENT PRIMARY KEY,
@@ -35,14 +35,14 @@ try:
         FOREIGN KEY (teacher_id) REFERENCES users(id)
     )""")
 
-    # 3. Thêm FK class_id → classes cho users
+    # 3. FK class_id → classes cho users
     cursor.execute("""
     ALTER TABLE users
         ADD CONSTRAINT fk_user_class
         FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL
     """)
 
-    # 4. Thông tin phụ huynh (chỉ dành cho học sinh)
+    # 4. Thông tin phụ huynh cũ (giữ lại để tương thích)
     cursor.execute("""
     CREATE TABLE student_parents (
         id            INT AUTO_INCREMENT PRIMARY KEY,
@@ -52,7 +52,19 @@ try:
         FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
     )""")
 
-    # 5. Bài học
+    # 5. Thông tin người thân học sinh (thay thế student_parents)
+    cursor.execute("""
+    CREATE TABLE student_relatives (
+        id           INT AUTO_INCREMENT PRIMARY KEY,
+        student_id   INT NOT NULL,
+        name         VARCHAR(100) NOT NULL,
+        phone        VARCHAR(20)  NOT NULL,
+        relationship VARCHAR(50),
+        created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+    )""")
+
+    # 6. Bài học
     cursor.execute("""
     CREATE TABLE lessons (
         id          INT AUTO_INCREMENT PRIMARY KEY,
@@ -63,7 +75,7 @@ try:
         FOREIGN KEY (teacher_id) REFERENCES users(id)
     )""")
 
-    # 6. Bài kiểm tra
+    # 7. Bài kiểm tra
     cursor.execute("""
     CREATE TABLE exams (
         id           INT AUTO_INCREMENT PRIMARY KEY,
@@ -74,18 +86,17 @@ try:
         FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE
     )""")
 
-    # 7. Câu hỏi
+    # 8. Câu hỏi
     cursor.execute("""
     CREATE TABLE questions (
         id          INT AUTO_INCREMENT PRIMARY KEY,
         exam_id     INT NOT NULL,
         content     TEXT NOT NULL,
-        svg_code    LONGTEXT,
         explanation TEXT,
         FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE
     )""")
 
-    # 8. Đáp án (các lựa chọn cho mỗi câu hỏi)
+    # 9. Đáp án
     cursor.execute("""
     CREATE TABLE answers (
         id          INT AUTO_INCREMENT PRIMARY KEY,
@@ -95,7 +106,7 @@ try:
         FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
     )""")
 
-    # 9. Bài làm của học sinh (chi tiết từng câu)
+    # 10. Bài làm của học sinh
     cursor.execute("""
     CREATE TABLE student_answers (
         id           INT AUTO_INCREMENT PRIMARY KEY,
@@ -107,6 +118,70 @@ try:
         FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (exam_id)    REFERENCES exams(id) ON DELETE CASCADE,
         FOREIGN KEY (answer_id)  REFERENCES answers(id) ON DELETE CASCADE
+    )""")
+
+    # 11. Phân công bài kiểm tra cho lớp
+    cursor.execute("""
+    CREATE TABLE class_exams (
+        id          INT AUTO_INCREMENT PRIMARY KEY,
+        class_id    INT NOT NULL,
+        exam_id     INT NOT NULL,
+        deadline    DATETIME,
+        open_time   DATETIME,
+        time_limit  INT NOT NULL DEFAULT 1200,
+        assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_class_exam (class_id, exam_id),
+        FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+        FOREIGN KEY (exam_id)  REFERENCES exams(id)   ON DELETE CASCADE
+    )""")
+
+    # 12. Nhận xét của giáo viên cho bài làm học sinh
+    cursor.execute("""
+    CREATE TABLE student_exam_comments (
+        id         INT AUTO_INCREMENT PRIMARY KEY,
+        exam_id    INT NOT NULL,
+        student_id INT NOT NULL,
+        teacher_id INT NOT NULL,
+        comment    TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_sec (exam_id, student_id),
+        FOREIGN KEY (exam_id)    REFERENCES exams(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+    )""")
+
+    # 13. Thông báo lớp học
+    cursor.execute("""
+    CREATE TABLE announcements (
+        id         INT AUTO_INCREMENT PRIMARY KEY,
+        class_id   INT NOT NULL,
+        teacher_id INT NOT NULL,
+        title      VARCHAR(255) NOT NULL,
+        content    TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (class_id)   REFERENCES classes(id) ON DELETE CASCADE,
+        FOREIGN KEY (teacher_id) REFERENCES users(id)   ON DELETE CASCADE
+    )""")
+
+    # 14. Ngân hàng câu hỏi
+    cursor.execute("""
+    CREATE TABLE question_bank (
+        id          INT AUTO_INCREMENT PRIMARY KEY,
+        teacher_id  INT NOT NULL,
+        content     TEXT NOT NULL,
+        explanation TEXT,
+        created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+    )""")
+
+    # 15. Đáp án ngân hàng câu hỏi
+    cursor.execute("""
+    CREATE TABLE question_bank_answers (
+        id          INT AUTO_INCREMENT PRIMARY KEY,
+        question_id INT NOT NULL,
+        content     TEXT NOT NULL,
+        is_correct  TINYINT(1) DEFAULT 0,
+        FOREIGN KEY (question_id) REFERENCES question_bank(id) ON DELETE CASCADE
     )""")
 
     # --- Dữ liệu mẫu ---
@@ -130,7 +205,7 @@ try:
     )
     hs1_id = cursor.lastrowid
     cursor.execute(
-        "INSERT INTO student_parents (student_id, parent_name, parent_phone) VALUES (%s, 'Anh Hùng', '0909000111')",
+        "INSERT INTO student_relatives (student_id, name, phone, relationship) VALUES (%s, 'Anh Hùng', '0909000111', 'Bố')",
         (hs1_id,)
     )
 
@@ -140,8 +215,26 @@ try:
     )
     hs2_id = cursor.lastrowid
     cursor.execute(
-        "INSERT INTO student_parents (student_id, parent_name, parent_phone) VALUES (%s, 'Chị Hoa', '0909000222')",
+        "INSERT INTO student_relatives (student_id, name, phone, relationship) VALUES (%s, 'Chị Hoa', '0909000222', 'Mẹ')",
         (hs2_id,)
+    )
+
+    # Bài học và đề thi mẫu
+    cursor.execute(
+        "INSERT INTO lessons (teacher_id, title, description) VALUES (%s, 'Phép cộng trong phạm vi 100', 'Ôn tập phép cộng cơ bản')",
+        (teacher_id,)
+    )
+    lesson_id = cursor.lastrowid
+
+    cursor.execute(
+        "INSERT INTO exams (lesson_id, name, description) VALUES (%s, 'Kiểm tra 15 phút', 'Bài kiểm tra phép cộng')",
+        (lesson_id,)
+    )
+    exam_id = cursor.lastrowid
+
+    cursor.execute(
+        "INSERT INTO class_exams (class_id, exam_id, time_limit) VALUES (%s, %s, 900)",
+        (class_id, exam_id)
     )
 
     conn.commit()
