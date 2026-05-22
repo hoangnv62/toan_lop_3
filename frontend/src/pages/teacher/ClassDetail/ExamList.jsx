@@ -1,0 +1,142 @@
+import { useState, useEffect } from 'react';
+import { FiFileText, FiClock, FiDownload, FiLoader, FiX, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import Pagination from '../../../components/Pagination';
+
+const LIMIT = 10;
+
+function deadlineInfo(deadlineStr) {
+  if (!deadlineStr) return null;
+  const now      = new Date();
+  const deadline = new Date(deadlineStr);
+  const diffMs   = deadline - now;
+  const diffH    = diffMs / 36e5;
+  const d = deadline;
+  const label = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+
+  if (diffMs < 0)   return { label, cls: 'text-red-500',   bg: 'bg-red-50',   icon: <FiAlertCircle size={11} />, note: 'Đã hết hạn' };
+  if (diffH < 24)   return { label, cls: 'text-amber-600', bg: 'bg-amber-50', icon: <FiClock size={11} />,       note: 'Sắp hết hạn' };
+  if (diffH < 72)   return { label, cls: 'text-amber-500', bg: 'bg-amber-50', icon: <FiClock size={11} />,       note: null };
+  return               { label, cls: 'text-gray-400',   bg: 'bg-gray-50',  icon: <FiClock size={11} />,       note: null };
+}
+
+export default function ExamList({ exams, exportingId, onExport, onUnassign }) {
+  const [page, setPage] = useState(1);
+
+  const pages        = Math.max(1, Math.ceil(exams.length / LIMIT));
+  const paged        = exams.slice((page - 1) * LIMIT, page * LIMIT);
+  const totalCompleted = exams.reduce((s, e) => s + (e.completed_count ?? 0), 0);
+  const totalAssigned  = exams.reduce((s, e) => s + (e.total_students ?? 0), 0);
+
+  useEffect(() => { setPage(1); }, [exams.length]);
+
+  return (
+    <div className="card">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <FiFileText size={16} className="text-indigo-600" />
+          <h3 className="text-sm font-semibold text-gray-900">Bài tập đã giao</h3>
+          <span className="badge-indigo">{exams.length}</span>
+        </div>
+        {exams.length > 0 && totalAssigned > 0 && (
+          <span className="text-xs text-gray-400">
+            Tổng hoàn thành:
+            <span className="font-semibold text-gray-700 ml-1">{totalCompleted}/{totalAssigned}</span>
+          </span>
+        )}
+      </div>
+
+      {exams.length === 0 ? (
+        <div className="text-center py-10">
+          <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+            <FiFileText size={20} className="text-gray-400" />
+          </div>
+          <p className="text-sm text-gray-500 font-medium">Chưa có bài tập nào</p>
+          <p className="text-xs text-gray-400 mt-1">Giao bài từ trang chi tiết bài học</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {paged.map(ae => {
+            const pct      = ae.total_students > 0 ? Math.round((ae.completed_count / ae.total_students) * 100) : 0;
+            const allDone  = pct === 100;
+            const dl       = deadlineInfo(ae.deadline);
+
+            return (
+              <div key={ae.exam_id}
+                className="rounded-xl border border-gray-100 hover:border-indigo-100 hover:shadow-sm transition-all duration-200 overflow-hidden">
+
+                {/* Top stripe: completion color */}
+                <div className={`h-1 ${allDone ? 'bg-emerald-400' : pct >= 50 ? 'bg-indigo-400' : 'bg-amber-400'}`} />
+
+                <div className="p-4">
+                  {/* Row 1: name + actions */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${allDone ? 'bg-emerald-50' : 'bg-indigo-50'}`}>
+                        {allDone
+                          ? <FiCheckCircle size={15} className="text-emerald-600" />
+                          : <FiFileText size={15} className="text-indigo-600" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 leading-tight truncate">{ae.exam_name}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{ae.lesson_name}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        title="Xuất Excel"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                        disabled={exportingId === ae.exam_id}
+                        onClick={() => onExport(ae.exam_id, ae.exam_name)}>
+                        {exportingId === ae.exam_id
+                          ? <FiLoader size={14} className="animate-spin" />
+                          : <FiDownload size={14} />}
+                      </button>
+                      <button
+                        title="Thu hồi bài thi"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        onClick={() => onUnassign(ae.exam_id)}>
+                        <FiX size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Row 2: progress + deadline */}
+                  <div className="mt-3 space-y-2">
+                    {/* Progress bar */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-gray-400">Hoàn thành</span>
+                        <span className={`text-xs font-semibold ${allDone ? 'text-emerald-600' : 'text-gray-700'}`}>
+                          {ae.completed_count}/{ae.total_students} học sinh · {pct}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            allDone ? 'bg-emerald-400' : pct >= 50 ? 'bg-indigo-400' : 'bg-amber-400'
+                          }`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Deadline */}
+                    {dl && (
+                      <div className={`flex items-center gap-1.5 text-xs ${dl.cls} rounded-lg px-2 py-1 ${dl.bg} w-fit`}>
+                        {dl.icon}
+                        <span>Hạn nộp: {dl.label}</span>
+                        {dl.note && <span className="font-semibold">· {dl.note}</span>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <Pagination page={page} pages={pages} onChange={setPage} />
+    </div>
+  );
+}

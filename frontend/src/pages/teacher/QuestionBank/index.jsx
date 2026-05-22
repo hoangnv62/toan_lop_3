@@ -1,28 +1,41 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import TeacherLayout from '../../../components/TeacherLayout';
-import { getQuestionBank, deleteBankQuestion } from '../../../api/questionBankService';
+import { getQuestionBank, deleteBankQuestion, importQuestionBankFromExcel, downloadSampleQuestionBank } from '../../../api/questionBankService';
 import { toast } from 'react-toastify';
-import { FiPlus, FiEdit2, FiTrash2, FiLoader, FiDatabase } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiLoader, FiDatabase, FiUpload, FiDownload, FiSearch } from 'react-icons/fi';
 import QuestionFormModal from './QuestionFormModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import Pagination from '../../../components/Pagination';
 
 export default function QuestionBank() {
-  const [questions, setQuestions] = useState([]);
-  const [total, setTotal]         = useState(0);
-  const [page, setPage]           = useState(1);
-  const [pages, setPages]         = useState(1);
-  const [loading, setLoading]     = useState(true);
-  const [modal, setModal]         = useState(null);
+  const [questions, setQuestions]         = useState([]);
+  const [total, setTotal]                 = useState(0);
+  const [page, setPage]                   = useState(1);
+  const [pages, setPages]                 = useState(1);
+  const [loading, setLoading]             = useState(true);
+  const [modal, setModal]                 = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [deleting, setDeleting]   = useState(null);
+  const [deleting, setDeleting]           = useState(null);
+  const [importing, setImporting]         = useState(false);
+  const [query, setQuery]                 = useState('');
+  const fileInputRef                      = useRef();
+  const debounceRef                       = useRef();
 
-  useEffect(() => { load(page); }, [page]);
+  useEffect(() => { load(query, page); }, [page]);
 
-  async function load(p) {
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setPage(1);
+      load(query, 1);
+    }, 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [query]);
+
+  async function load(q, p) {
     setLoading(true);
     try {
-      const data = await getQuestionBank(p, 10);
+      const data = await getQuestionBank(p, 10, q);
       setQuestions(data.items ?? []);
       setTotal(data.total ?? 0);
       setPages(data.pages ?? 1);
@@ -44,10 +57,34 @@ export default function QuestionBank() {
       toast.success('Đã xóa câu hỏi');
       const newPage = questions.length === 1 && page > 1 ? page - 1 : page;
       setPage(newPage);
-      if (newPage === page) load(page);
+      if (newPage === page) load(query, page);
     } catch (err) {
       toast.error(err.message || 'Xóa thất bại');
     } finally { setDeleting(null); }
+  }
+
+  async function handleImport(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setImporting(true);
+    try {
+      const data = await importQuestionBankFromExcel(file);
+      const { imported, errors } = data;
+      if (imported > 0) {
+        toast.success(`Đã import ${imported} câu hỏi`);
+        setPage(1);
+        load(query, 1);
+      }
+      if (errors?.length) {
+        errors.forEach(err => toast.error(err, { autoClose: 6000 }));
+      }
+      if (imported === 0 && !errors?.length) {
+        toast.warning('File không có câu hỏi hợp lệ');
+      }
+    } catch (err) {
+      toast.error(err.message || 'Import thất bại');
+    } finally { setImporting(false); }
   }
 
   function formatDate(str) {
@@ -63,9 +100,41 @@ export default function QuestionBank() {
           <h1 className="page-title">Ngân hàng câu hỏi</h1>
           <p className="text-sm text-gray-500 mt-0.5">{total} câu hỏi</p>
         </div>
-        <button className="btn-primary" onClick={() => setModal({ initial: null })}>
-          <FiPlus size={16} /> Thêm câu hỏi
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <FiSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              className="input pl-9 w-52"
+              placeholder="Tìm câu hỏi..."
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+            />
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            className="hidden"
+            onChange={handleImport}
+          />
+          <button
+            className="btn-ghost whitespace-nowrap"
+            onClick={() => downloadSampleQuestionBank().catch(err => toast.error(err.message))}>
+            <FiDownload size={15} /> File mẫu
+          </button>
+          <button
+            className="btn-secondary whitespace-nowrap"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}>
+            {importing
+              ? <FiLoader size={15} className="animate-spin" />
+              : <FiUpload size={15} />}
+            {importing ? 'Đang import...' : 'Import Excel'}
+          </button>
+          <button className="btn-primary whitespace-nowrap" onClick={() => setModal({ initial: null })}>
+            <FiPlus size={16} /> Thêm câu hỏi
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -77,8 +146,10 @@ export default function QuestionBank() {
           <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
             <FiDatabase size={22} className="text-gray-400" />
           </div>
-          <p className="text-gray-500 font-medium">Chưa có câu hỏi nào trong ngân hàng</p>
-          <p className="text-sm text-gray-400 mt-1">Thêm câu hỏi để tái sử dụng trong bài thi</p>
+          <p className="text-gray-500 font-medium">
+            {query ? 'Không tìm thấy câu hỏi nào' : 'Chưa có câu hỏi nào trong ngân hàng'}
+          </p>
+          {!query && <p className="text-sm text-gray-400 mt-1">Thêm câu hỏi để tái sử dụng trong bài thi</p>}
         </div>
       ) : (
         <div className="space-y-3">
@@ -127,7 +198,7 @@ export default function QuestionBank() {
         <QuestionFormModal
           initial={modal.initial}
           onClose={() => setModal(null)}
-          onSaved={() => { setModal(null); load(modal?.initial ? page : 1); setPage(modal?.initial ? page : 1); }}
+          onSaved={() => { setModal(null); const p = modal?.initial ? page : 1; setPage(p); load(query, p); }}
         />
       )}
 

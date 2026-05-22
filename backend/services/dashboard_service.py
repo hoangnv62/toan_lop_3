@@ -17,13 +17,14 @@ def get_teacher_dashboard(teacher_id: int) -> dict:
     summary = dict(db.session.execute(sql_summary, {"tid": teacher_id}).mappings().first())
 
     sql_scores = text("""
-        SELECT sa.student_id AS studentId,
+        SELECT sa.student_id AS studentId, u.full_name AS studentName,
             ROUND(SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END)*10.0/NULLIF(COUNT(q.id),0),1) AS avgScore
         FROM student_answers sa
         JOIN answers a ON sa.answer_id=a.id
         JOIN questions q ON a.question_id=q.id
         JOIN exams e ON sa.exam_id=e.id
         JOIN lessons l ON e.lesson_id=l.id
+        JOIN users u ON u.id=sa.student_id
         WHERE l.teacher_id=:tid GROUP BY sa.student_id ORDER BY avgScore DESC
     """)
     scores = [dict(r) for r in db.session.execute(sql_scores, {"tid": teacher_id}).mappings()]
@@ -37,11 +38,33 @@ def get_teacher_dashboard(teacher_id: int) -> dict:
         elif v < 8: dist["6-8"] += 1; pass_count += 1
         else:       dist["8-10"] += 1; pass_count += 1
 
+    sql_class_avg = text("""
+        SELECT c.class_name AS className,
+            ROUND(AVG(t.student_avg), 2) AS avgScore
+        FROM classes c
+        LEFT JOIN users u ON u.class_id=c.id AND u.role='student'
+        LEFT JOIN (
+            SELECT sa.student_id,
+                SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END)*10.0/NULLIF(COUNT(q.id),0) AS student_avg
+            FROM student_answers sa
+            JOIN answers a ON sa.answer_id=a.id
+            JOIN questions q ON a.question_id=q.id
+            GROUP BY sa.student_id
+        ) t ON t.student_id=u.id
+        WHERE c.teacher_id=:tid
+        GROUP BY c.id, c.class_name
+        ORDER BY avgScore DESC
+    """)
+    class_avgs = [dict(r) for r in db.session.execute(sql_class_avg, {"tid": teacher_id}).mappings()]
+    for r in class_avgs:
+        r["avgScore"] = float(r["avgScore"]) if r["avgScore"] is not None else None
+
     return {
         "summary":           summary,
         "scoreDistribution": dist,
         "passRate":          {"pass": pass_count, "fail": fail_count},
         "topStudents":       scores[:5],
+        "classAvgScores":    class_avgs,
     }
 
 

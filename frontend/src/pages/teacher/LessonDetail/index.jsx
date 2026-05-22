@@ -4,7 +4,7 @@ import TeacherLayout from '../../../components/TeacherLayout';
 import { fetchLesson } from '../../../api/lessonService';
 import { fetchExam, deleteExam, cloneExam } from '../../../api/examService';
 import { toast } from 'react-toastify';
-import { FiPlus, FiTrash2, FiEdit2, FiEye, FiLoader, FiSend, FiCopy, FiBarChart2 } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiEdit2, FiLoader, FiSend, FiCopy, FiBarChart2 } from 'react-icons/fi';
 import ExamModal from './ExamModal';
 import AssignExamModal from './AssignExamModal';
 import ExamStatsModal from './ExamStatsModal';
@@ -117,7 +117,7 @@ export default function LessonDetail() {
                   onClick={() => setAssignModal({ exam })}>
                   <FiSend size={15} />
                 </button>
-                <button title="Thong ke"
+                <button title="Thống kê"
                   className="btn-ghost p-2"
                   onClick={() => setStatsModal({ examId: exam.id, examName: exam.name })}>
                   <FiBarChart2 size={15} />
@@ -142,11 +142,6 @@ export default function LessonDetail() {
                   {deleting === exam.id
                     ? <FiLoader size={15} className="animate-spin" />
                     : <FiTrash2 size={15} />}
-                </button>
-                <button
-                  className="btn-primary py-1.5 px-3 text-xs ml-1"
-                  onClick={() => openEdit(exam.id)}>
-                  <FiEye size={13} /> Chi tiết
                 </button>
               </div>
             </div>

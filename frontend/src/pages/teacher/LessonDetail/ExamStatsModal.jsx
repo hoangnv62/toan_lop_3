@@ -108,7 +108,7 @@ export default function ExamStatsModal({ examId, examName, onClose }) {
                       {stats.questions.map((q, i) => (
                         <tr key={q.questionId} className="table-row">
                           <td className="table-cell text-gray-700">
-                            <span className="badge-indigo mr-2 text-xs">Cau {i + 1}</span>
+                            <span className="badge-indigo mr-2 text-xs">Câu {i + 1}</span>
                             {q.content?.length > 60 ? q.content.slice(0, 60) + '...' : q.content}
                           </td>
                           <td className="table-cell text-center">{q.totalAnswered ?? 0}</td>
@@ -129,7 +129,7 @@ export default function ExamStatsModal({ examId, examName, onClose }) {
         )}
 
         <div className="px-6 py-4 border-t border-gray-100 shrink-0">
-          <button className="btn-secondary w-full" onClick={onClose}>Dong</button>
+          <button className="btn-secondary w-full" onClick={onClose}>Đóng</button>
         </div>
       </div>
     </div>

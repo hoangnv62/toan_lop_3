@@ -3,20 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import TeacherLayout from '../../components/TeacherLayout';
 import { fetchClasses, createClass, deleteClass } from '../../api/classService';
 import { toast } from 'react-toastify';
-import { FiPlus, FiTrash2, FiArrowRight, FiUsers, FiBarChart2, FiCheckCircle } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiArrowRight, FiUsers } from 'react-icons/fi';
 import Pagination from '../../components/Pagination';
 
-const statusBadge = {
-  good:    { cls: 'badge-green',  label: 'Tốt' },
-  warning: { cls: 'badge-yellow', label: 'Trung bình' },
-  bad:     { cls: 'badge-red',    label: 'Cần cải thiện' },
+const STATUS = {
+  good:    { badge: 'badge-green',  label: 'Tốt',           accent: 'bg-emerald-400', avatar: 'bg-emerald-500' },
+  warning: { badge: 'badge-yellow', label: 'Trung bình',    accent: 'bg-amber-400',   avatar: 'bg-amber-500'   },
+  bad:     { badge: 'badge-red',    label: 'Cần cải thiện', accent: 'bg-red-400',     avatar: 'bg-red-500'     },
 };
-
-const statusBorder = {
-  good:    'border-l-emerald-400',
-  warning: 'border-l-amber-400',
-  bad:     'border-l-red-400',
-};
+const DEFAULT_COLORS = { accent: 'bg-indigo-400', avatar: 'bg-indigo-500' };
 
 export default function ManageClass() {
   const [classes, setClasses]   = useState([]);
@@ -104,42 +99,54 @@ export default function ManageClass() {
           <p className="text-sm text-gray-400 mt-1">Tạo lớp đầu tiên để bắt đầu</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {classes.map(c => {
-            const badge = statusBadge[c.status];
-            const border = statusBorder[c.status] || 'border-l-gray-200';
+            const s = STATUS[c.status] || DEFAULT_COLORS;
+            const initial = c.className.trim().charAt(0).toUpperCase();
             return (
               <div key={c.classId}
-                className={`card border-l-4 ${border} hover:shadow-md transition-all duration-200`}>
-                <div className="flex items-start justify-between gap-2 mb-4">
-                  <h3 className="font-semibold text-gray-900 text-base leading-tight">{c.className}</h3>
-                  {badge && <span className={badge.cls}>{badge.label}</span>}
-                </div>
+                className="rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden flex flex-col">
 
-                <div className="space-y-2 mb-5">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <FiUsers size={14} className="text-gray-400 shrink-0" />
-                    <span>{c.totalStudents} học sinh</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <FiBarChart2 size={14} className="text-gray-400 shrink-0" />
-                    <span>Điểm TB: <span className="font-semibold text-gray-800">{c.avgScore ?? '--'}</span></span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <FiCheckCircle size={14} className="text-gray-400 shrink-0" />
-                    <span>Tỷ lệ đạt: <span className="font-semibold text-gray-800">{c.passRate ?? '--'}%</span></span>
-                  </div>
-                </div>
+                {/* Color strip */}
+                <div className={`h-1.5 ${s.accent}`} />
 
-                <div className="flex gap-2 pt-4 border-t border-gray-100">
+                <div className="p-5 flex flex-col flex-1">
+                  {/* Top row */}
+                  <div className="flex items-start gap-3 mb-5">
+                    <div className={`w-11 h-11 rounded-xl ${s.avatar} flex items-center justify-center text-white font-bold text-lg shrink-0 select-none`}>
+                      {initial}
+                    </div>
+                    <div className="flex-1 min-w-0 pt-0.5">
+                      <h3 className="font-semibold text-gray-900 text-base leading-tight truncate">{c.className}</h3>
+                      {s.label && (
+                        <span className={`${s.badge} mt-1.5 inline-block`}>{s.label}</span>
+                      )}
+                    </div>
+                    <button
+                      title="Xóa lớp"
+                      className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0 mt-0.5"
+                      onClick={() => handleDelete(c.classId, c.className)}>
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="grid grid-cols-3 gap-2 mb-5">
+                    {[
+                      { label: 'Học sinh',  value: c.totalStudents },
+                      { label: 'Điểm TB',   value: c.avgScore  ?? '--' },
+                      { label: 'Tỷ lệ đạt', value: c.passRate != null ? `${c.passRate}%` : '--' },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="bg-gray-50 rounded-xl p-3 text-center">
+                        <p className="text-base font-bold text-gray-800 leading-none">{value}</p>
+                        <p className="text-xs text-gray-400 mt-1.5">{label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* CTA */}
                   <button
-                    className="btn-ghost text-red-500 hover:bg-red-50 hover:text-red-600 py-1.5 px-2.5"
-                    onClick={() => handleDelete(c.classId, c.className)}
-                    title="Xóa lớp">
-                    <FiTrash2 size={15} />
-                  </button>
-                  <button
-                    className="btn-primary flex-1 py-1.5 text-xs"
+                    className="btn-primary w-full py-2 text-sm mt-auto"
                     onClick={() => navigate(`/class-detail/${c.classId}`)}>
                     Xem chi tiết <FiArrowRight size={13} />
                   </button>
@@ -149,6 +156,7 @@ export default function ManageClass() {
           })}
         </div>
       )}
+
       <Pagination page={page} pages={pages} onChange={p => setPage(p)} />
     </TeacherLayout>
   );

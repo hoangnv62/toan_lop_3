@@ -84,6 +84,26 @@ class ClassRepository:
         rows = db.session.execute(sql, {"cid": class_id}).mappings().all()
         return [dict(r) for r in rows]
 
+    def get_class_avg(self, class_id: int):
+        row = db.session.execute(text("""
+            SELECT ROUND(AVG(student_avg), 2) AS class_avg
+            FROM (
+                SELECT u.id, AVG(t.exam_score) AS student_avg
+                FROM users u
+                JOIN (
+                    SELECT sa.student_id, sa.exam_id,
+                        SUM(a.is_correct) / NULLIF(COUNT(sa.id), 0) * 10 AS exam_score
+                    FROM student_answers sa
+                    JOIN answers a ON a.id = sa.answer_id
+                    GROUP BY sa.student_id, sa.exam_id
+                ) t ON t.student_id = u.id
+                WHERE u.class_id = :cid AND u.role = 'student'
+                GROUP BY u.id
+            ) sub
+        """), {"cid": class_id}).mappings().first()
+        val = row["class_avg"] if row else None
+        return float(val) if val is not None else None
+
     def get_students_for_export(self, class_id: int) -> list[dict]:
         sql = text("""
             SELECT u.username, u.full_name, u.dob,

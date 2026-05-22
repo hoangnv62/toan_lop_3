@@ -32,13 +32,15 @@ def get_class_detail(class_id: int, student_page: int = 1, student_limit: int = 
     cls = class_repo.find_by_id(class_id)
     if not cls:
         raise NotFoundError("Lớp không tồn tại")
-    paged = class_repo.get_students_with_avg(class_id, student_page, student_limit)
+    paged     = class_repo.get_students_with_avg(class_id, student_page, student_limit)
+    class_avg = class_repo.get_class_avg(class_id)
     return {
         "classId": cls.id, "className": cls.class_name,
         "totalStudents": paged["total"],
         "students": paged["items"],
         "studentPage": paged["page"],
         "studentPages": paged["pages"],
+        "classAvg": class_avg,
     }
 
 
