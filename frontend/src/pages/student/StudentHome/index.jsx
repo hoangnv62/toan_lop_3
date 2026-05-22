@@ -1,26 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS, CategoryScale, LinearScale,
-  PointElement, LineElement, Tooltip, Legend, Filler,
-} from 'chart.js';
 import { useAuth } from '../../../context/AuthContext';
 import { fetchDashboard } from '../../../api/studentService';
 import { logout } from '../../../api/auth';
-import {
-  FiChevronLeft, FiChevronRight, FiLogOut, FiFileText, FiCheckCircle, FiStar,
-  FiTrendingUp, FiUsers, FiPlus, FiEdit2, FiTrash2, FiUser,
-  FiPhone, FiClock, FiLock, FiList, FiBell,
-} from 'react-icons/fi';
 import { getRelatives, addRelative, updateRelative, deleteRelative } from '../../../api/relativeService';
 import { toast } from 'react-toastify';
+import { FiChevronLeft, FiChevronRight, FiLogOut, FiFileText, FiCheckCircle, FiStar, FiList, FiUser, FiLock } from 'react-icons/fi';
 import ChangePasswordModal from '../../../components/shared/ChangePasswordModal';
 import ProfileModal from '../../../components/shared/ProfileModal';
+import ScoreChart from './ScoreChart';
+import ExamList from './ExamList';
+import RankingCard from './RankingCard';
+import RelativesCard from './RelativesCard';
+import AnnouncementsCard from './AnnouncementsCard';
 import RelativeFormModal from './RelativeFormModal';
 import RelativeDeleteModal from './RelativeDeleteModal';
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
 function getWeekRange(offset = 0) {
   const now = new Date();
@@ -32,12 +26,11 @@ function getWeekRange(offset = 0) {
   const fmt = d => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
   return { from: fmt(mon), to: fmt(sun), label: `${fmt(mon)} – ${fmt(sun)}` };
 }
+
 function toISO(ddmmyyyy) {
   const [d, m, y] = ddmmyyyy.split('/');
   return `${y}-${m}-${d}`;
 }
-
-const rankBadge = ['bg-yellow-400', 'bg-gray-300', 'bg-orange-400'];
 
 export default function StudentHome() {
   const { user, setUser } = useAuth();
@@ -46,7 +39,7 @@ export default function StudentHome() {
   const [viewAll, setViewAll]       = useState(false);
   const [data, setData]             = useState(null);
   const [relatives, setRelatives]   = useState([]);
-  const [relModal, setRelModal]     = useState(null); // null | { mode:'add' } | { mode:'edit', item } | { mode:'delete', item }
+  const [relModal, setRelModal]     = useState(null);
   const [relLoading, setRelLoading] = useState(false);
   const [pwModal, setPwModal]       = useState(false);
   const [profileModal, setProfileModal] = useState(false);
@@ -84,22 +77,21 @@ export default function StudentHome() {
   }
 
   async function handleRelSubmit(formData) {
-    if (!formData.name.trim() || !formData.phone.trim()) {
-      return import('react-toastify').then(({ toast }) => toast.error('Tên và SĐT không được trống'));
-    }
+    if (!formData.name.trim() || !formData.phone.trim())
+      return toast.error('Tên và SĐT không được trống');
     setRelLoading(true);
     try {
       if (relModal.mode === 'add') {
         await addRelative(user.user_id, formData);
-        toast.success("Thêm người thân thành công")
+        toast.success('Thêm người thân thành công');
       } else {
         await updateRelative(relModal.item.id, formData);
-        toast.success("Cập nhật thành công")
+        toast.success('Cập nhật thành công');
       }
       setRelModal(null);
       loadRelatives();
     } catch (err) {
-      import('react-toastify').then(({ toast }) => toast.error(err.message || 'Thao tác thất bại'));
+      toast.error(err.message || 'Thao tác thất bại');
     } finally { setRelLoading(false); }
   }
 
@@ -108,10 +100,10 @@ export default function StudentHome() {
     try {
       await deleteRelative(relModal.item.id);
       setRelModal(null);
-      toast.success("Xóa người thân thành công")
+      toast.success('Xóa người thân thành công');
       loadRelatives();
     } catch (err) {
-      import('react-toastify').then(({ toast }) => toast.error(err.message || 'Xóa thất bại'));
+      toast.error(err.message || 'Xóa thất bại');
     } finally { setRelLoading(false); }
   }
 
@@ -127,14 +119,13 @@ export default function StudentHome() {
   const progress = data?.progress ?? {};
 
   const stats = [
-    { label: 'Đề thi',  value: progress.totalExams ?? 0, icon: FiFileText,    bg: 'bg-blue-50',    text: 'text-blue-600' },
-    { label: 'Đã làm',  value: progress.done ?? 0,       icon: FiCheckCircle, bg: 'bg-emerald-50', text: 'text-emerald-600' },
-    { label: 'Điểm TB', value: progress.avg != null ? (+progress.avg).toFixed(1) : '--', icon: FiStar, bg: 'bg-amber-50', text: 'text-amber-600' },
+    { label: 'Đề thi',   value: progress.totalExams ?? 0,                                 icon: FiFileText,    bg: 'bg-blue-50',    text: 'text-blue-600' },
+    { label: 'Đã làm',   value: progress.done ?? 0,                                        icon: FiCheckCircle, bg: 'bg-emerald-50', text: 'text-emerald-600' },
+    { label: 'Điểm TB',  value: progress.avg != null ? (+progress.avg).toFixed(1) : '--',  icon: FiStar,        bg: 'bg-amber-50',   text: 'text-amber-600' },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -208,194 +199,21 @@ export default function StudentHome() {
           ))}
         </div>
 
-        {/* Score chart */}
-        {scores.length > 0 && (
-          <div className="card">
-            <div className="flex items-center gap-2 mb-4">
-              <FiTrendingUp size={16} className="text-indigo-600" />
-              <h3 className="text-sm font-semibold text-gray-900">Điểm số trong tuần</h3>
-            </div>
-            <Line
-              data={{
-                labels: scores.map(s => s.examName),
-                datasets: [{
-                  label: 'Điểm', data: scores.map(s => s.score),
-                  borderColor: '#4F46E5', backgroundColor: 'rgba(79,70,229,0.08)',
-                  tension: 0.4, pointRadius: 5, pointBackgroundColor: '#4F46E5',
-                  fill: true,
-                }],
-              }}
-              options={{
-                responsive: true,
-                scales: {
-                  y: { min: 0, max: 10, grid: { color: '#F3F4F6' } },
-                  x: { grid: { display: false } },
-                },
-                plugins: { legend: { display: false } },
-              }}
-            />
-          </div>
-        )}
-
-        {/* Announcements */}
-        {data?.announcements?.length > 0 && (
-          <div className="card">
-            <div className="flex items-center gap-2 mb-3">
-              <FiBell size={15} className="text-indigo-600" />
-              <h3 className="text-sm font-semibold text-gray-900">Thông báo từ giáo viên</h3>
-            </div>
-            <div className="space-y-2">
-              {data.announcements.map(a => (
-                <div key={a.id} className="p-3 rounded-xl bg-indigo-50/60 border border-indigo-100">
-                  <p className="text-sm font-semibold text-gray-900">{a.title}</p>
-                  <p className="text-sm text-gray-600 mt-0.5 leading-relaxed">{a.content}</p>
-                  <p className="text-xs text-gray-400 mt-1">{new Date(a.created_at).toLocaleDateString('vi-VN')}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Exam list */}
-        <div className="card">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4">Danh sách đề thi</h3>
-          {exams.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-8">
-              {viewAll ? 'Chưa có đề thi nào.' : 'Không có đề thi trong tuần này.'}
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {exams.map(exam => {
-                const isPastDeadline = exam.deadline && new Date(exam.deadline) < new Date();
-                return (
-                  <div key={exam.examId}
-                    className="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                    <div className="min-w-0 mr-3">
-                      <p className="font-medium text-gray-900 text-sm truncate">{exam.examName}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{exam.lessonTitle}</p>
-                      {exam.deadline && !exam.done && (
-                        <p className={`text-xs mt-0.5 flex items-center gap-1 ${isPastDeadline ? 'text-red-500' : 'text-amber-600'}`}>
-                          <FiClock size={10} />
-                          {isPastDeadline ? 'Hết hạn: ' : 'Hạn: '}
-                          {new Date(exam.deadline).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      {exam.score != null && (
-                        <span className={`text-sm font-bold ${exam.score >= 5 ? 'text-emerald-600' : 'text-red-500'}`}>
-                          {exam.score}/10
-                        </span>
-                      )}
-                      {exam.done ? (
-                        <button className="btn-secondary py-1.5 px-3 text-xs"
-                          onClick={() => navigate(`/exam-result/${exam.examId}`)}>
-                          Xem kết quả
-                        </button>
-                      ) : (
-                        <button
-                          className="btn-primary py-1.5 px-3 text-xs disabled:opacity-50 disabled:pointer-events-none"
-                          disabled={isPastDeadline}
-                          onClick={() => navigate(`/student/exam/${exam.examId}`)}>
-                          {isPastDeadline ? 'Hết hạn' : 'Làm bài'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Ranking */}
-        {ranking.length > 0 && (
-          <div className="card">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Bảng xếp hạng lớp</h3>
-            <div className="space-y-2">
-              {ranking.map((r, i) => (
-                <div key={r.studentId}
-                  className={`flex items-center gap-3 p-2.5 rounded-xl transition-colors ${
-                    r.studentId === user?.user_id
-                      ? 'bg-indigo-50 border border-indigo-100'
-                      : 'hover:bg-gray-50'
-                  }`}>
-                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ${
-                    rankBadge[i] || 'bg-gray-200 !text-gray-600'
-                  }`}>
-                    {i + 1}
-                  </span>
-                  <span className="flex-1 text-sm font-medium text-gray-800">{r.name}</span>
-                  {r.studentId === user?.user_id && (
-                    <span className="badge-indigo text-xs">Bạn</span>
-                  )}
-                  <span className={`text-sm font-bold ${(+r.avg) >= 5 ? 'text-emerald-600' : 'text-red-500'}`}>
-                    {(+r.avg).toFixed(1)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Relatives */}
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <FiUsers size={16} className="text-indigo-600" />
-              <h3 className="text-sm font-semibold text-gray-900">Người thân</h3>
-              <span className="badge-gray text-xs">{relatives.length}/5</span>
-            </div>
-            {relatives.length < 5 && (
-              <button className="btn-primary py-1.5 px-3 gap-1.5 text-xs"
-                onClick={() => setRelModal({ mode: 'add' })}>
-                <FiPlus size={13} /> Thêm
-              </button>
-            )}
-          </div>
-
-          {relatives.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-6">Chưa có người thân nào.</p>
-          ) : (
-            <div className="space-y-2">
-              {relatives.map(rel => (
-                <div key={rel.id}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                  <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center shrink-0">
-                    <FiUser size={14} className="text-indigo-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{rel.name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {rel.relationship && (
-                        <span className="badge-gray text-xs">{rel.relationship}</span>
-                      )}
-                      <span className="flex items-center gap-1 text-xs text-gray-400">
-                        <FiPhone size={10} /> {rel.phone}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                      onClick={() => setRelModal({ mode: 'edit', item: rel })}>
-                      <FiEdit2 size={14} />
-                    </button>
-                    <button className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                      onClick={() => setRelModal({ mode: 'delete', item: rel })}>
-                      <FiTrash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ScoreChart scores={scores} />
+        <AnnouncementsCard announcements={data?.announcements} />
+        <ExamList exams={exams} viewAll={viewAll} />
+        <RankingCard ranking={ranking} userId={user?.user_id} />
+        <RelativesCard
+          relatives={relatives}
+          onAdd={() => setRelModal({ mode: 'add' })}
+          onEdit={rel => setRelModal({ mode: 'edit', item: rel })}
+          onDelete={rel => setRelModal({ mode: 'delete', item: rel })}
+        />
       </div>
 
       {pwModal && <ChangePasswordModal onClose={() => setPwModal(false)} />}
       {profileModal && <ProfileModal onClose={() => setProfileModal(false)} />}
 
-      {/* Modals */}
       {(relModal?.mode === 'add' || relModal?.mode === 'edit') && (
         <RelativeFormModal
           initial={relModal.mode === 'edit' ? relModal.item : null}

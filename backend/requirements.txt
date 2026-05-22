@@ -1,10 +1,14 @@
 Flask
 flask-cors
-mysql-connector-python
+Flask-SQLAlchemy
+SQLAlchemy
+alembic
+PyMySQL
+cryptography
 google-generativeai
+google-genai
 python-dotenv
 pandas
 openpyxl
-google-genai
 PyJWT
 Werkzeug

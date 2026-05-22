@@ -6,37 +6,24 @@ load_dotenv()
 
 app_secret_key = os.getenv("SECRET_KEY", "math_secret_key")
 
-db_config = {
-    "host": os.getenv("DB_HOST", "localhost"),
-    "user": os.getenv("DB_USER", "root"),
-    "password": os.getenv("DB_PASS", ""),
-    "database": os.getenv("DB_NAME", "math_learning"),
-}
+DB_HOST     = os.getenv("DB_HOST", "localhost")
+DB_USER     = os.getenv("DB_USER", "root")
+DB_PASSWORD = os.getenv("DB_PASS", "")
+DB_NAME     = os.getenv("DB_NAME", "math_learning")
 
-# Cấu hình AI
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-# model = None
-# if :
-#     genai.configure(api_key=api_key)
-#     try:
-#         model = genai.GenerativeModel("models/gemini-2.5-flash")
-#     except:
-#         model = genai.GenerativeModel("gemini-1.5-flash")
+DATABASE_URL = (
+    f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
+    "?charset=utf8mb4"
+)
 
-DEFAULT_MODEL = "models/gemini-2.5-flash"
-_client = genai.Client(api_key=GEMINI_API_KEY)
+DEFAULT_MODEL  = "models/gemini-2.5-flash"
+_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
-def gemini_generate(prompt: str):
-    config = {"response_mime_type": "application/json"}
+def gemini_generate(prompt: str) -> str:
     response = _client.models.generate_content(
-        model=DEFAULT_MODEL, contents=prompt, config=config
+        model=DEFAULT_MODEL,
+        contents=prompt,
+        config={"response_mime_type": "application/json"},
     )
     return response.text
-
-
-def check_gemini():
-    try:
-        gemini_generate("ping")
-    except Exception:
-        raise RuntimeError("❌ Gemini API key không hợp lệ")
