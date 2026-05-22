@@ -50,7 +50,7 @@ class StudentRepository:
     def get_lessons_with_stats(self, student_id: int, date_from=None, date_to=None) -> list[dict]:
         sql = """
             SELECT l.id AS lesson_id, l.title AS lesson_name, l.created_at,
-                e.id AS exam_id, e.name AS exam_name, ce.deadline, ce.open_time,
+                e.id AS exam_id, e.name AS exam_name, e.date_created AS exam_created_at, ce.deadline, ce.open_time,
                 CASE WHEN MAX(sa.id) IS NULL THEN 0 ELSE 1 END AS done,
                 COUNT(DISTINCT q.id) AS total_questions,
                 SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END) AS correct_questions,

@@ -5,11 +5,10 @@ from errors import NotFoundError, ForbiddenError
 qb_repo = QuestionBankRepository()
 
 
-def list_questions(teacher_id: int) -> list:
-    items = qb_repo.find_by_teacher(teacher_id)
-    result = []
-    for q in items:
-        result.append({
+def list_questions(teacher_id: int, page: int = 1, limit: int = 10) -> dict:
+    result = qb_repo.find_by_teacher(teacher_id, page, limit)
+    items = [
+        {
             "id":          q.id,
             "content":     q.content,
             "explanation": q.explanation,
@@ -18,8 +17,10 @@ def list_questions(teacher_id: int) -> list:
                 {"id": a.id, "content": a.content, "is_correct": a.is_correct}
                 for a in q.answers
             ],
-        })
-    return result
+        }
+        for q in result["items"]
+    ]
+    return {"items": items, "total": result["total"], "page": result["page"], "pages": result["pages"]}
 
 
 def create_question(teacher_id: int, content: str, explanation, answers: list) -> int:

@@ -1,14 +1,26 @@
+from sqlalchemy import func
 from extensions import db
 from models.question_bank import QuestionBankQuestion, QuestionBankAnswer
 
 
 class QuestionBankRepository:
-    def find_by_teacher(self, teacher_id: int) -> list[QuestionBankQuestion]:
-        return db.session.execute(
+    def find_by_teacher(self, teacher_id: int, page: int = 1, limit: int = 10) -> dict:
+        offset = (page - 1) * limit
+        total = db.session.execute(
+            db.select(func.count()).where(QuestionBankQuestion.teacher_id == teacher_id)
+        ).scalar() or 0
+        items = db.session.execute(
             db.select(QuestionBankQuestion)
             .where(QuestionBankQuestion.teacher_id == teacher_id)
             .order_by(QuestionBankQuestion.created_at.desc())
+            .offset(offset).limit(limit)
         ).scalars().all()
+        return {
+            "items": items,
+            "total": total,
+            "page": page,
+            "pages": max(1, (total + limit - 1) // limit),
+        }
 
     def find_by_id_and_teacher(self, question_id: int, teacher_id: int) -> QuestionBankQuestion | None:
         return db.session.execute(

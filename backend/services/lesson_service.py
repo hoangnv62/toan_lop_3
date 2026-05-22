@@ -5,12 +5,12 @@ from errors import NotFoundError
 lesson_repo = LessonRepository()
 
 
-def get_lessons(teacher_id: int, q: str = "") -> list:
-    rows = lesson_repo.find_by_teacher(teacher_id, q)
-    for r in rows:
+def get_lessons(teacher_id: int, q: str = "", page: int = 1, limit: int = 10) -> dict:
+    result = lesson_repo.find_by_teacher(teacher_id, q, page, limit)
+    for r in result["items"]:
         if "created_at" in r and r["created_at"]:
             r["created_at"] = str(r["created_at"])
-    return rows
+    return result
 
 
 def get_lesson(lesson_id: int) -> dict:

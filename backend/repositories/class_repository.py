@@ -12,7 +12,11 @@ class ClassRepository:
             db.select(Class).where(Class.id == class_id, Class.teacher_id == teacher_id)
         ).scalar_one_or_none()
 
-    def find_by_teacher_with_stats(self, teacher_id: int) -> list[dict]:
+    def find_by_teacher_with_stats(self, teacher_id: int, page: int = 1, limit: int = 12) -> dict:
+        offset = (page - 1) * limit
+        total = db.session.execute(
+            text("SELECT COUNT(*) FROM classes WHERE teacher_id=:tid"), {"tid": teacher_id}
+        ).scalar() or 0
         sql = text("""
             SELECT c.id AS classId, c.class_name AS className,
                 COUNT(DISTINCT u.id) AS totalStudents,
@@ -25,11 +29,21 @@ class ClassRepository:
             WHERE c.teacher_id=:tid
             GROUP BY c.id
             ORDER BY c.created_at DESC
+            LIMIT :limit OFFSET :offset
         """)
-        rows = db.session.execute(sql, {"tid": teacher_id}).mappings().all()
-        return [dict(r) for r in rows]
+        rows = db.session.execute(sql, {"tid": teacher_id, "limit": limit, "offset": offset}).mappings().all()
+        return {
+            "items": [dict(r) for r in rows],
+            "total": total,
+            "page": page,
+            "pages": max(1, (total + limit - 1) // limit),
+        }
 
-    def get_students_with_avg(self, class_id: int) -> list[dict]:
+    def get_students_with_avg(self, class_id: int, page: int = 1, limit: int = 15) -> dict:
+        offset = (page - 1) * limit
+        total = db.session.execute(
+            text("SELECT COUNT(*) FROM users WHERE class_id=:cid AND role='student'"), {"cid": class_id}
+        ).scalar() or 0
         sql = text("""
             SELECT u.id, u.username, u.full_name, u.dob,
                 ROUND(AVG(exam_score), 2) AS avg_score
@@ -43,9 +57,15 @@ class ClassRepository:
             ) t ON t.student_id=u.id
             WHERE u.class_id=:cid AND u.role='student'
             GROUP BY u.id
+            LIMIT :limit OFFSET :offset
         """)
-        rows = db.session.execute(sql, {"cid": class_id}).mappings().all()
-        return [dict(r) for r in rows]
+        rows = db.session.execute(sql, {"cid": class_id, "limit": limit, "offset": offset}).mappings().all()
+        return {
+            "items": [dict(r) for r in rows],
+            "total": total,
+            "page": page,
+            "pages": max(1, (total + limit - 1) // limit),
+        }
 
     def get_students_with_scores(self, class_id: int) -> list[dict]:
         sql = text("""

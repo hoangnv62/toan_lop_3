@@ -7,7 +7,9 @@ import services.question_bank_service as svc
 def list_questions():
     if g.user["role"] != "teacher":
         return jsonify({"success": False, "message": "Không có quyền"}), 403
-    return jsonify({"success": True, "data": svc.list_questions(g.user["user_id"])})
+    page  = request.args.get("page",  1,  type=int)
+    limit = request.args.get("limit", 10, type=int)
+    return jsonify({"success": True, "data": svc.list_questions(g.user["user_id"], page, limit)})
 
 
 @handle_errors

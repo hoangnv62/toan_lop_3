@@ -15,6 +15,7 @@ import {
 } from 'react-icons/fi';
 import StudentResultsModal from './StudentResultsModal';
 import RelativesModal from './RelativesModal';
+import Pagination from '../../../components/Pagination';
 
 function formatDate(str) {
   if (!str) return '--';
@@ -60,6 +61,8 @@ export default function ClassDetail() {
   const [relList, setRelList]             = useState([]);
   const [relLoading, setRelLoading]       = useState(false);
   const [studentModal, setStudentModal]   = useState(null); // { student }
+  const [studentPage, setStudentPage]     = useState(1);
+  const [studentPages, setStudentPages]   = useState(1);
   const [exportingId, setExportingId]     = useState(null);
   const [exportingStudents, setExportingStudents] = useState(false);
   const [announcements, setAnnouncements] = useState([]);
@@ -70,7 +73,7 @@ export default function ClassDetail() {
   const fileRef     = useRef();
   const debounceRef = useRef();
 
-  useEffect(() => { load(); }, [classId]);
+  useEffect(() => { load(); }, [classId, studentPage]);
 
   useEffect(() => {
     clearTimeout(debounceRef.current);
@@ -82,12 +85,13 @@ export default function ClassDetail() {
   async function load() {
     try {
       const [data, exams, ann] = await Promise.all([
-        getClassDetail(classId),
+        getClassDetail(classId, studentPage),
         getClassExams(classId),
         getAnnouncements(classId).catch(() => []),
       ]);
       setDetail(data);
       setClassName(data.className);
+      setStudentPages(data.studentPages ?? 1);
       setAssignedExams(exams);
       setAnnouncements(Array.isArray(ann) ? ann : []);
     } catch (err) {
@@ -577,6 +581,7 @@ export default function ClassDetail() {
               </tbody>
             </table>
           </div>
+          <Pagination page={studentPage} pages={studentPages} onChange={p => setStudentPage(p)} />
         </div>
       </div>
     </TeacherLayout>

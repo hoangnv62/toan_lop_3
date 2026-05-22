@@ -5,8 +5,10 @@ import services.lesson_service as svc
 
 @handle_errors
 def get_lessons():
-    q = request.args.get("q", "").strip()
-    return jsonify({"success": True, "data": svc.get_lessons(g.user["user_id"], q)})
+    q     = request.args.get("q",     "").strip()
+    page  = request.args.get("page",  1,  type=int)
+    limit = request.args.get("limit", 10, type=int)
+    return jsonify({"success": True, "data": svc.get_lessons(g.user["user_id"], q, page, limit)})
 
 
 @handle_errors

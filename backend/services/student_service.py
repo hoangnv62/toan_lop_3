@@ -127,7 +127,11 @@ def get_student_dashboard(student_id: int, show_all: bool, date_from=None, date_
             "openTime":   str(r["open_time"]) if r.get("open_time") else None,
         })
         if done and score is not None:
-            scores.append({"examName": r["exam_name"], "score": score})
+            scores.append({"examName": r["exam_name"], "score": score, "_created_at": r.get("exam_created_at")})
+
+    scores.sort(key=lambda s: s["_created_at"] or "")
+    for s in scores:
+        s.pop("_created_at", None)
 
     done_count = sum(1 for e in exams if e["done"])
     avg        = round(sum(s["score"] for s in scores) / len(scores), 1) if scores else None

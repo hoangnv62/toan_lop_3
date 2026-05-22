@@ -2,29 +2,36 @@ import { useEffect, useState } from 'react';
 import { FiX, FiLoader } from 'react-icons/fi';
 import { getQuestionBank } from '../../../api/questionBankService';
 import { toast } from 'react-toastify';
+import Pagination from '../../../components/Pagination';
 
 export default function QuestionBankPickerModal({ onClose, onAdd }) {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading]     = useState(true);
-  const [selected, setSelected]   = useState(new Set());
+  const [selected, setSelected]   = useState(new Map());
+  const [page, setPage]           = useState(1);
+  const [pages, setPages]         = useState(1);
 
   useEffect(() => {
-    getQuestionBank()
-      .then(data => setQuestions(Array.isArray(data) ? data : []))
+    setLoading(true);
+    getQuestionBank(page, 10)
+      .then(data => {
+        setQuestions(Array.isArray(data?.items) ? data.items : []);
+        setPages(data?.pages ?? 1);
+      })
       .catch(() => toast.error('Không tải được từ ngân hàng câu hỏi'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [page]);
 
-  function toggle(id) {
+  function toggle(q) {
     setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      const next = new Map(prev);
+      if (next.has(q.id)) next.delete(q.id); else next.set(q.id, q);
       return next;
     });
   }
 
   function handleAdd() {
-    const picked = questions.filter(q => selected.has(q.id));
+    const picked = [...selected.values()];
     const mapped = picked.map(q => ({
       questionId: null,
       content: q.content,
@@ -46,7 +53,7 @@ export default function QuestionBankPickerModal({ onClose, onAdd }) {
           <div>
             <h3 className="font-semibold text-gray-900">Chọn từ ngân hàng câu hỏi</h3>
             {selected.size > 0 && (
-              <p className="text-xs text-indigo-600 mt-0.5">Đã chọn {selected.size} cau</p>
+              <p className="text-xs text-indigo-600 mt-0.5">Đã chọn {selected.size} câu</p>
             )}
           </div>
           <button onClick={onClose}
@@ -73,7 +80,7 @@ export default function QuestionBankPickerModal({ onClose, onAdd }) {
                   <input
                     type="checkbox"
                     checked={selected.has(q.id)}
-                    onChange={() => toggle(q.id)}
+                    onChange={() => toggle(q)}
                     className="accent-indigo-600 mt-0.5 shrink-0"
                   />
                   <div className="flex-1 min-w-0">
@@ -84,6 +91,7 @@ export default function QuestionBankPickerModal({ onClose, onAdd }) {
               ))}
             </div>
           )}
+          {!loading && <Pagination page={page} pages={pages} onChange={p => setPage(p)} />}
         </div>
 
         <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
@@ -92,7 +100,7 @@ export default function QuestionBankPickerModal({ onClose, onAdd }) {
             className="btn-primary flex-1"
             disabled={selected.size === 0}
             onClick={handleAdd}>
-            Thêm {selected.size > 0 ? selected.size + ' cau' : ''} đã chọn
+            Thêm {selected.size > 0 ? selected.size + ' câu' : ''} đã chọn
           </button>
         </div>
       </div>

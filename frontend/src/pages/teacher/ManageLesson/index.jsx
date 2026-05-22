@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { FiSearch, FiPlus, FiEdit2, FiTrash2, FiArrowRight, FiBook, FiLoader } from 'react-icons/fi';
 import LessonFormModal from './LessonFormModal';
 import DeleteLessonModal from './DeleteLessonModal';
+import Pagination from '../../../components/Pagination';
 
 function formatDate(str) {
   if (!str) return '--';
@@ -15,6 +16,9 @@ function formatDate(str) {
 
 export default function ManageLesson() {
   const [lessons, setLessons]         = useState([]);
+  const [total, setTotal]             = useState(0);
+  const [pages, setPages]             = useState(1);
+  const [page, setPage]               = useState(1);
   const [query, setQuery]             = useState('');
   const [loading, setLoading]         = useState(true);
   const [showAdd, setShowAdd]         = useState(false);
@@ -25,19 +29,24 @@ export default function ManageLesson() {
   const debounceRef = useRef();
   const navigate = useNavigate();
 
-  useEffect(() => { load(''); }, []);
+  useEffect(() => { load(query, page); }, [page]);
 
   useEffect(() => {
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => load(query), 1000);
+    debounceRef.current = setTimeout(() => {
+      setPage(1);
+      load(query, 1);
+    }, 1000);
     return () => clearTimeout(debounceRef.current);
   }, [query]);
 
-  async function load(q) {
+  async function load(q, p) {
     setLoading(true);
     try {
-      const data = await fetchLessons(q);
-      setLessons(data);
+      const data = await fetchLessons(q, p);
+      setLessons(data.items);
+      setTotal(data.total);
+      setPages(data.pages);
     } catch { setLessons([]); }
     finally { setLoading(false); }
   }
@@ -50,7 +59,8 @@ export default function ManageLesson() {
       await createLesson(t);
       toast.success('Tạo bài học thành công');
       setShowAdd(false);
-      load(query);
+      setPage(1);
+      load(query, 1);
     } catch (err) {
       toast.error(err.message || 'Tạo thất bại');
     } finally { setAddLoading(false); }
@@ -64,7 +74,7 @@ export default function ManageLesson() {
       await updateLesson(editLesson.id, t);
       toast.success('Cập nhật thành công');
       setEditLesson(null);
-      load(query);
+      load(query, page);
     } catch (err) {
       toast.error(err.message || 'Cập nhật thất bại');
     } finally { setEditLoading(false); }
@@ -101,7 +111,7 @@ export default function ManageLesson() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Bài học & Bài tập</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{lessons.length} bài học</p>
+          <p className="text-sm text-gray-500 mt-0.5">{total} bài học</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -134,6 +144,7 @@ export default function ManageLesson() {
           </p>
         </div>
       ) : (
+        <>
         <div className="space-y-2">
           {lessons.map(l => (
             <div key={l.id}
@@ -167,6 +178,8 @@ export default function ManageLesson() {
             </div>
           ))}
         </div>
+        <Pagination page={page} pages={pages} onChange={p => { setPage(p); }} />
+        </>
       )}
     </TeacherLayout>
   );

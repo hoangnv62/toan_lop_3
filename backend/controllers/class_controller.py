@@ -17,12 +17,16 @@ def _parse_dt(s):
 
 @handle_errors
 def get_teacher_classes():
-    return jsonify({"success": True, "data": svc.get_teacher_classes(g.user["user_id"])})
+    page  = request.args.get("page",  1,  type=int)
+    limit = request.args.get("limit", 12, type=int)
+    return jsonify({"success": True, "data": svc.get_teacher_classes(g.user["user_id"], page, limit)})
 
 
 @handle_errors
 def get_class_detail(class_id):
-    return jsonify({"success": True, "data": svc.get_class_detail(class_id)})
+    student_page  = request.args.get("student_page",  1,  type=int)
+    student_limit = request.args.get("student_limit", 15, type=int)
+    return jsonify({"success": True, "data": svc.get_class_detail(class_id, student_page, student_limit)})
 
 
 @handle_errors

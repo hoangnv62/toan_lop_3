@@ -1,11 +1,11 @@
 import { apiFetch, getToken } from './index';
 import { API_BASE } from '../config';
 
-export const fetchClasses    = ()              => apiFetch('/api/classes');
-export const createClass     = (class_name)    => apiFetch('/api/classes', { method: 'POST', body: JSON.stringify({ class_name }) });
-export const deleteClass     = (id)            => apiFetch(`/api/classes/${id}`, { method: 'DELETE' });
-export const updateClass     = (id, className) => apiFetch(`/api/classes/${id}`, { method: 'PUT', body: JSON.stringify({ className }) });
-export const getClassDetail  = (id)            => apiFetch(`/api/classes/${id}`);
+export const fetchClasses    = (page = 1, limit = 12) => apiFetch(`/api/classes?page=${page}&limit=${limit}`);
+export const createClass     = (class_name)           => apiFetch('/api/classes', { method: 'POST', body: JSON.stringify({ class_name }) });
+export const deleteClass     = (id)                   => apiFetch(`/api/classes/${id}`, { method: 'DELETE' });
+export const updateClass     = (id, className)        => apiFetch(`/api/classes/${id}`, { method: 'PUT', body: JSON.stringify({ className }) });
+export const getClassDetail  = (id, studentPage = 1)  => apiFetch(`/api/classes/${id}?student_page=${studentPage}`);
 
 export const searchStudents  = (q, classId)    =>
   apiFetch(`/api/students/search?q=${encodeURIComponent(q)}&class_id=${classId}`);

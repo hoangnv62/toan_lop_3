@@ -5,21 +5,27 @@ import { toast } from 'react-toastify';
 import { FiPlus, FiEdit2, FiTrash2, FiLoader, FiDatabase } from 'react-icons/fi';
 import QuestionFormModal from './QuestionFormModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
+import Pagination from '../../../components/Pagination';
 
 export default function QuestionBank() {
   const [questions, setQuestions] = useState([]);
+  const [total, setTotal]         = useState(0);
+  const [page, setPage]           = useState(1);
+  const [pages, setPages]         = useState(1);
   const [loading, setLoading]     = useState(true);
   const [modal, setModal]         = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleting, setDeleting]   = useState(null);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(page); }, [page]);
 
-  async function load() {
+  async function load(p) {
     setLoading(true);
     try {
-      const data = await getQuestionBank();
-      setQuestions(Array.isArray(data) ? data : []);
+      const data = await getQuestionBank(p, 10);
+      setQuestions(data.items ?? []);
+      setTotal(data.total ?? 0);
+      setPages(data.pages ?? 1);
     } catch (err) {
       toast.error(err.message || 'Không tải được ngân hàng câu hỏi');
     } finally { setLoading(false); }
@@ -36,7 +42,9 @@ export default function QuestionBank() {
     try {
       await deleteBankQuestion(id);
       toast.success('Đã xóa câu hỏi');
-      load();
+      const newPage = questions.length === 1 && page > 1 ? page - 1 : page;
+      setPage(newPage);
+      if (newPage === page) load(page);
     } catch (err) {
       toast.error(err.message || 'Xóa thất bại');
     } finally { setDeleting(null); }
@@ -53,7 +61,7 @@ export default function QuestionBank() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Ngân hàng câu hỏi</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{questions.length} câu hỏi</p>
+          <p className="text-sm text-gray-500 mt-0.5">{total} câu hỏi</p>
         </div>
         <button className="btn-primary" onClick={() => setModal({ initial: null })}>
           <FiPlus size={16} /> Thêm câu hỏi
@@ -113,12 +121,13 @@ export default function QuestionBank() {
           ))}
         </div>
       )}
+      <Pagination page={page} pages={pages} onChange={p => setPage(p)} />
 
       {modal && (
         <QuestionFormModal
           initial={modal.initial}
           onClose={() => setModal(null)}
-          onSaved={() => { setModal(null); load(); }}
+          onSaved={() => { setModal(null); load(modal?.initial ? page : 1); setPage(modal?.initial ? page : 1); }}
         />
       )}
 

@@ -4,6 +4,7 @@ import TeacherLayout from '../../components/TeacherLayout';
 import { fetchClasses, createClass, deleteClass } from '../../api/classService';
 import { toast } from 'react-toastify';
 import { FiPlus, FiTrash2, FiArrowRight, FiUsers, FiBarChart2, FiCheckCircle } from 'react-icons/fi';
+import Pagination from '../../components/Pagination';
 
 const statusBadge = {
   good:    { cls: 'badge-green',  label: 'Tốt' },
@@ -18,17 +19,22 @@ const statusBorder = {
 };
 
 export default function ManageClass() {
-  const [classes, setClasses] = useState([]);
-  const [newName, setNewName] = useState('');
+  const [classes, setClasses]   = useState([]);
+  const [total, setTotal]       = useState(0);
+  const [pages, setPages]       = useState(1);
+  const [page, setPage]         = useState(1);
+  const [newName, setNewName]   = useState('');
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(page); }, [page]);
 
-  async function load() {
+  async function load(p) {
     try {
-      const data = await fetchClasses();
-      setClasses(data);
+      const data = await fetchClasses(p);
+      setClasses(data.items);
+      setTotal(data.total);
+      setPages(data.pages);
     } catch { setClasses([]); }
   }
 
@@ -40,7 +46,8 @@ export default function ManageClass() {
       await createClass(name);
       toast.success(`Tạo lớp "${name}" thành công`);
       setNewName('');
-      load();
+      setPage(1);
+      load(1);
     } catch (err) {
       toast.error(err.message || 'Tạo thất bại');
     } finally { setCreating(false); }
@@ -51,7 +58,9 @@ export default function ManageClass() {
     try {
       await deleteClass(id);
       toast.success('Đã xóa lớp');
-      load();
+      const newPage = classes.length === 1 && page > 1 ? page - 1 : page;
+      setPage(newPage);
+      load(newPage);
     } catch (err) {
       toast.error(err.message || 'Xóa thất bại');
     }
@@ -63,7 +72,7 @@ export default function ManageClass() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Quản lý lớp học</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{classes.length} lớp</p>
+          <p className="text-sm text-gray-500 mt-0.5">{total} lớp</p>
         </div>
       </div>
 
@@ -140,6 +149,7 @@ export default function ManageClass() {
           })}
         </div>
       )}
+      <Pagination page={page} pages={pages} onChange={p => setPage(p)} />
     </TeacherLayout>
   );
 }

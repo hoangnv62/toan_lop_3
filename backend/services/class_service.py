@@ -11,31 +11,34 @@ lesson_repo   = LessonRepository()
 exam_repo     = ExamRepository()
 
 
-def get_teacher_classes(teacher_id: int) -> list:
-    rows = class_repo.find_by_teacher_with_stats(teacher_id)
-    result = []
-    for r in rows:
+def get_teacher_classes(teacher_id: int, page: int = 1, limit: int = 12) -> dict:
+    result = class_repo.find_by_teacher_with_stats(teacher_id, page, limit)
+    items = []
+    for r in result["items"]:
         total   = r["totalAnswers"] or 0
         correct = r["correctAnswers"] or 0
         avg_score = round(correct / total * 10, 2) if total else None
         pass_rate = round(correct / total * 100, 2) if total else 0
         status    = "good" if pass_rate >= 70 else "warning" if pass_rate >= 50 else "bad"
-        result.append({
+        items.append({
             "classId": r["classId"], "className": r["className"],
             "totalStudents": r["totalStudents"], "avgScore": avg_score,
             "passRate": pass_rate, "status": status,
         })
-    return result
+    return {"items": items, "total": result["total"], "page": result["page"], "pages": result["pages"]}
 
 
-def get_class_detail(class_id: int) -> dict:
+def get_class_detail(class_id: int, student_page: int = 1, student_limit: int = 15) -> dict:
     cls = class_repo.find_by_id(class_id)
     if not cls:
         raise NotFoundError("Lớp không tồn tại")
-    students = class_repo.get_students_with_avg(class_id)
+    paged = class_repo.get_students_with_avg(class_id, student_page, student_limit)
     return {
         "classId": cls.id, "className": cls.class_name,
-        "totalStudents": len(students), "students": students,
+        "totalStudents": paged["total"],
+        "students": paged["items"],
+        "studentPage": paged["page"],
+        "studentPages": paged["pages"],
     }
 
 
