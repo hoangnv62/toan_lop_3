@@ -32,6 +32,26 @@ class UserRepository:
         if user:
             user.full_name = full_name
 
+    def get_profile(self, user_id: int) -> dict | None:
+        user = db.session.get(User, user_id)
+        if not user:
+            return None
+        return {
+            "username":  user.username,
+            "full_name": user.full_name,
+            "dob":       str(user.dob) if user.dob else None,
+            "email":     user.email,
+            "phone":     user.phone,
+        }
+
+    def update_profile(self, user_id: int, full_name: str, dob=None, email: str | None = None, phone: str | None = None) -> None:
+        user = db.session.get(User, user_id)
+        if user:
+            user.full_name = full_name
+            user.dob       = dob
+            user.email     = email or None
+            user.phone     = phone or None
+
     def search_students(self, q: str, limit: int = 20) -> list:
         from sqlalchemy import text
         sql = text("""

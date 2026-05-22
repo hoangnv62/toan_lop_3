@@ -11,6 +11,8 @@ class User(db.Model):
     full_name  = db.Column(db.String(100), nullable=False)
     role       = db.Column(db.Enum("teacher", "student"), nullable=False)
     dob        = db.Column(db.Date, nullable=True)
+    email      = db.Column(db.String(100), nullable=True)
+    phone      = db.Column(db.String(20), nullable=True)
     class_id   = db.Column(db.Integer, db.ForeignKey("classes.id", ondelete="SET NULL"), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

@@ -32,6 +32,13 @@ def change_password(user_id: int, current_pw: str, new_pw: str):
     db.session.commit()
 
 
-def update_profile(user_id: int, full_name: str):
-    user_repo.update_full_name(user_id, full_name)
+def get_profile(user_id: int) -> dict:
+    profile = user_repo.get_profile(user_id)
+    if not profile:
+        raise NotFoundError("Người dùng không tồn tại")
+    return profile
+
+
+def update_profile(user_id: int, full_name: str, dob=None, email: str = None, phone: str = None):
+    user_repo.update_profile(user_id, full_name, dob, email, phone)
     db.session.commit()

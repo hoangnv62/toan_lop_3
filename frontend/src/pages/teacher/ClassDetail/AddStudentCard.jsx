@@ -72,7 +72,7 @@ export default function AddStudentCard({ classId, onAssigned }) {
                     ? <span className="badge-yellow text-xs">{s.current_class}</span>
                     : null}
               </div>
-              {!s.already_in_class && (
+              {!s.already_in_class && !s.current_class && (
                 <button
                   className="btn-primary py-1 px-2.5 text-xs shrink-0"
                   onClick={() => handleAssign(s.username, s.full_name)}>

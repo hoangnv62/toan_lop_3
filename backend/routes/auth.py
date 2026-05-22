@@ -10,5 +10,6 @@ auth_bp.add_url_rule("/api/auth/login/teacher",    view_func=ctrl.login_teacher,
 auth_bp.add_url_rule("/api/auth/login/student",    view_func=ctrl.login_student,    methods=["POST"])
 auth_bp.add_url_rule("/api/auth/logout",           view_func=ctrl.logout,           methods=["POST"])
 auth_bp.add_url_rule("/api/auth/me",               view_func=require_auth(ctrl.me), methods=["GET"])
+auth_bp.add_url_rule("/api/auth/profile",          view_func=require_auth(ctrl.get_profile),     methods=["GET"])
 auth_bp.add_url_rule("/api/auth/profile",          view_func=require_auth(ctrl.update_profile),  methods=["PUT"])
 auth_bp.add_url_rule("/api/auth/password",         view_func=require_auth(ctrl.change_password), methods=["PUT"])

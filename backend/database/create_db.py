@@ -21,6 +21,8 @@ try:
         full_name   VARCHAR(100) NOT NULL,
         role        ENUM('teacher','student') NOT NULL,
         dob         DATE,
+        email       VARCHAR(100),
+        phone       VARCHAR(20),
         class_id    INT,
         created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")

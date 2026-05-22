@@ -28,6 +28,8 @@ def add_to_class(class_id: int, teacher_id: int, username: str) -> str:
         raise NotFoundError(f'Không tìm thấy học sinh "{username}"')
     if student.class_id == class_id:
         raise ConflictError("Học sinh đã trong lớp này")
+    if student.class_id is not None:
+        raise ConflictError("Học sinh đã thuộc lớp khác")
     student_repo.add_to_class(student, class_id)
     db.session.commit()
     return student.full_name

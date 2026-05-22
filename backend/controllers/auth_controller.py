@@ -64,12 +64,20 @@ def me():
 
 
 @handle_errors
+def get_profile():
+    return jsonify({"success": True, "data": svc.get_profile(g.user["user_id"])})
+
+
+@handle_errors
 def update_profile():
     d         = request.json or {}
     full_name = d.get("fullName", "").strip()
     if not full_name:
         return jsonify({"success": False, "message": "Họ tên không được trống"}), 400
-    svc.update_profile(g.user["user_id"], full_name)
+    dob   = d.get("dob") or None
+    email = (d.get("email") or "").strip() or None
+    phone = (d.get("phone") or "").strip() or None
+    svc.update_profile(g.user["user_id"], full_name, dob, email, phone)
     return jsonify({"success": True, "message": "Đã cập nhật"})
 
 
