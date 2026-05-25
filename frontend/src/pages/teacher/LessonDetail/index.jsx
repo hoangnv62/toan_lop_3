@@ -4,10 +4,11 @@ import TeacherLayout from '../../../components/TeacherLayout';
 import { fetchLesson } from '../../../api/lessonService';
 import { fetchExam, deleteExam, cloneExam } from '../../../api/examService';
 import { toast } from 'react-toastify';
-import { FiPlus, FiTrash2, FiEdit2, FiLoader, FiSend, FiCopy, FiBarChart2 } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiEdit2, FiLoader, FiSend, FiCopy, FiBarChart2, FiFileText } from 'react-icons/fi';
 import ExamModal from './ExamModal';
 import AssignExamModal from './AssignExamModal';
 import ExamStatsModal from './ExamStatsModal';
+import ExportPdfModal from './ExportPdfModal';
 
 function formatDate(str) {
   if (!str) return '--';
@@ -23,6 +24,7 @@ export default function LessonDetail() {
   const [statsModal, setStatsModal]   = useState(null); // { examId, examName }
   const [deleting, setDeleting]       = useState(null);
   const [cloning, setCloning]         = useState(null);
+  const [pdfModal, setPdfModal]       = useState(null); // { id, name }
 
   useEffect(() => { load(); }, [lessonId]);
 
@@ -122,6 +124,11 @@ export default function LessonDetail() {
                   onClick={() => setStatsModal({ examId: exam.id, examName: exam.name })}>
                   <FiBarChart2 size={15} />
                 </button>
+                <button title="Xuất PDF"
+                  className="btn-ghost text-rose-500 hover:text-rose-600 hover:bg-rose-50 p-2"
+                  onClick={() => setPdfModal({ id: exam.id, name: exam.name })}>
+                  <FiFileText size={15} />
+                </button>
                 <button title="Sao chép"
                   className="btn-ghost text-gray-500 hover:bg-gray-100 p-2"
                   disabled={cloning === exam.id}
@@ -171,6 +178,13 @@ export default function LessonDetail() {
           examId={statsModal.examId}
           examName={statsModal.examName}
           onClose={() => setStatsModal(null)}
+        />
+      )}
+
+      {pdfModal && (
+        <ExportPdfModal
+          exam={pdfModal}
+          onClose={() => setPdfModal(null)}
         />
       )}
     </TeacherLayout>

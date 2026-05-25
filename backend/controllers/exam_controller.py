@@ -75,6 +75,15 @@ def export_exam_results(exam_id):
 
 
 @handle_errors
+def export_exam_pdf(exam_id):
+    if g.user["role"] != "teacher":
+        return jsonify({"success": False, "message": "Không có quyền"}), 403
+    variants = max(1, min(20, int(request.args.get("variants", 1))))
+    duration = max(5, min(180, int(request.args.get("duration", 45))))
+    return svc.export_pdf(exam_id, variants, duration)
+
+
+@handle_errors
 def get_exam_stats(exam_id):
     return jsonify({"success": True, "data": svc.get_stats(exam_id)})
 

@@ -5,6 +5,7 @@ from extensions import db
 from repositories.exam_repository import ExamRepository, StudentAnswerRepository
 from repositories.class_repository import ClassExamRepository
 from errors import NotFoundError, ConflictError
+from services.pdf_service import build_exam_pdf
 import openpyxl
 
 exam_repo    = ExamRepository()
@@ -138,6 +139,30 @@ def get_stats(exam_id: int) -> dict:
 def save_comment(exam_id: int, student_id: int, teacher_id: int, comment: str) -> None:
     exam_repo.upsert_comment(exam_id, student_id, teacher_id, comment)
     db.session.commit()
+
+
+def export_pdf(exam_id: int, variants_count: int, duration: int) -> Response:
+    exam = exam_repo.find_by_id(exam_id)
+    if not exam:
+        raise NotFoundError("Bài thi không tồn tại")
+    questions = [
+        {
+            "question_id": q.id,
+            "content":     q.content,
+            "answers": [
+                {"answer_id": a.id, "content": a.content, "is_correct": bool(a.is_correct)}
+                for a in q.answers
+            ],
+        }
+        for q in exam.questions
+    ]
+    pdf_bytes = build_exam_pdf(exam.name, duration, questions, variants_count)
+    safe_name = quote(exam.name)
+    return Response(
+        pdf_bytes,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{safe_name}.pdf"},
+    )
 
 
 def export_results(exam_id: int) -> Response:
