@@ -91,7 +91,7 @@ export default function QuestionFormModal({ initial, onClose, onSaved }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Giai thich dap an</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Giải thích đáp án</label>
             <textarea
               className="input resize-none"
               rows={2}
@@ -104,7 +104,7 @@ export default function QuestionFormModal({ initial, onClose, onSaved }) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-medium text-gray-700">
-                Dap an <span className="text-red-500">*</span>
+                Đáp án <span className="text-red-500">*</span>
               </p>
               {hasCorrect
                 ? <span className="text-xs text-emerald-600 flex items-center gap-1"><FiCheckCircle size={12} /> Đã chọn đáp án đúng</span>
@@ -125,7 +125,7 @@ export default function QuestionFormModal({ initial, onClose, onSaved }) {
                   </span>
                   <input
                     className="flex-1 bg-transparent outline-none text-sm text-gray-700 placeholder-gray-400"
-                    placeholder={'Dap an ' + (ANSWER_LABELS[ai] ?? ai + 1) + '...'}
+                    placeholder={'Đáp án ' + (ANSWER_LABELS[ai] ?? ai + 1) + '...'}
                     value={a.content}
                     onChange={e => updateAnswer(ai, e.target.value)}
                   />
@@ -150,7 +150,7 @@ export default function QuestionFormModal({ initial, onClose, onSaved }) {
         </div>
 
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl shrink-0">
-          <button className="btn-secondary" onClick={onClose}>Huy</button>
+          <button className="btn-secondary" onClick={onClose}>Hủy</button>
           <button className="btn-primary" onClick={handleSave} disabled={saving}>
             {saving
               ? <><FiLoader size={14} className="animate-spin" /> Đang lưu...</>

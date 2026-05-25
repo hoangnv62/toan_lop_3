@@ -18,12 +18,17 @@ export default function QuestionBank() {
   const [deleting, setDeleting]           = useState(null);
   const [importing, setImporting]         = useState(false);
   const [query, setQuery]                 = useState('');
-  const fileInputRef                      = useRef();
-  const debounceRef                       = useRef();
+  const fileInputRef   = useRef();
+  const debounceRef    = useRef();
+  const isMountedRef   = useRef(false); // skip debounce effect on initial mount
 
+  // Runs on mount + page change (query changes handled by the debounce effect below)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(query, page); }, [page]);
 
+  // Runs only when query changes (skip mount)
   useEffect(() => {
+    if (!isMountedRef.current) { isMountedRef.current = true; return; }
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setPage(1);
