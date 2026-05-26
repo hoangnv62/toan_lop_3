@@ -33,7 +33,7 @@ def update_exam(lesson_id, exam_id):
 @handle_errors
 def delete_exam(exam_id):
     svc.delete_exam(exam_id)
-    return jsonify({"success": True, "message": "Đã xóa bài thi"})
+    return jsonify({"success": True, "message": "Đã xóa  bài tập"})
 
 
 @handle_errors
@@ -41,7 +41,7 @@ def clone_exam(exam_id):
     if g.user["role"] != "teacher":
         return jsonify({"success": False, "message": "Không có quyền"}), 403
     new_id = svc.clone_exam(exam_id)
-    return jsonify({"success": True, "message": "Đã sao chép bài thi", "examId": new_id})
+    return jsonify({"success": True, "message": "Đã sao chép  bài tập", "examId": new_id})
 
 
 @handle_errors

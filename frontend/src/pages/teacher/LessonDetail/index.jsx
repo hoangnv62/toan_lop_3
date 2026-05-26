@@ -51,7 +51,7 @@ export default function LessonDetail() {
         },
       });
     } catch (err) {
-      toast.error(err.message || 'Không tải được bài thi');
+      toast.error(err.message || 'Không tải được  bài tập');
     }
   }
 
@@ -70,7 +70,7 @@ export default function LessonDetail() {
     setCloning(id);
     try {
       await cloneExam(id);
-      toast.success('Đã sao chép bài thi');
+      toast.success('Đã sao chép  bài tập');
       load();
     } catch (err) {
       toast.error(err.message || 'Sao chép thất bại');
@@ -86,7 +86,7 @@ export default function LessonDetail() {
           <p className="text-sm text-gray-500 mt-0.5">{lesson?.exams?.length ?? 0} bài tập</p>
         </div>
         <button className="btn-primary" onClick={() => setModal({ examId: null, initialData: null })}>
-          <FiPlus size={16} /> Tạo bài thi
+          <FiPlus size={16} /> Tạo  bài tập
         </button>
       </div>
 

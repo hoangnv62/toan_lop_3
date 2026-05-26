@@ -85,8 +85,8 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
   }
 
   async function handleSave() {
-    if (!examName.trim()) return toast.error('Tên bài thi không được trống');
-    if (questions.length === 0) return toast.error('Bài thi cần có ít nhất 1 câu hỏi');
+    if (!examName.trim()) return toast.error('Tên  bài tập không được trống');
+    if (questions.length === 0) return toast.error(' Bài tập cần có ít nhất 1 câu hỏi');
     const invalid = questions.findIndex(q => !q.answers.some(a => a.correct));
     if (invalid !== -1) return toast.error(`Câu ${invalid + 1} chưa chọn đáp án đúng`);
     const emptyQ = questions.findIndex(q => !q.content.trim());
@@ -132,7 +132,7 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Tên bài thi <span className="text-red-500">*</span>
+                Tên  bài tập <span className="text-red-500">*</span>
               </label>
               <input className="input" placeholder="VD: Bài kiểm tra số 1"
                 value={examName} onChange={e => setExamName(e.target.value)} />

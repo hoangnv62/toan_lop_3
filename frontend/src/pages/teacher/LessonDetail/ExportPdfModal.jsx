@@ -32,7 +32,7 @@ export default function ExportPdfModal({ exam, onClose }) {
 
         <div className="p-6 space-y-5">
           <div>
-            <p className="text-xs text-gray-500 mb-0.5">Bài thi</p>
+            <p className="text-xs text-gray-500 mb-0.5"> Bài tập</p>
             <p className="font-medium text-gray-900">{exam.name}</p>
           </div>
 

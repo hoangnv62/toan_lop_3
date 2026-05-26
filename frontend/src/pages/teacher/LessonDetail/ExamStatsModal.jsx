@@ -28,7 +28,7 @@ export default function ExamStatsModal({ examId, examName, onClose }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
           <div>
-            <h3 className="font-semibold text-gray-900">Thống kê bài thi</h3>
+            <h3 className="font-semibold text-gray-900">Thống kê  bài tập</h3>
             <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{examName}</p>
           </div>
           <button onClick={onClose}

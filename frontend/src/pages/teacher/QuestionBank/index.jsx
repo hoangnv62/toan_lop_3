@@ -154,7 +154,7 @@ export default function QuestionBank() {
           <p className="text-gray-500 font-medium">
             {query ? 'Không tìm thấy câu hỏi nào' : 'Chưa có câu hỏi nào trong ngân hàng'}
           </p>
-          {!query && <p className="text-sm text-gray-400 mt-1">Thêm câu hỏi để tái sử dụng trong bài thi</p>}
+          {!query && <p className="text-sm text-gray-400 mt-1">Thêm câu hỏi để tái sử dụng trong  bài tập</p>}
         </div>
       ) : (
         <div className="space-y-3">

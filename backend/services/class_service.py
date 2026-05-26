@@ -83,14 +83,14 @@ def assign_exam(class_id: int, teacher_id: int, exam_id: int, deadline, open_tim
         raise NotFoundError("Lớp không tồn tại")
     exam = exam_repo.find_by_id(exam_id)
     if not exam:
-        raise NotFoundError("Bài thi không tồn tại")
+        raise NotFoundError(" Bài tập không tồn tại")
     try:
         ce_repo.assign(class_id, exam_id, deadline, open_time, time_limit)
         db.session.commit()
     except Exception as e:
         db.session.rollback()
         if "Duplicate" in str(e) or "uq_class_exam" in str(e):
-            raise ConflictError("Bài thi đã được giao cho lớp này")
+            raise ConflictError(" Bài tập đã được giao cho lớp này")
         raise
 
 
@@ -99,7 +99,7 @@ def update_assignment(class_id: int, teacher_id: int, exam_id: int, deadline, op
         raise NotFoundError("Lớp không tồn tại")
     ce = ce_repo.find_by_class_and_exam(class_id, exam_id)
     if not ce:
-        raise NotFoundError("Bài thi chưa được giao cho lớp này")
+        raise NotFoundError(" Bài tập chưa được giao cho lớp này")
     ce_repo.update(ce, deadline, open_time, time_limit)
     db.session.commit()
 
@@ -109,7 +109,7 @@ def unassign_exam(class_id: int, teacher_id: int, exam_id: int) -> None:
         raise NotFoundError("Lớp không tồn tại")
     ce = ce_repo.find_by_class_and_exam(class_id, exam_id)
     if not ce:
-        raise NotFoundError("Bài thi chưa được giao cho lớp này")
+        raise NotFoundError(" Bài tập chưa được giao cho lớp này")
     ce_repo.unassign(ce)
     db.session.commit()
 

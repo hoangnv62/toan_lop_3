@@ -16,7 +16,7 @@ ce_repo      = ClassExamRepository()
 def get_exam(exam_id: int, student_id: int = None) -> dict:
     exam = exam_repo.find_by_id(exam_id)
     if not exam:
-        raise NotFoundError("Bài thi không tồn tại")
+        raise NotFoundError(" Bài tập không tồn tại")
     time_limit = None
     if student_id:
         row = ce_repo.find_for_student(student_id, exam_id)
@@ -61,7 +61,7 @@ def create_exam(lesson_id: int, name: str, description: str, questions: list) ->
 def update_exam(exam_id: int, lesson_id: int, name: str, description: str, questions: list) -> None:
     exam = exam_repo.find_by_id(exam_id)
     if not exam or exam.lesson_id != lesson_id:
-        raise NotFoundError("Bài thi không tồn tại")
+        raise NotFoundError(" Bài tập không tồn tại")
     exam_repo.update(exam, name, description, questions)
     db.session.commit()
 
@@ -69,7 +69,7 @@ def update_exam(exam_id: int, lesson_id: int, name: str, description: str, quest
 def delete_exam(exam_id: int) -> None:
     exam = exam_repo.find_by_id(exam_id)
     if not exam:
-        raise NotFoundError("Bài thi không tồn tại")
+        raise NotFoundError(" Bài tập không tồn tại")
     exam_repo.delete(exam)
     db.session.commit()
 
@@ -77,7 +77,7 @@ def delete_exam(exam_id: int) -> None:
 def clone_exam(exam_id: int) -> int:
     exam = exam_repo.find_by_id(exam_id)
     if not exam:
-        raise NotFoundError("Bài thi không tồn tại")
+        raise NotFoundError(" Bài tập không tồn tại")
     new_exam = exam_repo.clone(exam)
     db.session.commit()
     return new_exam.id
@@ -94,14 +94,14 @@ def submit_exam(exam_id: int, student_id: int, answers: list, time_spent: int) -
 def get_result(exam_id: int, student_id: int) -> dict:
     data = exam_repo.get_exam_result(exam_id, student_id)
     if not data:
-        raise NotFoundError("Bài thi không tồn tại")
+        raise NotFoundError(" Bài tập không tồn tại")
     return data
 
 
 def get_stats(exam_id: int) -> dict:
     exam = exam_repo.find_by_id(exam_id)
     if not exam:
-        raise NotFoundError("Bài thi không tồn tại")
+        raise NotFoundError(" Bài tập không tồn tại")
     raw = exam_repo.get_stats(exam_id)
     scores         = raw["scores"]
     total_students = raw["total_students"]
@@ -144,7 +144,7 @@ def save_comment(exam_id: int, student_id: int, teacher_id: int, comment: str) -
 def export_pdf(exam_id: int, variants_count: int, duration: int) -> Response:
     exam = exam_repo.find_by_id(exam_id)
     if not exam:
-        raise NotFoundError("Bài thi không tồn tại")
+        raise NotFoundError(" Bài tập không tồn tại")
     questions = [
         {
             "question_id": q.id,
@@ -168,7 +168,7 @@ def export_pdf(exam_id: int, variants_count: int, duration: int) -> Response:
 def export_results(exam_id: int) -> Response:
     exam = exam_repo.find_by_id(exam_id)
     if not exam:
-        raise NotFoundError("Bài thi không tồn tại")
+        raise NotFoundError(" Bài tập không tồn tại")
     rows = exam_repo.get_export_data(exam_id)
 
     wb = openpyxl.Workbook()

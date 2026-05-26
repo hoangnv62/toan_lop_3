@@ -44,7 +44,7 @@ export default function AssignExamModal({ exam, onClose }) {
     setActionId(classId);
     try {
       await unassignExam(classId, exam.id);
-      toast.success('Đã thu hồi bài thi');
+      toast.success('Đã thu hồi  bài tập');
       load();
     } catch (err) {
       toast.error(err.message || 'Thu hồi thất bại');

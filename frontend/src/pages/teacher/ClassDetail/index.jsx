@@ -72,7 +72,7 @@ export default function ClassDetail() {
   async function handleUnassign(examId) {
     try {
       await unassignExam(classId, examId);
-      toast.success('Đã thu hồi bài thi');
+      toast.success('Đã thu hồi  bài tập');
       load();
     } catch (err) {
       toast.error(err.message || 'Thu hồi thất bại');

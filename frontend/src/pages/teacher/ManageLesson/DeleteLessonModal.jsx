@@ -28,7 +28,7 @@ export default function DeleteLessonModal({ lesson, onClose, onDeleted }) {
           <p className="text-sm text-gray-500 mt-2">
             Xóa <span className="font-semibold text-gray-800">"{lesson.title}"</span>?
           </p>
-          <p className="text-xs text-red-400 mt-1">Tất cả bài thi trong bài học này cũng sẽ bị xóa.</p>
+          <p className="text-xs text-red-400 mt-1">Tất cả  bài tập trong bài học này cũng sẽ bị xóa.</p>
         </div>
         <div className="flex gap-3">
           <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>

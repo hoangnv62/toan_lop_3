@@ -100,7 +100,7 @@ def update_exam_assignment(class_id, exam_id):
 @handle_errors
 def unassign_exam(class_id, exam_id):
     svc.unassign_exam(class_id, g.user["user_id"], exam_id)
-    return jsonify({"success": True, "message": "Đã thu hồi bài thi"})
+    return jsonify({"success": True, "message": "Đã thu hồi  bài tập"})
 
 
 @handle_errors
