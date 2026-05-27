@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
-from google import genai
+import instructor
+from openai import OpenAI
 
 load_dotenv()
 
@@ -16,14 +17,39 @@ DATABASE_URL = (
     "?charset=utf8mb4"
 )
 
-DEFAULT_MODEL  = "models/gemini-2.5-flash"
-_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+DEFAULT_MODEL = "openai/gpt-oss-120b:free"
+
+_base_client = instructor.from_openai(
+    OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=os.getenv("OPENROUTER_API_KEY"),
+        timeout=60,
+        max_retries=1,
+    ),
+    mode=instructor.Mode.JSON,
+)
 
 
-def gemini_generate(prompt: str) -> str:
-    response = _client.models.generate_content(
-        model=DEFAULT_MODEL,
-        contents=prompt,
-        config={"response_mime_type": "application/json"},
-    )
-    return response.text
+class _ChatModel:
+    def __init__(self, model: str):
+        self.model = model
+
+    def generate(self, prompt: str, response_model=None):
+        kwargs = dict(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            top_p=0.7,
+        )
+        if response_model is not None:
+            kwargs["response_model"] = response_model
+            return _base_client.chat.completions.create(**kwargs)
+        response = _base_client.chat.completions.create(
+            **kwargs,
+            response_format={"type": "json_object"},
+        )
+        return response.choices[0].message.content
+
+
+def init_chat_model(model: str = DEFAULT_MODEL) -> _ChatModel:
+    return _ChatModel(model)

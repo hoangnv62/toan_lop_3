@@ -8,37 +8,38 @@ from errors import NotFoundError, ForbiddenError
 qb_repo = QuestionBankRepository()
 
 
-def list_questions(teacher_id: int, q: str = "", page: int = 1, limit: int = 10) -> dict:
-    result = qb_repo.find_by_teacher(teacher_id, q, page, limit)
+def list_questions(teacher_id: int, q: str = "", page: int = 1, limit: int = 10, lesson_id=None) -> dict:
+    result = qb_repo.find_by_teacher(teacher_id, q, page, limit, lesson_id=lesson_id)
     items = [
         {
-            "id":          q.id,
-            "content":     q.content,
-            "explanation": q.explanation,
-            "created_at":  str(q.created_at) if q.created_at else None,
+            "id":          item.id,
+            "content":     item.content,
+            "explanation": item.explanation,
+            "lesson_id":   item.lesson_id,
+            "created_at":  str(item.created_at) if item.created_at else None,
             "answers": [
                 {"id": a.id, "content": a.content, "is_correct": a.is_correct}
-                for a in q.answers
+                for a in item.answers
             ],
         }
-        for q in result["items"]
+        for item in result["items"]
     ]
     return {"items": items, "total": result["total"], "page": result["page"], "pages": result["pages"]}
 
 
-def create_question(teacher_id: int, content: str, explanation, answers: list) -> int:
-    q = qb_repo.create(teacher_id, content, explanation, answers)
+def create_question(teacher_id: int, content: str, explanation, answers: list, lesson_id=None) -> int:
+    q = qb_repo.create(teacher_id, content, explanation, answers, lesson_id=lesson_id)
     db.session.commit()
     return q.id
 
 
-def update_question(question_id: int, teacher_id: int, content: str, explanation, answers: list) -> None:
+def update_question(question_id: int, teacher_id: int, content: str, explanation, answers: list, lesson_id=None) -> None:
     q = qb_repo.find_by_id(question_id)
     if not q:
         raise NotFoundError("Câu hỏi không tồn tại")
     if q.teacher_id != teacher_id:
         raise ForbiddenError()
-    qb_repo.update(q, content, explanation, answers)
+    qb_repo.update(q, content, explanation, answers, lesson_id=lesson_id)
     db.session.commit()
 
 
@@ -69,9 +70,9 @@ def generate_sample_excel() -> BytesIO:
     return buf
 
 
-def import_questions_from_excel(teacher_id: int, file_bytes: bytes) -> dict:
+def import_questions_from_excel(teacher_id: int, file_bytes: bytes, lesson_id=None) -> dict:
     questions, errors = parse_excel(file_bytes)
-    count = qb_repo.bulk_create(teacher_id, questions)
+    count = qb_repo.bulk_create(teacher_id, questions, lesson_id=lesson_id)
     db.session.commit()
     return {"imported": count, "errors": errors}
 

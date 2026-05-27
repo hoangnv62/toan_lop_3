@@ -1,16 +1,28 @@
 import { useEffect, useState } from 'react';
-import { FiX, FiLoader } from 'react-icons/fi';
-import { getExamStats } from '../../../api/examService';
+import { FiX, FiLoader, FiZap } from 'react-icons/fi';
+import { getExamStats, getAiStatsAnalysis } from '../../../api/examService';
 import { toast } from 'react-toastify';
 
 export default function ExamStatsModal({ examId, examName, onClose }) {
-  const [stats, setStats] = useState(null);
+  const [stats, setStats]           = useState(null);
+  const [insights, setInsights]     = useState(null);
+  const [aiLoading, setAiLoading]   = useState(false);
 
   useEffect(() => {
     getExamStats(examId)
       .then(setStats)
-      .catch(() => toast.error('Khong tai duoc thong ke'));
+      .catch(() => toast.error('Không tải được thống kê'));
   }, [examId]);
+
+  async function handleAiAnalysis() {
+    setAiLoading(true);
+    try {
+      const data = await getAiStatsAnalysis(examId);
+      setInsights(data.insights ?? []);
+    } catch {
+      toast.error('Không thể phân tích AI lúc này');
+    } finally { setAiLoading(false); }
+  }
 
   function rateBadge(rate) {
     if (rate >= 70) return 'badge-green';
@@ -28,7 +40,7 @@ export default function ExamStatsModal({ examId, examName, onClose }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
           <div>
-            <h3 className="font-semibold text-gray-900">Thống kê  bài tập</h3>
+            <h3 className="font-semibold text-gray-900">Thống kê bài tập</h3>
             <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{examName}</p>
           </div>
           <button onClick={onClose}
@@ -69,9 +81,9 @@ export default function ExamStatsModal({ examId, examName, onClose }) {
                 <p className="text-sm font-medium text-gray-700 mb-3">Phân bố điểm</p>
                 <div className="space-y-2">
                   {[
-                    { label: '0 - 4', lo: 0, hi: 4, color: 'bg-red-400' },
-                    { label: '4 - 6', lo: 4, hi: 6, color: 'bg-amber-400' },
-                    { label: '6 - 8', lo: 6, hi: 8, color: 'bg-blue-400' },
+                    { label: '0 - 4', lo: 0, hi: 4,  color: 'bg-red-400' },
+                    { label: '4 - 6', lo: 4, hi: 6,  color: 'bg-amber-400' },
+                    { label: '6 - 8', lo: 6, hi: 8,  color: 'bg-blue-400' },
                     { label: '8 - 10', lo: 8, hi: 11, color: 'bg-emerald-400' },
                   ].map(({ label, lo, hi, color }) => {
                     const count = scoreRange(stats.scoreDistribution, lo, hi);
@@ -98,7 +110,7 @@ export default function ExamStatsModal({ examId, examName, onClose }) {
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
-                        <th className="table-head">Cau hoi</th>
+                        <th className="table-head">Câu hỏi</th>
                         <th className="table-head text-center">Đã trả lời</th>
                         <th className="table-head text-center">Đúng</th>
                         <th className="table-head text-center">Tỉ lệ</th>
@@ -122,6 +134,37 @@ export default function ExamStatsModal({ examId, examName, onClose }) {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+
+            {/* AI analysis */}
+            {!insights && !aiLoading && stats.completedStudents > 0 && (
+              <button
+                className="btn-secondary w-full gap-2"
+                onClick={handleAiAnalysis}>
+                <FiZap size={14} /> Phân tích AI
+              </button>
+            )}
+
+            {aiLoading && (
+              <div className="flex items-center justify-center gap-2 py-4 text-sm text-gray-400">
+                <FiLoader size={15} className="animate-spin" /> Đang phân tích dữ liệu...
+              </div>
+            )}
+
+            {insights && insights.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-1.5">
+                  <FiZap size={14} className="text-violet-500" /> Phân tích từ AI
+                </p>
+                <div className="space-y-2">
+                  {insights.map((item, i) => (
+                    <div key={i} className="rounded-xl border border-violet-200 bg-violet-50/40 px-4 py-3">
+                      <p className="text-sm font-semibold text-violet-700 mb-1">{item.title}</p>
+                      <p className="text-sm text-gray-600 leading-relaxed">{item.detail}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

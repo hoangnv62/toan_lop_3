@@ -7,6 +7,7 @@ class QuestionBankQuestion(db.Model):
 
     id          = db.Column(db.Integer, primary_key=True)
     teacher_id  = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    lesson_id   = db.Column(db.Integer, db.ForeignKey("lessons.id", ondelete="SET NULL"), nullable=True)
     content     = db.Column(db.Text, nullable=False)
     explanation = db.Column(db.Text, nullable=True)
     created_at  = db.Column(db.DateTime, default=datetime.utcnow)

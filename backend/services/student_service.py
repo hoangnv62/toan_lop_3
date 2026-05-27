@@ -102,7 +102,7 @@ def get_student_dashboard(student_id: int, show_all: bool, date_from=None, date_
     if not teacher_id:
         return {
             "exams": [], "scores": [], "ranking": [],
-            "progress": {"totalExams": 0, "done": 0, "avg": None},
+            "progress": {"totalExams": 0, "done": 0, "avg": 0},
             "announcements": [],
         }
 

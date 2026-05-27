@@ -7,10 +7,12 @@ import services.question_bank_service as svc
 def list_questions():
     if g.user["role"] != "teacher":
         return jsonify({"success": False, "message": "Không có quyền"}), 403
-    q     = request.args.get("q", "").strip()
-    page  = request.args.get("page",  1,  type=int)
-    limit = request.args.get("limit", 10, type=int)
-    return jsonify({"success": True, "data": svc.list_questions(g.user["user_id"], q, page, limit)})
+    q          = request.args.get("q", "").strip()
+    page       = request.args.get("page",  1,  type=int)
+    limit      = request.args.get("limit", 10, type=int)
+    lesson_raw = request.args.get("lesson_id")
+    lesson_id  = int(lesson_raw) if lesson_raw is not None else None
+    return jsonify({"success": True, "data": svc.list_questions(g.user["user_id"], q, page, limit, lesson_id=lesson_id)})
 
 
 @handle_errors
@@ -21,7 +23,13 @@ def create_question():
     content = data.get("content", "").strip()
     if not content:
         return jsonify({"success": False, "message": "Nội dung câu hỏi không được trống"}), 400
-    new_id = svc.create_question(g.user["user_id"], content, data.get("explanation") or None, data.get("answers", []))
+    lesson_id = data.get("lesson_id") or None
+    new_id = svc.create_question(
+        g.user["user_id"], content,
+        data.get("explanation") or None,
+        data.get("answers", []),
+        lesson_id=lesson_id,
+    )
     return jsonify({"success": True, "id": new_id}), 201
 
 
@@ -33,7 +41,13 @@ def update_question(question_id):
     content = data.get("content", "").strip()
     if not content:
         return jsonify({"success": False, "message": "Nội dung câu hỏi không được trống"}), 400
-    svc.update_question(question_id, g.user["user_id"], content, data.get("explanation") or None, data.get("answers", []))
+    lesson_id = data.get("lesson_id") or None
+    svc.update_question(
+        question_id, g.user["user_id"], content,
+        data.get("explanation") or None,
+        data.get("answers", []),
+        lesson_id=lesson_id,
+    )
     return jsonify({"success": True, "message": "Đã cập nhật câu hỏi"})
 
 
@@ -57,7 +71,9 @@ def import_questions():
     file = request.files["file"]
     if not file.filename or not file.filename.lower().endswith((".xlsx", ".xls")):
         return jsonify({"success": False, "message": "Chỉ hỗ trợ file .xlsx hoặc .xls"}), 400
-    result = svc.import_questions_from_excel(g.user["user_id"], file.read())
+    lesson_raw = request.form.get("lesson_id")
+    lesson_id  = int(lesson_raw) if lesson_raw else None
+    result = svc.import_questions_from_excel(g.user["user_id"], file.read(), lesson_id=lesson_id)
     return jsonify({"success": True, "data": result})
 
 

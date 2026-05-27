@@ -5,8 +5,8 @@ SQLAlchemy
 alembic
 PyMySQL
 cryptography
-google-generativeai
-google-genai
+openai
+instructor
 python-dotenv
 pandas
 openpyxl

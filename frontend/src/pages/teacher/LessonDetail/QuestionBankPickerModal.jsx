@@ -4,7 +4,7 @@ import { getQuestionBank } from '../../../api/questionBankService';
 import { toast } from 'react-toastify';
 import Pagination from '../../../components/Pagination';
 
-export default function QuestionBankPickerModal({ onClose, onAdd }) {
+export default function QuestionBankPickerModal({ lessonId = null, onClose, onAdd }) {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [selected, setSelected]   = useState(new Map());
@@ -15,7 +15,7 @@ export default function QuestionBankPickerModal({ onClose, onAdd }) {
 
   useEffect(() => {
     setLoading(true);
-    getQuestionBank(page, 10, query)
+    getQuestionBank(page, 10, query, lessonId)
       .then(data => {
         setQuestions(Array.isArray(data?.items) ? data.items : []);
         setPages(data?.pages ?? 1);

@@ -166,18 +166,17 @@ class ExamRepository:
         """)
         scores = [float(r["score"] or 0) for r in db.session.execute(sql_scores, {"eid": exam_id}).mappings()]
 
-        exam = db.session.get(Exam, exam_id)
         sql_total = text("""
             SELECT COUNT(DISTINCT u.id) AS total FROM users u
-            JOIN classes c ON u.class_id=c.id
-            WHERE c.teacher_id=(SELECT teacher_id FROM lessons WHERE id=:lid) AND u.role='student'
+            JOIN class_exams ce ON ce.class_id=u.class_id
+            WHERE ce.exam_id=:eid AND u.role='student'
         """)
-        total_row = db.session.execute(sql_total, {"lid": exam.lesson_id}).mappings().first()
+        total_row = db.session.execute(sql_total, {"eid": exam_id}).mappings().first()
 
         sql_q = text("""
             SELECT q.id AS questionId, q.content,
                 COUNT(DISTINCT sa.student_id) AS totalAnswered,
-                SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END) AS correctCount
+                SUM(CASE WHEN a.is_correct=1 AND sa.student_id IS NOT NULL THEN 1 ELSE 0 END) AS correctCount
             FROM questions q
             LEFT JOIN answers a ON a.question_id=q.id
             LEFT JOIN student_answers sa ON sa.answer_id=a.id AND sa.exam_id=:eid

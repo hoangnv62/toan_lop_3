@@ -70,32 +70,50 @@ class StudentRepository:
             params["df"] = date_from
         if date_to:
             sql += " AND (sa.submitted_at < :dt OR (sa.submitted_at IS NULL AND ce.assigned_at < :dt2))"
-            params["dt"]  = date_to + timedelta(days=1)
+            params["dt"] = date_to + timedelta(days=1)
             params["dt2"] = date_to + timedelta(days=1)
         sql += " GROUP BY l.id, e.id ORDER BY l.created_at DESC"
         rows = db.session.execute(text(sql), params).mappings().all()
         return [dict(r) for r in rows]
 
-    def get_class_ranking(self, teacher_id: int, date_from=None, date_to=None) -> list[dict]:
+    def get_class_ranking(
+            self,
+            teacher_id: int,
+            date_from=None,
+            date_to=None
+    ) -> list[dict]:
+
         sql = """
-            SELECT u.id AS student_id, u.full_name AS student_name,
-                COUNT(DISTINCT q.id) AS total_questions,
-                SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END) AS correct_questions
+            SELECT u.id                                                     AS student_id,
+                   u.full_name                                              AS student_name,
+                   COUNT(DISTINCT q.id)                                     AS total_questions,
+                   COUNT(DISTINCT CASE WHEN a.is_correct = 1 THEN q.id END) AS correct_questions
             FROM users u
-            LEFT JOIN student_answers sa ON sa.student_id=u.id
-            LEFT JOIN answers a ON sa.answer_id=a.id
-            LEFT JOIN questions q ON a.question_id=q.id
-            WHERE u.class_id IN (SELECT id FROM classes WHERE teacher_id=:tid) AND u.role='student'
+                     LEFT JOIN student_answers sa ON sa.student_id = u.id
+                AND (:date_from IS NULL OR sa.submitted_at >= :date_from)
+                AND (:date_to IS NULL OR sa.submitted_at < :date_to)
+                     LEFT JOIN answers a ON sa.answer_id = a.id
+                     LEFT JOIN questions q ON q.id = a.question_id
+            WHERE u.role = 'student'
+              AND u.class_id IN (SELECT id
+                                 FROM classes
+                                 WHERE teacher_id = :tid)
+            GROUP BY u.id,
+                     u.full_name
+            ORDER BY correct_questions DESC
         """
-        params: dict = {"tid": teacher_id}
-        if date_from:
-            sql += " AND (sa.submitted_at IS NULL OR sa.submitted_at >= :df)"
-            params["df"] = date_from
-        if date_to:
-            sql += " AND (sa.submitted_at IS NULL OR sa.submitted_at < :dt)"
-            params["dt"] = date_to + timedelta(days=1)
-        sql += " GROUP BY u.id ORDER BY correct_questions DESC"
-        rows = db.session.execute(text(sql), params).mappings().all()
+
+        params = {
+            "tid": teacher_id,
+            "date_from": date_from,
+            "date_to": date_to + timedelta(days=1) if date_to else None
+        }
+
+        rows = db.session.execute(
+            text(sql),
+            params
+        ).mappings().all()
+
         return [dict(r) for r in rows]
 
     def get_announcements_for_student(self, student_id: int) -> list[dict]:

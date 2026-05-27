@@ -1,12 +1,25 @@
 from io import BytesIO
 from urllib.parse import quote
 from flask import Response
+from pydantic import BaseModel as _BaseModel
 from extensions import db
 from repositories.exam_repository import ExamRepository, StudentAnswerRepository
 from repositories.class_repository import ClassExamRepository
 from errors import NotFoundError, ConflictError
 from services.pdf_service import build_exam_pdf
+from config import init_chat_model
 import openpyxl
+
+
+class _Feedback(_BaseModel):
+    feedback: str
+
+class _Insight(_BaseModel):
+    title: str
+    detail: str
+
+class _StatsAnalysis(_BaseModel):
+    insights: list[_Insight]
 
 exam_repo    = ExamRepository()
 sa_repo      = StudentAnswerRepository()
@@ -134,6 +147,57 @@ def get_stats(exam_id: int) -> dict:
         "distribution":      dist,
         "questions":         questions_stats,
     }
+
+
+def generate_ai_feedback(exam_id: int, student_id: int) -> str:
+    data  = get_result(exam_id, student_id)
+    wrong = [q for q in data.get("questions", []) if not q.get("isCorrect")]
+    if not wrong:
+        return "Xuất sắc! Em đã trả lời đúng tất cả các câu hỏi. Hãy tiếp tục phát huy nhé!"
+    lines = []
+    for q in wrong:
+        correct = next((a["content"] for a in q.get("answers", []) if a.get("isCorrected") == 1), "")
+        chosen  = next((a["content"] for a in q.get("answers", []) if a.get("isSelected") and a.get("isCorrected") != 1), "không rõ")
+        lines.append(f'- "{q["questionContent"]}"\n  Đáp án đúng: {correct} | Em chọn: {chosen}')
+    prompt = f"""Bạn là giáo viên Toán lớp 3 đang nhận xét bài làm của học sinh.
+Bài kiểm tra: {data.get("examName", "Toán lớp 3")}
+Kết quả: {data.get("score", 0)}/10 — đúng {data.get("correct", 0)}/{data.get("total", 0)} câu.
+
+Các câu trả lời sai:
+{chr(10).join(lines)}
+
+Viết 1 đoạn nhận xét (2-4 câu) bằng tiếng Việt, thân thiện dành cho học sinh lớp 3: chỉ ra lỗi sai cụ thể và cách khắc phục, kết bằng lời khích lệ.
+"""
+    result = init_chat_model().generate(prompt, response_model=_Feedback)
+    return result.feedback
+
+
+def analyze_exam_stats(exam_id: int) -> list:
+    stats = get_stats(exam_id)
+    if not stats.get("completedStudents"):
+        return []
+    qs = stats.get("questions", [])
+    hard = [q for q in qs if q.get("totalAnswered", 0) > 0 and q.get("correctRate", 100) < 50]
+    if not hard:
+        hard = sorted(qs, key=lambda q: q.get("correctRate", 100))[:3]
+    hard_summary = "\n".join(
+        f'- Câu {i+1}: "{q["content"][:80]}" — tỉ lệ đúng {q["correctRate"]}% ({q["correctCount"]}/{q["totalAnswered"]} HS)'
+        for i, q in enumerate(hard)
+    )
+    dist = stats.get("distribution", {})
+    prompt = f"""Bạn là chuyên gia giáo dục Toán lớp 3. Phân tích kết quả bài kiểm tra:
+Tên bài: {stats.get("examName", "")}
+Học sinh nộp bài: {stats.get("completedStudents", 0)}/{stats.get("totalStudents", 0)}
+Điểm trung bình: {stats.get("avgScore", 0)}/10
+Phân bố: 0-4: {dist.get("0-4",0)} HS, 4-6: {dist.get("4-6",0)} HS, 6-8: {dist.get("6-8",0)} HS, 8-10: {dist.get("8-10",0)} HS.
+
+Câu hỏi học sinh làm sai nhiều nhất:
+{hard_summary}
+
+Đưa ra CHÍNH XÁC 3 nhận xét và lời khuyên thực tế cho giáo viên Toán lớp 3 dựa trên dữ liệu trên, trả lời bằng tiếng việt.
+"""
+    result = init_chat_model().generate(prompt, response_model=_StatsAnalysis)
+    return [i.model_dump() for i in result.insights]
 
 
 def save_comment(exam_id: int, student_id: int, teacher_id: int, comment: str) -> None:

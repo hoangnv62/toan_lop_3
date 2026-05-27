@@ -170,10 +170,12 @@ try:
     CREATE TABLE question_bank (
         id          INT AUTO_INCREMENT PRIMARY KEY,
         teacher_id  INT NOT NULL,
+        lesson_id   INT,
         content     TEXT NOT NULL,
         explanation TEXT,
         created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+        FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (lesson_id)  REFERENCES lessons(id) ON DELETE SET NULL
     )""")
 
     # 15. Đáp án ngân hàng câu hỏi

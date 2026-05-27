@@ -1,15 +1,24 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getExamResult } from '../../api/examService';
-import { FiArrowLeft, FiCheckCircle, FiXCircle } from 'react-icons/fi';
+import { getExamResult, getAiExamFeedback } from '../../api/examService';
+import { FiArrowLeft, FiCheckCircle, FiXCircle, FiLoader, FiZap } from 'react-icons/fi';
 
 export default function ExamResult() {
   const { examId } = useParams();
   const navigate   = useNavigate();
-  const [result, setResult] = useState(null);
+  const [result, setResult]           = useState(null);
+  const [aiFeedback, setAiFeedback]   = useState(null);
+  const [aiLoading, setAiLoading]     = useState(false);
 
   useEffect(() => {
-    getExamResult(examId).then(setResult).catch(() => {});
+    getExamResult(examId).then(data => {
+      setResult(data);
+      setAiLoading(true);
+      getAiExamFeedback(examId)
+        .then(res => setAiFeedback(res.feedback))
+        .catch(() => {})
+        .finally(() => setAiLoading(false));
+    }).catch(() => {});
   }, [examId]);
 
   if (!result) return (
@@ -57,6 +66,20 @@ export default function ExamResult() {
               Nhận xét của giáo viên
             </p>
             <p className="text-sm text-gray-700 leading-relaxed">{result.teacherComment}</p>
+          </div>
+        )}
+
+        {/* AI feedback */}
+        {(aiLoading || aiFeedback) && (
+          <div className="card border-l-4 border-l-violet-400 bg-violet-50/40">
+            <p className="text-xs font-semibold text-violet-600 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+              <FiZap size={11} /> Nhận xét từ AI
+            </p>
+            {aiLoading
+              ? <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <FiLoader size={13} className="animate-spin" /> Đang phân tích bài làm...
+                </div>
+              : <p className="text-sm text-gray-700 leading-relaxed">{aiFeedback}</p>}
           </div>
         )}
 

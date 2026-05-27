@@ -17,3 +17,5 @@ exam_bp.add_url_rule("/api/exams/<int:exam_id>/submissions/<int:student_id>/comm
 exam_bp.add_url_rule("/api/lessons/<int:lesson_id>/exams",                            view_func=require_auth(ctrl.create_exam),             methods=["POST"])
 exam_bp.add_url_rule("/api/lessons/<int:lesson_id>/exams/<int:exam_id>",              view_func=require_auth(ctrl.update_exam),             methods=["PUT"])
 exam_bp.add_url_rule("/api/exams/<int:exam_id>/export-pdf",                           view_func=require_auth(ctrl.export_exam_pdf),         methods=["GET"])
+exam_bp.add_url_rule("/api/exams/<int:exam_id>/ai-feedback",                          view_func=require_auth(ctrl.ai_exam_feedback),        methods=["POST"])
+exam_bp.add_url_rule("/api/exams/<int:exam_id>/ai-analysis",                          view_func=require_auth(ctrl.ai_stats_analysis),       methods=["POST"])

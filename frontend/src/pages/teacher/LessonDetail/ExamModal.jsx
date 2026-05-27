@@ -182,6 +182,7 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
 
           {bankModal && (
             <QuestionBankPickerModal
+              lessonId={lesson?.id}
               onClose={() => setBankModal(false)}
               onAdd={picked => setQuestions(p => [...p, ...picked])}
             />

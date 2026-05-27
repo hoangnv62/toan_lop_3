@@ -84,6 +84,22 @@ def export_exam_pdf(exam_id):
 
 
 @handle_errors
+def ai_exam_feedback(exam_id):
+    if g.user["role"] != "student":
+        return jsonify({"success": False, "message": "Không có quyền"}), 403
+    feedback = svc.generate_ai_feedback(exam_id, g.user["user_id"])
+    return jsonify({"success": True, "data": {"feedback": feedback}})
+
+
+@handle_errors
+def ai_stats_analysis(exam_id):
+    if g.user["role"] != "teacher":
+        return jsonify({"success": False, "message": "Không có quyền"}), 403
+    insights = svc.analyze_exam_stats(exam_id)
+    return jsonify({"success": True, "data": {"insights": insights}})
+
+
+@handle_errors
 def get_exam_stats(exam_id):
     return jsonify({"success": True, "data": svc.get_stats(exam_id)})
 

@@ -10,7 +10,9 @@ export const saveExam = (lessonId, examId, payload) => {
 export const submitExam = (examId, payload) =>
   apiFetch(`/api/exams/${examId}/submit`, { method: 'POST', body: JSON.stringify(payload) });
 export const getExamResult = (examId) => apiFetch(`/api/exams/${examId}/result`);
-export const getExamStats  = (examId) => apiFetch(`/api/exams/${examId}/stats`);
+export const getExamStats       = (examId) => apiFetch(`/api/exams/${examId}/stats`);
+export const getAiExamFeedback  = (examId) => apiFetch(`/api/exams/${examId}/ai-feedback`, { method: 'POST' });
+export const getAiStatsAnalysis = (examId) => apiFetch(`/api/exams/${examId}/ai-analysis`, { method: 'POST' });
 export const getStudentSubmission  = (examId, studentId) =>
   apiFetch(`/api/exams/${examId}/submissions/${studentId}`);
 export const getExamAssignments = (examId) =>

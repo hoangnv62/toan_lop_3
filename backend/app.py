@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="instructor")
+
 from flask import Flask, jsonify
 from flask_cors import CORS
 from config import app_secret_key, DATABASE_URL

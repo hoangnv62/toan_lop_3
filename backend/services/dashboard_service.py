@@ -1,7 +1,16 @@
-import json
+
 from sqlalchemy import text
+from pydantic import BaseModel
 from extensions import db
-from config import gemini_generate
+from config import init_chat_model
+
+
+class _Advice(BaseModel):
+    title: str
+    detail: str
+
+class _AdviceList(BaseModel):
+    advices: list[_Advice]
 
 
 def get_teacher_dashboard(teacher_id: int) -> dict:
@@ -76,13 +85,11 @@ Dữ liệu lớp học:
 - Tổng số học sinh: {total_students}
 - Phân bố điểm: 0–4: {dist.get("0-4",0)}, 4–6: {dist.get("4-6",0)}, 6–8: {dist.get("6-8",0)}, 8–10: {dist.get("8-10",0)}
 Đưa ra CHÍNH XÁC 3 lời khuyên ngắn gọn, thực tế cho giáo viên Toán lớp 3.
-Chỉ trả về JSON array thuần, không markdown, không giải thích:
-[{{"title": "Tiêu đề", "detail": "Nội dung"}}]
 """
     try:
-        advice = json.loads(gemini_generate(prompt).strip())
-        if isinstance(advice, list):
-            return advice
+        ai = init_chat_model()
+        result = ai.generate(prompt, response_model=_AdviceList)
+        return [a.model_dump() for a in result.advices]
     except Exception:
         pass
     return [

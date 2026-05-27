@@ -9,10 +9,11 @@ function emptyAnswers() {
   return ['', '', '', ''].map(() => ({ content: '', is_correct: false }));
 }
 
-export default function QuestionFormModal({ initial, onClose, onSaved }) {
+export default function QuestionFormModal({ initial, lessons = [], defaultLessonId = null, onClose, onSaved }) {
   const isEdit = !!initial;
   const [content, setContent]         = useState(initial?.content || '');
   const [explanation, setExplanation] = useState(initial?.explanation || '');
+  const [lessonId, setLessonId]       = useState(defaultLessonId ?? null);
   const [answers, setAnswers]         = useState(
     initial?.answers
       ? initial.answers.map(a => ({ content: a.content, is_correct: a.is_correct === 1 || a.is_correct === true }))
@@ -45,6 +46,7 @@ export default function QuestionFormModal({ initial, onClose, onSaved }) {
       const payload = {
         content: content.trim(),
         explanation: explanation.trim(),
+        lesson_id: lessonId || null,
         answers: answers.map(a => ({ content: a.content.trim(), is_correct: a.is_correct ? 1 : 0 })),
       };
       if (isEdit) {
@@ -69,13 +71,25 @@ export default function QuestionFormModal({ initial, onClose, onSaved }) {
           <h3 className="font-semibold text-gray-900">
             {isEdit ? 'Chỉnh sửa câu hỏi' : 'Thêm câu hỏi mới'}
           </h3>
-          <button onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
             <FiX size={17} />
           </button>
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Chủ đề</label>
+            <select
+              className="input w-full"
+              value={lessonId ?? ''}
+              onChange={e => setLessonId(e.target.value ? Number(e.target.value) : null)}
+            >
+              {lessons.map(l => (
+                <option key={l.id} value={l.id}>{l.title}</option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Nội dung câu hỏi <span className="text-red-500">*</span>
@@ -114,9 +128,7 @@ export default function QuestionFormModal({ initial, onClose, onSaved }) {
               {answers.map((a, ai) => (
                 <label key={ai}
                   className={'flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-pointer transition-all ' +
-                    (a.is_correct
-                      ? 'border-emerald-400 bg-emerald-50'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50')}>
+                    (a.is_correct ? 'border-emerald-400 bg-emerald-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50')}>
                   <input type="radio" name="correct-answer"
                     checked={a.is_correct} onChange={() => setCorrect(ai)}
                     className="accent-emerald-500 shrink-0" />

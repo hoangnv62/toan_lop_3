@@ -37,4 +37,4 @@ class Answer(db.Model):
     is_correct  = db.Column(db.SmallInteger, default=0)
 
     question        = db.relationship("Question", back_populates="answers")
-    student_answers = db.relationship("StudentAnswer", back_populates="answer")
+    student_answers = db.relationship("StudentAnswer", back_populates="answer", passive_deletes=True)

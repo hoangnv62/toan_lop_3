@@ -1,56 +1,65 @@
 import { useEffect, useRef, useState } from 'react';
 import TeacherLayout from '../../../components/TeacherLayout';
 import { getQuestionBank, deleteBankQuestion, importQuestionBankFromExcel, downloadSampleQuestionBank } from '../../../api/questionBankService';
+import { fetchLessons } from '../../../api/lessonService';
 import { toast } from 'react-toastify';
-import { FiPlus, FiEdit2, FiTrash2, FiLoader, FiDatabase, FiUpload, FiDownload, FiSearch } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiLoader, FiDatabase, FiUpload, FiDownload, FiSearch, FiChevronDown } from 'react-icons/fi';
 import QuestionFormModal from './QuestionFormModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import Pagination from '../../../components/Pagination';
 
 export default function QuestionBank() {
-  const [questions, setQuestions]         = useState([]);
-  const [total, setTotal]                 = useState(0);
-  const [page, setPage]                   = useState(1);
-  const [pages, setPages]                 = useState(1);
-  const [loading, setLoading]             = useState(true);
-  const [modal, setModal]                 = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const [deleting, setDeleting]           = useState(null);
-  const [importing, setImporting]         = useState(false);
-  const [query, setQuery]                 = useState('');
-  const fileInputRef   = useRef();
-  const debounceRef    = useRef();
-  const isMountedRef   = useRef(false); // skip debounce effect on initial mount
+  const [questions, setQuestions]           = useState([]);
+  const [total, setTotal]                   = useState(0);
+  const [page, setPage]                     = useState(1);
+  const [pages, setPages]                   = useState(1);
+  const [loading, setLoading]               = useState(true);
+  const [modal, setModal]                   = useState(null);
+  const [confirmDelete, setConfirmDelete]   = useState(null);
+  const [deleting, setDeleting]             = useState(null);
+  const [importing, setImporting]           = useState(false);
+  const [query, setQuery]                   = useState('');
+  const [lessons, setLessons]               = useState([]);
+  const [selectedLesson, setSelectedLesson] = useState(null); // null=tất cả, 0=chưa phân loại, N=lesson_id
+  const fileInputRef = useRef();
+  const debounceRef  = useRef();
+  const isMountedRef = useRef(false);
 
-  // Runs on mount + page change (query changes handled by the debounce effect below)
+  useEffect(() => {
+    fetchLessons('', 1, 100)
+      .then(data => setLessons(data.items ?? data ?? []))
+      .catch(() => {});
+  }, []);
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(query, page); }, [page]);
+  useEffect(() => { load(query, page, selectedLesson); }, [page]);
 
-  // Runs only when query changes (skip mount)
   useEffect(() => {
     if (!isMountedRef.current) { isMountedRef.current = true; return; }
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setPage(1);
-      load(query, 1);
+      load(query, 1, selectedLesson);
     }, 400);
     return () => clearTimeout(debounceRef.current);
   }, [query]);
 
-  async function load(q, p) {
+  function handleLessonChange(val) {
+    setSelectedLesson(val);
+    setPage(1);
+    load(query, 1, val);
+  }
+
+  async function load(q, p, lessonId) {
     setLoading(true);
     try {
-      const data = await getQuestionBank(p, 10, q);
+      const data = await getQuestionBank(p, 10, q, lessonId);
       setQuestions(data.items ?? []);
       setTotal(data.total ?? 0);
       setPages(data.pages ?? 1);
     } catch (err) {
       toast.error(err.message || 'Không tải được ngân hàng câu hỏi');
     } finally { setLoading(false); }
-  }
-
-  async function handleDelete(question) {
-    setConfirmDelete(question);
   }
 
   async function confirmDeleteQuestion() {
@@ -62,7 +71,7 @@ export default function QuestionBank() {
       toast.success('Đã xóa câu hỏi');
       const newPage = questions.length === 1 && page > 1 ? page - 1 : page;
       setPage(newPage);
-      if (newPage === page) load(query, page);
+      if (newPage === page) load(query, page, selectedLesson);
     } catch (err) {
       toast.error(err.message || 'Xóa thất bại');
     } finally { setDeleting(null); }
@@ -74,22 +83,24 @@ export default function QuestionBank() {
     e.target.value = '';
     setImporting(true);
     try {
-      const data = await importQuestionBankFromExcel(file);
+      const lessonId = (selectedLesson !== null && selectedLesson !== 0) ? selectedLesson : null;
+      const data = await importQuestionBankFromExcel(file, lessonId);
       const { imported, errors } = data;
       if (imported > 0) {
         toast.success(`Đã import ${imported} câu hỏi`);
         setPage(1);
-        load(query, 1);
+        load(query, 1, selectedLesson);
       }
-      if (errors?.length) {
-        errors.forEach(err => toast.error(err, { autoClose: 6000 }));
-      }
-      if (imported === 0 && !errors?.length) {
-        toast.warning('File không có câu hỏi hợp lệ');
-      }
+      if (errors?.length) errors.forEach(err => toast.error(err, { autoClose: 6000 }));
+      if (imported === 0 && !errors?.length) toast.warning('File không có câu hỏi hợp lệ');
     } catch (err) {
       toast.error(err.message || 'Import thất bại');
     } finally { setImporting(false); }
+  }
+
+  function getLessonName(lessonId) {
+    if (!lessonId) return null;
+    return lessons.find(l => l.id === lessonId)?.title ?? null;
   }
 
   function formatDate(str) {
@@ -98,6 +109,10 @@ export default function QuestionBank() {
     return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
   }
 
+  const importLessonLabel = selectedLesson && selectedLesson !== 0
+    ? `Import vào: ${getLessonName(selectedLesson) ?? 'chủ đề đã chọn'}`
+    : 'Import (chưa phân loại)';
+
   return (
     <TeacherLayout>
       <div className="page-header">
@@ -105,37 +120,52 @@ export default function QuestionBank() {
           <h1 className="page-title">Ngân hàng câu hỏi</h1>
           <p className="text-sm text-gray-500 mt-0.5">{total} câu hỏi</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           <div className="relative">
             <FiSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
-              className="input pl-9 w-52"
+              className="input pl-9 w-48"
               placeholder="Tìm câu hỏi..."
               value={query}
               onChange={e => setQuery(e.target.value)}
             />
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.xls"
-            className="hidden"
-            onChange={handleImport}
-          />
+
+          <div className="relative">
+            <select
+              className="input pr-8 appearance-none cursor-pointer w-44"
+              value={selectedLesson ?? ''}
+              onChange={e => {
+                const v = e.target.value;
+                handleLessonChange(v === '' ? null : Number(v));
+              }}
+            >
+              <option value="">Tất cả chủ đề</option>
+              <option value={0}>Chưa phân loại</option>
+              {lessons.map(l => (
+                <option key={l.id} value={l.id}>{l.title}</option>
+              ))}
+            </select>
+            <FiChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+
+          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
           <button
             className="btn-ghost whitespace-nowrap"
             onClick={() => downloadSampleQuestionBank().catch(err => toast.error(err.message))}>
             <FiDownload size={15} /> File mẫu
           </button>
-          <button
-            className="btn-secondary whitespace-nowrap"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={importing}>
-            {importing
-              ? <FiLoader size={15} className="animate-spin" />
-              : <FiUpload size={15} />}
-            {importing ? 'Đang import...' : 'Import Excel'}
-          </button>
+          {selectedLesson !== null && (
+            <button
+              className="btn-secondary whitespace-nowrap"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing}
+              title={importLessonLabel}
+            >
+              {importing ? <FiLoader size={15} className="animate-spin" /> : <FiUpload size={15} />}
+              {importing ? 'Đang import...' : 'Import Excel'}
+            </button>
+          )}
           <button className="btn-primary whitespace-nowrap" onClick={() => setModal({ initial: null })}>
             <FiPlus size={16} /> Thêm câu hỏi
           </button>
@@ -152,58 +182,62 @@ export default function QuestionBank() {
             <FiDatabase size={22} className="text-gray-400" />
           </div>
           <p className="text-gray-500 font-medium">
-            {query ? 'Không tìm thấy câu hỏi nào' : 'Chưa có câu hỏi nào trong ngân hàng'}
+            {query || selectedLesson !== null ? 'Không tìm thấy câu hỏi nào' : 'Chưa có câu hỏi nào trong ngân hàng'}
           </p>
-          {!query && <p className="text-sm text-gray-400 mt-1">Thêm câu hỏi để tái sử dụng trong  bài tập</p>}
+          {!query && selectedLesson === null && (
+            <p className="text-sm text-gray-400 mt-1">Thêm câu hỏi để tái sử dụng trong bài tập</p>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
-          {questions.map(q => (
-            <div key={q.id} className="card hover:shadow-md transition-all duration-200">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 leading-relaxed line-clamp-2">
-                    {q.content}
-                  </p>
-                  <div className="flex items-center gap-3 mt-2">
-                    <span className="badge-indigo text-xs">{q.answers?.length ?? 0} đáp án</span>
-                    <span className="text-xs text-gray-400">{formatDate(q.created_at)}</span>
-                    {q.explanation && (
-                      <span className="text-xs text-gray-400 truncate max-w-[200px]" title={q.explanation}>
-                        Giải thích: {q.explanation}
-                      </span>
-                    )}
+          {questions.map(q => {
+            const lessonName = getLessonName(q.lesson_id);
+            return (
+              <div key={q.id} className="card hover:shadow-md transition-all duration-200">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 leading-relaxed line-clamp-2">{q.content}</p>
+                    <div className="flex items-center gap-3 mt-2 flex-wrap">
+                      <span className="badge-indigo text-xs">{q.answers?.length ?? 0} đáp án</span>
+                      {lessonName
+                        ? <span className="badge-green text-xs">{lessonName}</span>
+                        : <span className="badge-gray text-xs">Chưa phân loại</span>}
+                      <span className="text-xs text-gray-400">{formatDate(q.created_at)}</span>
+                      {q.explanation && (
+                        <span className="text-xs text-gray-400 truncate max-w-[200px]" title={q.explanation}>
+                          Giải thích: {q.explanation}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button title="Chỉnh sửa" className="btn-ghost p-2" onClick={() => setModal({ initial: q })}>
+                      <FiEdit2 size={15} />
+                    </button>
+                    <button
+                      title="Xóa"
+                      className="btn-ghost text-red-500 hover:text-red-600 hover:bg-red-50 p-2"
+                      disabled={deleting === q.id}
+                      onClick={() => setConfirmDelete(q)}>
+                      {deleting === q.id ? <FiLoader size={15} className="animate-spin" /> : <FiTrash2 size={15} />}
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    title="Chỉnh sửa"
-                    className="btn-ghost p-2"
-                    onClick={() => setModal({ initial: q })}>
-                    <FiEdit2 size={15} />
-                  </button>
-                  <button
-                    title="Xóa"
-                    className="btn-ghost text-red-500 hover:text-red-600 hover:bg-red-50 p-2"
-                    disabled={deleting === q.id}
-                    onClick={() => handleDelete(q)}>
-                    {deleting === q.id
-                      ? <FiLoader size={15} className="animate-spin" />
-                      : <FiTrash2 size={15} />}
-                  </button>
-                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
+
       <Pagination page={page} pages={pages} onChange={p => setPage(p)} />
 
       {modal && (
         <QuestionFormModal
           initial={modal.initial}
+          lessons={lessons}
+          defaultLessonId={modal.initial ? modal.initial.lesson_id : (selectedLesson > 0 ? selectedLesson : null)}
           onClose={() => setModal(null)}
-          onSaved={() => { setModal(null); const p = modal?.initial ? page : 1; setPage(p); load(query, p); }}
+          onSaved={() => { setModal(null); const p = modal?.initial ? page : 1; setPage(p); load(query, p, selectedLesson); }}
         />
       )}
 

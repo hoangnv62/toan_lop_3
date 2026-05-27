@@ -1,32 +1,33 @@
-import json
 import pandas as pd
 from io import BytesIO
-from utils import clean_json_string
-from config import gemini_generate
+from typing import Literal
+from pydantic import BaseModel
+from config import init_chat_model
 from errors import AppError
+
+
+class _Answer(BaseModel):
+    content: str
+    isCorrected: Literal[0, 1]
+
+class _Question(BaseModel):
+    questionContent: str
+    explanation: str
+    answers: list[_Answer]
+
+class _QuestionsResult(BaseModel):
+    questions: list[_Question]
 
 
 def generate_questions(num_questions: int, lesson_title: str, exam_description: str) -> list:
     prompt = f"""
     Bạn là giáo viên Toán lớp 3. Hãy tạo {num_questions} câu hỏi trắc nghiệm về chủ đề '{lesson_title}'. {exam_description}
-    Mỗi câu hỏi có đúng 4 đáp án, trong đó chỉ 1 đáp án đúng.
-    Trả về JSON Array theo đúng format sau, không giải thích thêm:
-    [
-      {{
-        "questionContent": "Nội dung câu hỏi",
-        "explanation": "Giải thích đáp án đúng",
-        "answers": [
-          {{"content": "Đáp án A", "isCorrected": 1}},
-          {{"content": "Đáp án B", "isCorrected": 0}},
-          {{"content": "Đáp án C", "isCorrected": 0}},
-          {{"content": "Đáp án D", "isCorrected": 0}}
-        ]
-      }}
-    ]
-    Lưu ý: isCorrected là 1 nếu đúng, 0 nếu sai. Chỉ đúng 1 đáp án mỗi câu.
+    Mỗi câu hỏi có đúng 4 đáp án, trong đó chỉ 1 đáp án đúng (isCorrected = 1), 3 đáp án còn lại sai (isCorrected = 0).
     """
     try:
-        return json.loads(clean_json_string(gemini_generate(prompt)))
+        ai = init_chat_model()
+        result = ai.generate(prompt, response_model=_QuestionsResult)
+        return [q.model_dump() for q in result.questions]
     except Exception as e:
         raise AppError(str(e), 500)
 
