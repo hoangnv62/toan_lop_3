@@ -137,6 +137,13 @@ export default function StudentHome() {
                 Xin chào, {user?.name || 'Học sinh'}!
               </p>
               <p className="text-xs text-gray-400">Toán Lớp 3</p>
+              {data?.teacher && (
+                <p className="text-xs text-gray-400 mt-0.5">
+                  GV: {data.teacher.fullName}
+                  {data.teacher.phone && <> · {data.teacher.phone}</>}
+                  {data.teacher.email && <> · {data.teacher.email}</>}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2">
