@@ -129,3 +129,14 @@ class StudentRepository:
         sql = text("SELECT c.teacher_id FROM users u JOIN classes c ON u.class_id=c.id WHERE u.id=:sid")
         row = db.session.execute(sql, {"sid": student_id}).mappings().first()
         return row["teacher_id"] if row else None
+
+    def get_teacher_info_for_student(self, student_id: int) -> dict | None:
+        sql = text("""
+            SELECT t.id AS teacher_id, t.full_name, t.email, t.phone
+            FROM users s
+            JOIN classes c ON s.class_id = c.id
+            JOIN users t ON c.teacher_id = t.id
+            WHERE s.id = :sid
+        """)
+        row = db.session.execute(sql, {"sid": student_id}).mappings().first()
+        return dict(row) if row else None

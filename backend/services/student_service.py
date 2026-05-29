@@ -98,13 +98,14 @@ def get_student_progress(student_id: int) -> list:
 
 
 def get_student_dashboard(student_id: int, show_all: bool, date_from=None, date_to=None) -> dict:
-    teacher_id = student_repo.get_teacher_id_for_student(student_id)
-    if not teacher_id:
+    teacher_info = student_repo.get_teacher_info_for_student(student_id)
+    if not teacher_info:
         return {
             "exams": [], "scores": [], "ranking": [],
             "progress": {"totalExams": 0, "done": 0, "avg": 0},
-            "announcements": [],
+            "announcements": [], "teacher": None,
         }
+    teacher_id = teacher_info["teacher_id"]
 
     df = None if show_all else date_from
     dt = None if show_all else date_to
@@ -150,4 +151,9 @@ def get_student_dashboard(student_id: int, show_all: bool, date_from=None, date_
         "exams": exams, "scores": scores, "ranking": ranking,
         "progress": {"totalExams": len(exams), "done": done_count, "avg": avg},
         "announcements": announcements,
+        "teacher": {
+            "fullName": teacher_info["full_name"],
+            "email":    teacher_info["email"],
+            "phone":    teacher_info["phone"],
+        },
     }
