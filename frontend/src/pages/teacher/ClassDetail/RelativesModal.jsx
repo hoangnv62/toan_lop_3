@@ -6,34 +6,34 @@ export default function RelativesModal({ student, relatives, loading, onClose })
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="font-semibold text-gray-900">Người thân</h3>
-            <p className="text-xs text-gray-400 mt-0.5">{student.full_name}</p>
+            <h3 className="font-semibold text-slate-900">Người thân</h3>
+            <p className="text-xs text-slate-400 mt-0.5">{student.full_name}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
             <FiX size={17} />
           </button>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-8">
-            <FiLoader size={20} className="animate-spin text-gray-300" />
+            <FiLoader size={20} className="animate-spin text-slate-300" />
           </div>
         ) : relatives.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-8">Chưa có người thân nào.</p>
+          <p className="text-sm text-slate-400 text-center py-8">Chưa có người thân nào.</p>
         ) : (
           <div className="space-y-2">
             {relatives.map(rel => (
-              <div key={rel.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100">
+              <div key={rel.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100">
                 <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center shrink-0">
                   <FiUser size={14} className="text-indigo-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{rel.name}</p>
+                  <p className="text-sm font-medium text-slate-900 truncate">{rel.name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     {rel.relationship && (
                       <span className="badge-gray text-xs">{rel.relationship}</span>
                     )}
-                    <span className="flex items-center gap-1 text-xs text-gray-400">
+                    <span className="flex items-center gap-1 text-xs text-slate-400">
                       <FiPhone size={10} /> {rel.phone}
                     </span>
                   </div>

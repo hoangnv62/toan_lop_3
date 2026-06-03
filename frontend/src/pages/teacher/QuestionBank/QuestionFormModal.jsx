@@ -67,18 +67,18 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
-          <h3 className="font-semibold text-gray-900">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+          <h3 className="font-semibold text-slate-900">
             {isEdit ? 'Chỉnh sửa câu hỏi' : 'Thêm câu hỏi mới'}
           </h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
             <FiX size={17} />
           </button>
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Chủ đề</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Chủ đề</label>
             <select
               className="input w-full"
               value={lessonId ?? ''}
@@ -91,7 +91,7 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Nội dung câu hỏi <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -105,7 +105,7 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Giải thích đáp án</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Giải thích đáp án</label>
             <textarea
               className="input resize-none"
               rows={2}
@@ -117,7 +117,7 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-700">
+              <p className="text-sm font-medium text-slate-700">
                 Đáp án <span className="text-red-500">*</span>
               </p>
               {hasCorrect
@@ -128,22 +128,22 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
               {answers.map((a, ai) => (
                 <label key={ai}
                   className={'flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-pointer transition-all ' +
-                    (a.is_correct ? 'border-emerald-400 bg-emerald-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50')}>
+                    (a.is_correct ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50')}>
                   <input type="radio" name="correct-answer"
                     checked={a.is_correct} onChange={() => setCorrect(ai)}
                     className="accent-emerald-500 shrink-0" />
-                  <span className={'text-xs font-bold w-5 shrink-0 ' + (a.is_correct ? 'text-emerald-600' : 'text-gray-400')}>
+                  <span className={'text-xs font-bold w-5 shrink-0 ' + (a.is_correct ? 'text-emerald-600' : 'text-slate-400')}>
                     {ANSWER_LABELS[ai] ?? ai + 1}
                   </span>
                   <input
-                    className="flex-1 bg-transparent outline-none text-sm text-gray-700 placeholder-gray-400"
+                    className="flex-1 bg-transparent outline-none text-sm text-slate-700 placeholder-gray-400"
                     placeholder={'Đáp án ' + (ANSWER_LABELS[ai] ?? ai + 1) + '...'}
                     value={a.content}
                     onChange={e => updateAnswer(ai, e.target.value)}
                   />
                   {answers.length > 2 && (
                     <button
-                      className="shrink-0 text-gray-300 hover:text-red-400 transition-colors"
+                      className="shrink-0 text-slate-300 hover:text-red-400 transition-colors"
                       onClick={e => { e.preventDefault(); removeAnswer(ai); }}>
                       <FiX size={13} />
                     </button>
@@ -161,7 +161,7 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl shrink-0">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl shrink-0">
           <button className="btn-secondary" onClick={onClose}>Hủy</button>
           <button className="btn-primary" onClick={handleSave} disabled={saving}>
             {saving

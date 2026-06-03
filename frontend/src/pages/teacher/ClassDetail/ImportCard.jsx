@@ -24,19 +24,19 @@ export default function ImportCard({ classId, onUploaded }) {
     <div className="card">
       <div className="flex items-center gap-2 mb-3">
         <FiUpload size={15} className="text-indigo-600" />
-        <h3 className="text-sm font-semibold text-gray-900">Import từ Excel</h3>
+        <h3 className="text-sm font-semibold text-slate-900">Import từ Excel</h3>
       </div>
-      <p className="text-xs text-gray-400 mb-3">
-        File cần có cột <code className="bg-gray-100 px-1 rounded text-gray-600">username</code>
+      <p className="text-xs text-slate-400 mb-3">
+        File cần có cột <code className="bg-slate-100 px-1 rounded text-slate-600">username</code>
       </p>
       <div className="space-y-2">
         <input
           ref={fileRef}
           type="file"
           accept=".xlsx,.xls"
-          className="text-sm text-gray-600 w-full file:mr-3 file:py-1 file:px-2.5 file:rounded-lg
-                     file:border-0 file:bg-gray-100 file:text-xs file:font-medium file:text-gray-700
-                     hover:file:bg-gray-200 cursor-pointer"
+          className="text-sm text-slate-600 w-full file:mr-3 file:py-1 file:px-2.5 file:rounded-lg
+                     file:border-0 file:bg-slate-100 file:text-xs file:font-medium file:text-slate-700
+                     hover:file:bg-slate-200 cursor-pointer"
           onChange={e => setFile(e.target.files[0])}
         />
         <button className="btn-primary w-full py-1.5 text-sm" onClick={handleUpload}>

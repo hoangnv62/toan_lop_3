@@ -72,7 +72,7 @@ export default function ClassDetail() {
   async function handleUnassign(examId) {
     try {
       await unassignExam(classId, examId);
-      toast.success('Đã thu hồi  bài tập');
+      toast.success('Đã thu hồi bài tập');
       load();
     } catch (err) {
       toast.error(err.message || 'Thu hồi thất bại');
@@ -103,7 +103,7 @@ export default function ClassDetail() {
   if (!detail) return (
     <TeacherLayout>
       <div className="flex items-center justify-center h-64">
-        <FiLoader size={24} className="animate-spin text-gray-400" />
+        <FiLoader size={24} className="animate-spin text-indigo-400" />
       </div>
     </TeacherLayout>
   );

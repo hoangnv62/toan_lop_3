@@ -20,7 +20,7 @@ export default function QuestionBank() {
   const [importing, setImporting]           = useState(false);
   const [query, setQuery]                   = useState('');
   const [lessons, setLessons]               = useState([]);
-  const [selectedLesson, setSelectedLesson] = useState(null); // null=tất cả, 0=chưa phân loại, N=lesson_id
+  const [selectedLesson, setSelectedLesson] = useState(null);
   const fileInputRef = useRef();
   const debounceRef  = useRef();
   const isMountedRef = useRef(false);
@@ -118,11 +118,11 @@ export default function QuestionBank() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Ngân hàng câu hỏi</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{total} câu hỏi</p>
+          <p className="text-sm text-slate-500 mt-0.5">{total} câu hỏi</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <div className="relative">
-            <FiSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <FiSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               className="input pl-9 w-48"
               placeholder="Tìm câu hỏi..."
@@ -146,7 +146,7 @@ export default function QuestionBank() {
                 <option key={l.id} value={l.id}>{l.title}</option>
               ))}
             </select>
-            <FiChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <FiChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
 
           <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
@@ -174,18 +174,18 @@ export default function QuestionBank() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <FiLoader size={24} className="animate-spin text-gray-400" />
+          <FiLoader size={24} className="animate-spin text-indigo-400" />
         </div>
       ) : questions.length === 0 ? (
         <div className="text-center py-20">
-          <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-            <FiDatabase size={22} className="text-gray-400" />
+          <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+            <FiDatabase size={22} className="text-indigo-400" />
           </div>
-          <p className="text-gray-500 font-medium">
+          <p className="text-slate-500 font-semibold">
             {query || selectedLesson !== null ? 'Không tìm thấy câu hỏi nào' : 'Chưa có câu hỏi nào trong ngân hàng'}
           </p>
           {!query && selectedLesson === null && (
-            <p className="text-sm text-gray-400 mt-1">Thêm câu hỏi để tái sử dụng trong bài tập</p>
+            <p className="text-sm text-slate-400 mt-1">Thêm câu hỏi để tái sử dụng trong bài tập</p>
           )}
         </div>
       ) : (
@@ -193,18 +193,18 @@ export default function QuestionBank() {
           {questions.map(q => {
             const lessonName = getLessonName(q.lesson_id);
             return (
-              <div key={q.id} className="card hover:shadow-md transition-all duration-200">
+              <div key={q.id} className="card">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 leading-relaxed line-clamp-2">{q.content}</p>
+                    <p className="text-sm font-semibold text-slate-900 leading-relaxed line-clamp-2">{q.content}</p>
                     <div className="flex items-center gap-3 mt-2 flex-wrap">
                       <span className="badge-indigo text-xs">{q.answers?.length ?? 0} đáp án</span>
                       {lessonName
                         ? <span className="badge-green text-xs">{lessonName}</span>
                         : <span className="badge-gray text-xs">Chưa phân loại</span>}
-                      <span className="text-xs text-gray-400">{formatDate(q.created_at)}</span>
+                      <span className="text-xs text-slate-400">{formatDate(q.created_at)}</span>
                       {q.explanation && (
-                        <span className="text-xs text-gray-400 truncate max-w-[200px]" title={q.explanation}>
+                        <span className="text-xs text-slate-400 truncate max-w-[200px]" title={q.explanation}>
                           Giải thích: {q.explanation}
                         </span>
                       )}

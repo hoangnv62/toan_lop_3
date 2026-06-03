@@ -17,8 +17,8 @@ const distOpts = {
     tooltip: { callbacks: { label: ctx => ` ${ctx.raw} học sinh` } },
   },
   scales: {
-    x: { grid: { display: false }, ticks: { font: { size: 12 } } },
-    y: { grid: { color: '#F3F4F6' }, ticks: { precision: 0, stepSize: 1 } },
+    x: { grid: { display: false }, ticks: { font: { size: 12, family: 'Plus Jakarta Sans' } } },
+    y: { grid: { color: '#F1F5F9' }, ticks: { precision: 0, stepSize: 1, font: { size: 12, family: 'Plus Jakarta Sans' } } },
   },
 };
 
@@ -30,8 +30,8 @@ const hBarOpts = {
     tooltip: { callbacks: { label: ctx => ` ${ctx.raw} điểm` } },
   },
   scales: {
-    x: { grid: { color: '#F3F4F6' }, min: 0, max: 10, ticks: { stepSize: 2 } },
-    y: { grid: { display: false }, ticks: { font: { size: 12 } } },
+    x: { grid: { color: '#F1F5F9' }, min: 0, max: 10, ticks: { stepSize: 2, font: { size: 12, family: 'Plus Jakarta Sans' } } },
+    y: { grid: { display: false }, ticks: { font: { size: 12, family: 'Plus Jakarta Sans' } } },
   },
 };
 
@@ -41,7 +41,7 @@ function SectionTitle({ icon: Icon, title, iconColor = 'text-indigo-500' }) {
       <div className={`w-4 h-4 ${iconColor}`}>
         <Icon size={16} />
       </div>
-      <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
+      <h3 className="text-sm font-bold text-slate-800">{title}</h3>
     </div>
   );
 }
@@ -98,11 +98,12 @@ export default function Dashboard() {
   return (
     <TeacherLayout>
       {/* Header banner */}
-      <div className="relative rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-500 px-6 py-5 mb-6 overflow-hidden">
-        <div className="absolute -top-6 -right-6 w-36 h-36 bg-white/10 rounded-full pointer-events-none" />
-        <div className="absolute -bottom-10 right-16 w-24 h-24 bg-white/10 rounded-full pointer-events-none" />
+      <div className="relative rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 px-6 py-6 mb-6 overflow-hidden">
+        <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full pointer-events-none" />
+        <div className="absolute -bottom-12 right-20 w-28 h-28 bg-white/10 rounded-full pointer-events-none" />
+        <div className="absolute top-4 right-32 w-16 h-16 bg-white/5 rounded-full pointer-events-none" />
         <div className="relative">
-          <h1 className="text-xl font-bold text-white">Báo cáo tổng quan</h1>
+          <h1 className="text-xl font-extrabold text-white tracking-tight">Báo cáo tổng quan</h1>
           <p className="text-indigo-100 text-sm mt-0.5">Thống kê hoạt động học tập của tất cả lớp</p>
         </div>
       </div>
@@ -110,13 +111,14 @@ export default function Dashboard() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {statsCards.map(({ label, value, icon: Icon, from, to }) => (
-          <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
-            <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${from} ${to} flex items-center justify-center shrink-0`}>
+          <div key={label}
+            className="bg-white rounded-2xl border border-slate-100 shadow-soft hover:shadow-soft-hover hover:-translate-y-0.5 p-5 flex items-center gap-4 transition-all duration-200">
+            <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${from} ${to} flex items-center justify-center shrink-0 shadow-sm`}>
               <Icon size={20} className="text-white" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900 leading-none">{value}</p>
-              <p className="text-sm text-gray-500 mt-1">{label}</p>
+              <p className="text-2xl font-extrabold text-slate-900 leading-none">{value}</p>
+              <p className="text-sm text-slate-500 mt-1">{label}</p>
             </div>
           </div>
         ))}
@@ -143,7 +145,7 @@ export default function Dashboard() {
             {Object.keys(dist).map((k, i) => (
               <div key={k} className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: DIST_COLORS[i] }} />
-                <span className="text-xs text-gray-500">{k}: <span className="font-semibold text-gray-700">{dist[k]}</span></span>
+                <span className="text-xs text-slate-500">{k}: <span className="font-semibold text-slate-700">{dist[k]}</span></span>
               </div>
             ))}
           </div>
@@ -166,24 +168,24 @@ export default function Dashboard() {
                 options={{ plugins: { legend: { display: false } }, cutout: '68%' }}
               />
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <p className="text-2xl font-bold text-gray-900 leading-none">{passPct}%</p>
-                <p className="text-xs text-gray-400 mt-0.5">đạt</p>
+                <p className="text-2xl font-extrabold text-slate-900 leading-none">{passPct}%</p>
+                <p className="text-xs text-slate-400 mt-0.5">đạt</p>
               </div>
             </div>
             <div className="space-y-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="w-3 h-3 rounded-full bg-emerald-400 shrink-0" />
-                  <p className="text-xs text-gray-500">Đạt (≥ 5)</p>
+                  <p className="text-xs text-slate-500">Đạt (≥ 5)</p>
                 </div>
-                <p className="text-2xl font-bold text-emerald-600 pl-5">{passRate.pass ?? 0}</p>
+                <p className="text-2xl font-extrabold text-emerald-600 pl-5">{passRate.pass ?? 0}</p>
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="w-3 h-3 rounded-full bg-red-400 shrink-0" />
-                  <p className="text-xs text-gray-500">Không đạt</p>
+                  <p className="text-xs text-slate-500">Không đạt</p>
                 </div>
-                <p className="text-2xl font-bold text-red-500 pl-5">{passRate.fail ?? 0}</p>
+                <p className="text-2xl font-extrabold text-red-500 pl-5">{passRate.fail ?? 0}</p>
               </div>
             </div>
           </div>
@@ -229,15 +231,15 @@ export default function Dashboard() {
                     : score >= 5 ? 'bg-indigo-100 text-indigo-700' : 'bg-red-100 text-red-600';
                   return (
                     <div key={s.studentId}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors">
                       <span className="w-6 text-center text-base shrink-0 select-none">
-                        {i < 3 ? RANK_MEDAL[i] : <span className="text-xs font-bold text-gray-300">{i + 1}</span>}
+                        {i < 3 ? RANK_MEDAL[i] : <span className="text-xs font-bold text-slate-300">{i + 1}</span>}
                       </span>
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 select-none ${avatarCls}`}>
                         {(s.studentName ?? '?').trim().split(' ').pop().charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate leading-tight">
+                        <p className="text-sm font-semibold text-slate-900 truncate leading-tight">
                           {s.studentName ?? `Học sinh #${s.studentId}`}
                         </p>
                       </div>
@@ -254,15 +256,15 @@ export default function Dashboard() {
       )}
 
       {/* AI Advisor */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-soft p-5">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-xl flex items-center justify-center">
+            <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-btn">
               <FiZap size={17} className="text-white" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-gray-900">AI Advisor</h3>
-              <p className="text-xs text-gray-400">Phân tích từ Gemini AI</p>
+              <h3 className="text-sm font-bold text-slate-900">AI Advisor</h3>
+              <p className="text-xs text-slate-400">Phân tích từ Gemini AI</p>
             </div>
           </div>
           <button className="btn-secondary text-xs py-1.5 gap-1.5"
@@ -275,7 +277,7 @@ export default function Dashboard() {
         {loadingAI ? (
           <div className="grid gap-3 md:grid-cols-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-28 bg-gray-100 rounded-2xl animate-pulse" />
+              <div key={i} className="h-28 bg-slate-100 rounded-2xl animate-pulse" />
             ))}
           </div>
         ) : advice.length === 0 ? (
@@ -283,17 +285,17 @@ export default function Dashboard() {
             <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-2">
               <FiZap size={18} className="text-indigo-300" />
             </div>
-            <p className="text-sm text-gray-400">Nhấn "Phân tích lại" để nhận lời khuyên từ AI</p>
+            <p className="text-sm text-slate-400">Nhấn "Phân tích lại" để nhận lời khuyên từ AI</p>
           </div>
         ) : (
           <div className="grid gap-3 md:grid-cols-3">
             {advice.map((item, i) => (
-              <div key={i} className="relative bg-gradient-to-br from-indigo-50/80 to-white rounded-2xl p-4 border border-indigo-100 overflow-hidden">
-                <div className="absolute top-3 right-3 w-6 h-6 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0">
-                  <span className="text-xs font-bold text-indigo-600">{i + 1}</span>
+              <div key={i} className="relative bg-gradient-to-br from-indigo-50/80 to-white rounded-2xl p-4 border border-indigo-100/80 overflow-hidden hover:-translate-y-0.5 transition-transform duration-200">
+                <div className="absolute top-3 right-3 w-6 h-6 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-lg flex items-center justify-center shrink-0 shadow-glow">
+                  <span className="text-xs font-bold text-white">{i + 1}</span>
                 </div>
-                <p className="text-sm font-semibold text-indigo-700 mb-1.5 pr-8 leading-tight">{item.title}</p>
-                <p className="text-xs text-gray-600 leading-relaxed">{item.detail}</p>
+                <p className="text-sm font-bold text-indigo-700 mb-1.5 pr-8 leading-tight">{item.title}</p>
+                <p className="text-xs text-slate-600 leading-relaxed">{item.detail}</p>
               </div>
             ))}
           </div>

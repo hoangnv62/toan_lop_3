@@ -22,8 +22,10 @@ export default function ClassHeader({ detail, assignedExams, announcements, onUp
   }
 
   return (
-    <div className="rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-500 p-6 mb-6 text-white">
-      <div className="flex items-center gap-4">
+    <div className="rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 p-6 mb-6 text-white overflow-hidden relative">
+      <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/10 rounded-full pointer-events-none" />
+      <div className="absolute -bottom-8 right-16 w-20 h-20 bg-white/10 rounded-full pointer-events-none" />
+      <div className="relative flex items-center gap-4">
         <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0 select-none">
           {initial}
         </div>

@@ -30,25 +30,27 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Atmospheric blobs */}
+      <div className="absolute -top-48 -left-48 w-[500px] h-[500px] bg-indigo-200/30 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 w-[400px] h-[400px] bg-violet-200/30 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 left-1/4 w-72 h-72 bg-indigo-100/20 rounded-full blur-3xl pointer-events-none" />
+
       {/* Brand */}
-      <div className="mb-8 text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 bg-indigo-600 rounded-2xl mb-4 shadow-lg shadow-indigo-200">
-          <span className="text-white font-bold text-xl leading-none">3</span>
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900">Toán Lớp 3</h1>
-        <p className="text-sm text-gray-500 mt-1">Hệ thống E-Learning</p>
+      <div className="mb-8 text-center relative">
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Toán Lớp 3</h1>
+        <p className="text-sm text-slate-500 mt-1">Hệ thống E-Learning</p>
       </div>
 
       {/* Card */}
-      <div className="w-full max-w-[400px] bg-white rounded-2xl border border-gray-200 shadow-sm">
+      <div className="w-full max-w-[400px] bg-white rounded-2xl border border-slate-100 shadow-[0_8px_40px_-4px_rgba(79,70,229,0.18)] relative">
         <div className="px-6 pt-6 pb-1">
-          <h2 className="text-base font-semibold text-gray-900">Đăng nhập</h2>
-          <p className="text-sm text-gray-400 mt-0.5">Dùng chung cho giáo viên và học sinh</p>
+          <h2 className="text-base font-bold text-slate-900">Đăng nhập</h2>
+          <p className="text-sm text-slate-400 mt-0.5">Dùng chung cho giáo viên và học sinh</p>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên đăng nhập</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Tên đăng nhập</label>
             <input
               className="input"
               placeholder="Nhập username..."
@@ -58,7 +60,7 @@ export default function Login() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Mật khẩu</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Mật khẩu</label>
             <input
               className="input"
               type="password"
@@ -69,7 +71,7 @@ export default function Login() {
             />
           </div>
           <button
-            className="btn-primary w-full py-2.5 disabled:opacity-50 disabled:pointer-events-none"
+            className="btn-primary w-full py-2.5"
             onClick={handleLogin}
             disabled={loading}>
             {loading
@@ -79,9 +81,9 @@ export default function Login() {
         </div>
       </div>
 
-      <p className="mt-6 text-sm text-gray-500">
+      <p className="mt-6 text-sm text-slate-500 relative">
         Chưa có tài khoản?{' '}
-        <Link to="/register" className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors">
+        <Link to="/register" className="text-indigo-600 font-bold hover:text-violet-600 transition-colors">
           Đăng ký ngay
         </Link>
       </p>

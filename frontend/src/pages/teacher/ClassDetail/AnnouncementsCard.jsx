@@ -40,13 +40,13 @@ export default function AnnouncementsCard({ classId, announcements, onChanged })
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">Xác nhận xóa thông báo</h3>
-              <button onClick={() => setConfirmAnn(null)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100">
+              <h3 className="font-semibold text-slate-900">Xác nhận xóa thông báo</h3>
+              <button onClick={() => setConfirmAnn(null)} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100">
                 <FiX size={17} />
               </button>
             </div>
-            <p className="text-sm text-gray-600 mb-1.5">Bạn có chắc muốn xóa thông báo này?</p>
-            <p className="text-sm font-medium text-gray-900 bg-gray-50 rounded-lg px-3 py-2 mb-5 line-clamp-2">
+            <p className="text-sm text-slate-600 mb-1.5">Bạn có chắc muốn xóa thông báo này?</p>
+            <p className="text-sm font-medium text-slate-900 bg-slate-50 rounded-lg px-3 py-2 mb-5 line-clamp-2">
               {confirmAnn.title}
             </p>
             <div className="flex gap-3">
@@ -61,7 +61,7 @@ export default function AnnouncementsCard({ classId, announcements, onChanged })
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <FiBell size={15} className="text-indigo-600" />
-            <h3 className="text-sm font-semibold text-gray-900">Thông báo</h3>
+            <h3 className="text-sm font-semibold text-slate-900">Thông báo</h3>
             {announcements.length > 0 && <span className="badge-indigo">{announcements.length}</span>}
           </div>
           <button
@@ -104,22 +104,22 @@ export default function AnnouncementsCard({ classId, announcements, onChanged })
         )}
 
         {announcements.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-4">Chưa có thông báo nào</p>
+          <p className="text-sm text-slate-400 text-center py-4">Chưa có thông báo nào</p>
         ) : (
           <div className="space-y-2">
             {announcements.map(a => (
               <div key={a.id}
-                className="p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors group">
+                className="p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors group">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-semibold text-gray-900 leading-tight">{a.title}</p>
+                  <p className="text-sm font-semibold text-slate-900 leading-tight">{a.title}</p>
                   <button
-                    className="btn-ghost text-gray-300 hover:text-red-500 hover:bg-red-50 p-1 shrink-0 opacity-0 group-hover:opacity-100 transition-all"
+                    className="btn-ghost text-slate-300 hover:text-red-500 hover:bg-red-50 p-1 shrink-0 opacity-0 group-hover:opacity-100 transition-all"
                     onClick={() => setConfirmAnn(a)}>
                     <FiTrash2 size={13} />
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1 leading-relaxed line-clamp-2">{a.content}</p>
-                <p className="text-xs text-gray-400 mt-1.5">
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2">{a.content}</p>
+                <p className="text-xs text-slate-400 mt-1.5">
                   {new Date(a.created_at).toLocaleDateString('vi-VN')}
                 </p>
               </div>

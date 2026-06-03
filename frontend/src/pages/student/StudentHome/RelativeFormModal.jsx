@@ -12,28 +12,28 @@ export default function RelativeFormModal({ initial, onClose, onSubmit, loading 
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="font-semibold text-gray-900">{initial ? 'Sửa người thân' : 'Thêm người thân'}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+          <h3 className="font-semibold text-slate-900">{initial ? 'Sửa người thân' : 'Thêm người thân'}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
             <FiX size={17} />
           </button>
         </div>
         <div className="space-y-3.5 mb-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Họ và tên <span className="text-red-500">*</span>
             </label>
             <input className="input" placeholder="Nguyễn Văn A" value={name}
               onChange={e => setName(e.target.value)} autoFocus />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Số điện thoại <span className="text-red-500">*</span>
             </label>
             <input className="input" placeholder="0912345678" value={phone}
               onChange={e => setPhone(e.target.value)} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Quan hệ</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Quan hệ</label>
             <select className="input" value={relationship} onChange={e => setRelationship(e.target.value)}>
               <option value="">-- Chọn quan hệ --</option>
               {RELATIONSHIPS.map(r => <option key={r} value={r}>{r}</option>)}

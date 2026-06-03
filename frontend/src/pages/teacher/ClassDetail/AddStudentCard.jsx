@@ -43,10 +43,10 @@ export default function AddStudentCard({ classId, onAssigned }) {
     <div className="card">
       <div className="flex items-center gap-2 mb-3">
         <FiUserPlus size={15} className="text-indigo-600" />
-        <h3 className="text-sm font-semibold text-gray-900">Thêm học sinh</h3>
+        <h3 className="text-sm font-semibold text-slate-900">Thêm học sinh</h3>
       </div>
       <div className="relative">
-        <FiSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <FiSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
         <input
           className="input pl-9 pr-9 text-sm"
           placeholder="Nhập username..."
@@ -54,7 +54,7 @@ export default function AddStudentCard({ classId, onAssigned }) {
           onChange={e => setQuery(e.target.value)}
         />
         {searching && (
-          <FiLoader size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />
+          <FiLoader size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 animate-spin" />
         )}
       </div>
 
@@ -62,9 +62,9 @@ export default function AddStudentCard({ classId, onAssigned }) {
         <div className="mt-3 space-y-1.5">
           {searchResults.map(s => (
             <div key={s.id}
-              className="flex items-center justify-between gap-2 p-2.5 rounded-xl border border-gray-100 hover:bg-gray-50">
+              className="flex items-center justify-between gap-2 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{s.full_name}</p>
+                <p className="text-sm font-medium text-slate-900 truncate">{s.full_name}</p>
                 <p className="text-xs text-indigo-600 font-mono">{s.username}</p>
                 {s.already_in_class
                   ? <span className="badge-green text-xs">Đã trong lớp</span>

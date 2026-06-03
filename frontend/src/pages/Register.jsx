@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 function Field({ label, required, children }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       {children}
@@ -17,16 +17,16 @@ function Field({ label, required, children }) {
 
 export default function Register() {
   const [role, setRole] = useState('student');
-  const [tUsername, setTUsername]     = useState('');
-  const [tFullName, setTFullName]     = useState('');
-  const [tPass, setTPass]             = useState('');
-  const [tConfirm, setTConfirm]       = useState('');
+  const [tUsername, setTUsername] = useState('');
+  const [tFullName, setTFullName] = useState('');
+  const [tPass, setTPass]         = useState('');
+  const [tConfirm, setTConfirm]   = useState('');
   const [sUsername, setSUsername] = useState('');
   const [sFullName, setSFullName] = useState('');
   const [sDob, setSdob]           = useState('');
   const [sPass, setSPass]         = useState('');
   const [sConfirm, setSConfirm]   = useState('');
-  const [loading, setLoading]         = useState(false);
+  const [loading, setLoading]     = useState(false);
   const { setUser } = useAuth();
   const navigate    = useNavigate();
 
@@ -65,29 +65,33 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Atmospheric blobs */}
+      <div className="absolute -top-48 -right-48 w-[500px] h-[500px] bg-violet-200/30 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 w-[400px] h-[400px] bg-indigo-200/30 rounded-full blur-3xl pointer-events-none" />
+
       {/* Brand */}
-      <div className="mb-8 text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 bg-indigo-600 rounded-2xl mb-4 shadow-lg shadow-indigo-200">
-          <span className="text-white font-bold text-xl leading-none">3</span>
+      <div className="mb-8 text-center relative">
+        <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl mb-4 shadow-[0_8px_30px_rgba(79,70,229,0.4)]">
+          <span className="text-white font-extrabold text-2xl leading-none">3</span>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">Tạo tài khoản</h1>
-        <p className="text-sm text-gray-500 mt-1">Toán Lớp 3 – E-Learning</p>
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Tạo tài khoản</h1>
+        <p className="text-sm text-slate-500 mt-1">Toán Lớp 3 – E-Learning</p>
       </div>
 
       {/* Card */}
-      <div className="w-full max-w-[420px] bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="w-full max-w-[420px] bg-white rounded-2xl border border-slate-100 shadow-[0_8px_40px_-4px_rgba(79,70,229,0.18)] overflow-hidden relative">
         {/* Tabs */}
-        <div className="flex border-b border-gray-100">
+        <div className="flex border-b border-slate-100">
           {[
             { value: 'student', label: 'Học Sinh' },
             { value: 'teacher', label: 'Giáo Viên' },
           ].map(({ value, label }) => (
             <button key={value} onClick={() => setRole(value)}
-              className={`flex-1 py-3.5 text-sm font-medium transition-all ${
+              className={`flex-1 py-3.5 text-sm font-semibold transition-all duration-200 ${
                 role === value
                   ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white -mb-px'
-                  : 'text-gray-500 hover:text-gray-700 bg-gray-50/60'
+                  : 'text-slate-500 hover:text-slate-700 bg-slate-50/60'
               }`}>
               {label}
             </button>
@@ -149,9 +153,9 @@ export default function Register() {
         </div>
       </div>
 
-      <p className="mt-6 text-sm text-gray-500">
+      <p className="mt-6 text-sm text-slate-500 relative">
         Đã có tài khoản?{' '}
-        <Link to="/" className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors">
+        <Link to="/" className="text-indigo-600 font-bold hover:text-violet-600 transition-colors">
           Đăng nhập
         </Link>
       </p>

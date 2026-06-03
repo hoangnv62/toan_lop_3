@@ -111,11 +111,11 @@ export default function ManageLesson() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Bài học & Bài tập</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{total} bài học</p>
+          <p className="text-sm text-slate-500 mt-0.5">{total} bài học</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
-            <FiSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <FiSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               className="input pl-9 w-56"
               placeholder="Tìm kiếm bài học..."
@@ -132,14 +132,14 @@ export default function ManageLesson() {
       {/* List */}
       {loading ? (
         <div className="flex justify-center py-20">
-          <FiLoader size={24} className="animate-spin text-gray-400" />
+          <FiLoader size={24} className="animate-spin text-indigo-400" />
         </div>
       ) : lessons.length === 0 ? (
         <div className="text-center py-20">
-          <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-            <FiBook size={22} className="text-gray-400" />
+          <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+            <FiBook size={22} className="text-indigo-400" />
           </div>
-          <p className="text-gray-500 font-medium">
+          <p className="text-slate-500 font-semibold">
             {query ? 'Không tìm thấy bài học nào' : 'Chưa có bài học nào'}
           </p>
         </div>
@@ -148,16 +148,16 @@ export default function ManageLesson() {
         <div className="space-y-2">
           {lessons.map(l => (
             <div key={l.id}
-              className="card flex items-center justify-between gap-4 py-4 hover:shadow-md transition-all duration-200">
+              className="card flex items-center justify-between gap-4 py-4">
               <div className="flex items-center gap-4 flex-1 min-w-0">
                 <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center shrink-0">
                   <FiBook size={16} className="text-indigo-600" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-medium text-gray-900 truncate">{l.title}</p>
+                  <p className="font-semibold text-slate-900 truncate">{l.title}</p>
                   <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-xs text-gray-400">{formatDate(l.created_at)}</span>
-                    <span className="badge-indigo">{l.exam_count ?? 0} </span>
+                    <span className="text-xs text-slate-400">{formatDate(l.created_at)}</span>
+                    <span className="badge-indigo">{l.exam_count ?? 0} bài tập</span>
                   </div>
                 </div>
               </div>

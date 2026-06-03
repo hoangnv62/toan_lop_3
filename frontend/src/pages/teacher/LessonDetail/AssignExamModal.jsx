@@ -94,29 +94,29 @@ export default function AssignExamModal({ exam, onClose }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="font-semibold text-gray-900">Giao bài cho lớp</h3>
-            <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[210px]">{exam.name}</p>
+            <h3 className="font-semibold text-slate-900">Giao bài cho lớp</h3>
+            <p className="text-xs text-slate-400 mt-0.5 truncate max-w-[210px]">{exam.name}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
             <FiX size={17} />
           </button>
         </div>
 
         {assignments === null ? (
           <div className="flex justify-center py-10">
-            <FiLoader size={20} className="animate-spin text-gray-300" />
+            <FiLoader size={20} className="animate-spin text-slate-300" />
           </div>
         ) : assignments.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-10">Chưa có lớp nào.</p>
+          <p className="text-sm text-slate-400 text-center py-10">Chưa có lớp nào.</p>
         ) : (
           <div className="space-y-2 max-h-80 overflow-y-auto">
             {assignments.map(cls => (
               <div key={cls.class_id}
                 className={`rounded-xl border p-3 transition-colors ${
-                  cls.assigned ? 'border-indigo-200 bg-indigo-50/40' : 'border-gray-200'
+                  cls.assigned ? 'border-indigo-200 bg-indigo-50/40' : 'border-slate-200'
                 }`}>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-gray-900 truncate">{cls.class_name}</span>
+                  <span className="text-sm font-medium text-slate-900 truncate">{cls.class_name}</span>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {cls.assigned ? (
                       <>
@@ -156,7 +156,7 @@ export default function AssignExamModal({ exam, onClose }) {
                       </p>
                     )}
                     {cls.open_time && (
-                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                      <p className="text-xs text-slate-500 flex items-center gap-1">
                         <FiClock size={10} /> Mở: {new Date(cls.open_time).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
                       </p>
                     )}
@@ -172,7 +172,7 @@ export default function AssignExamModal({ exam, onClose }) {
                 {editingId === cls.class_id && (
                   <div className="mt-2.5 pt-2.5 border-t border-indigo-200 space-y-2">
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                      <label className="block text-xs font-medium text-slate-600 mb-1">
                         Thời gian làm bài (phút) <span className="text-red-500">*</span>
                       </label>
                       <input type="number" min="1" className="input text-sm py-1.5"
@@ -180,14 +180,14 @@ export default function AssignExamModal({ exam, onClose }) {
                         onChange={e => setEditTimeLimit(e.target.value)} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                      <label className="block text-xs font-medium text-slate-600 mb-1">
                         Thời gian mở bài <span className="text-red-500">*</span>
                       </label>
                       <input type="datetime-local" className="input text-sm py-1.5"
                         value={editOpenTime} onChange={e => setEditOpenTime(e.target.value)} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                      <label className="block text-xs font-medium text-slate-600 mb-1">
                         Hạn nộp bài <span className="text-red-500">*</span>
                       </label>
                       <input type="datetime-local" className="input text-sm py-1.5"
@@ -211,9 +211,9 @@ export default function AssignExamModal({ exam, onClose }) {
 
                 {/* Form giao bài mới */}
                 {pendingId === cls.class_id && (
-                  <div className="mt-2.5 pt-2.5 border-t border-gray-200 space-y-2">
+                  <div className="mt-2.5 pt-2.5 border-t border-slate-200 space-y-2">
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                      <label className="block text-xs font-medium text-slate-600 mb-1">
                         Thời gian làm bài (phút) <span className="text-red-500">*</span>
                       </label>
                       <input type="number" min="1" className="input text-sm py-1.5"
@@ -221,14 +221,14 @@ export default function AssignExamModal({ exam, onClose }) {
                         onChange={e => setTimeLimit(e.target.value)} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                      <label className="block text-xs font-medium text-slate-600 mb-1">
                         Thời gian mở bài <span className="text-red-500">*</span>
                       </label>
                       <input type="datetime-local" className="input text-sm py-1.5"
                         value={openTime} onChange={e => setOpenTime(e.target.value)} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                      <label className="block text-xs font-medium text-slate-600 mb-1">
                         Hạn nộp bài <span className="text-red-500">*</span>
                       </label>
                       <input type="datetime-local" className="input text-sm py-1.5"

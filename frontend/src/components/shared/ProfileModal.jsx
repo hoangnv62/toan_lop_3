@@ -7,8 +7,8 @@ import { toast } from 'react-toastify';
 function Field({ label, icon: Icon, children }) {
   return (
     <div>
-      <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
-        <Icon size={13} className="text-gray-400" />
+      <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-1.5">
+        <Icon size={13} className="text-slate-400" />
         {label}
       </label>
       {children}
@@ -57,14 +57,14 @@ export default function ProfileModal({ onClose }) {
   const initials = fullName.trim().split(' ').pop()?.charAt(0).toUpperCase() || '?';
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-modal border border-slate-100 w-full max-w-md">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-900">Thông tin cá nhân</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <h3 className="font-bold text-slate-900">Thông tin cá nhân</h3>
           <button onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
             <FiX size={17} />
           </button>
         </div>
@@ -77,14 +77,14 @@ export default function ProfileModal({ onClose }) {
           <>
             {/* Avatar block */}
             <div className="flex flex-col items-center pt-6 pb-4">
-              <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center
-                              text-2xl font-bold text-white shadow-md mb-2 select-none">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center
+                              text-2xl font-extrabold text-white shadow-btn mb-2 select-none">
                 {initials}
               </div>
-              <p className="text-xs text-gray-400 font-mono font-medium text-gray-600">
+              <p className="text-xs font-mono font-semibold text-slate-600">
                 @{username || '—'}
               </p>
-              <span className="mt-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600">
+              <span className="mt-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200/60">
                 {user?.role === 'teacher' ? 'Giáo viên' : 'Học sinh'}
               </span>
             </div>
@@ -92,7 +92,7 @@ export default function ProfileModal({ onClose }) {
             {/* Form */}
             <div className="px-6 pb-2 space-y-3.5">
               <Field label="Tên đăng nhập" icon={FiAtSign}>
-                <input className="input bg-gray-50 text-gray-500 cursor-not-allowed font-mono"
+                <input className="input bg-slate-50 text-slate-500 cursor-not-allowed font-mono"
                   value={username} readOnly />
               </Field>
 
@@ -121,7 +121,7 @@ export default function ProfileModal({ onClose }) {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 px-6 py-4 border-t border-gray-100 mt-2">
+            <div className="flex gap-3 px-6 py-4 border-t border-slate-100 mt-2">
               <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
               <button className="btn-primary flex-1" onClick={handleSave} disabled={loading}>
                 {loading

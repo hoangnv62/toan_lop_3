@@ -119,26 +119,29 @@ export default function StudentHome() {
   const progress = data?.progress ?? {};
 
   const stats = [
-    { label: 'Đề thi',   value: progress.totalExams ?? 0,                                 icon: FiFileText,    bg: 'bg-blue-50',    text: 'text-blue-600' },
-    { label: 'Đã làm',   value: progress.done ?? 0,                                        icon: FiCheckCircle, bg: 'bg-emerald-50', text: 'text-emerald-600' },
-    { label: 'Điểm TB',  value: progress.avg != null ? (+progress.avg).toFixed(1) : '--',  icon: FiStar,        bg: 'bg-amber-50',   text: 'text-amber-600' },
+    { label: 'Đề thi',  value: progress.totalExams ?? 0,                                icon: FiFileText,    from: 'from-blue-500',    to: 'to-blue-400' },
+    { label: 'Đã làm',  value: progress.done ?? 0,                                       icon: FiCheckCircle, from: 'from-emerald-500', to: 'to-emerald-400' },
+    { label: 'Điểm TB', value: progress.avg != null ? (+progress.avg).toFixed(1) : '--', icon: FiStar,        from: 'from-amber-500',   to: 'to-amber-400' },
   ];
 
+  const initials = (user?.name || 'H').trim().split(' ').pop().charAt(0).toUpperCase();
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-100 sticky top-0 z-10 shadow-[0_1px_20px_-4px_rgba(79,70,229,0.1)]">
         <div className="max-w-3xl mx-auto px-4 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm leading-none">3</span>
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-lg flex items-center justify-center shadow-btn shrink-0">
+              <span className="text-white font-extrabold text-sm leading-none">3</span>
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 leading-tight">
+              <p className="text-sm font-bold text-slate-900 leading-tight">
                 Xin chào, {user?.name || 'Học sinh'}!
               </p>
-              <p className="text-xs text-gray-400">Toán Lớp 3</p>
+              <p className="text-xs text-slate-400">Toán Lớp 3</p>
               {data?.teacher && (
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-slate-400 mt-0.5">
                   GV: {data.teacher.fullName}
                   {data.teacher.phone && <> · {data.teacher.phone}</>}
                   {data.teacher.email && <> · {data.teacher.email}</>}
@@ -146,17 +149,17 @@ export default function StudentHome() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button onClick={() => setProfileModal(true)}
-              className="btn-ghost text-gray-500 py-1.5 px-2.5 gap-1.5">
+              className="btn-ghost text-slate-500 py-1.5 px-2.5 gap-1.5">
               <FiUser size={15} />
             </button>
             <button onClick={() => setPwModal(true)}
-              className="btn-ghost text-gray-500 py-1.5 px-2.5 gap-1.5">
+              className="btn-ghost text-slate-500 py-1.5 px-2.5 gap-1.5">
               <FiLock size={15} />
             </button>
             <button onClick={handleLogout}
-              className="btn-ghost text-gray-500 py-1.5 px-2.5 gap-1.5">
+              className="btn-ghost text-slate-500 py-1.5 px-2.5 gap-1.5">
               <FiLogOut size={15} /> Đăng xuất
             </button>
           </div>
@@ -165,15 +168,23 @@ export default function StudentHome() {
 
       <div className="max-w-3xl mx-auto p-4 space-y-4 pb-8">
         {/* View toggle + Week navigator */}
-        <div className="card py-3.5 space-y-3">
+        <div className="bg-white rounded-xl border border-slate-100 shadow-soft p-4 space-y-3">
           <div className="flex items-center gap-2">
             <button
-              className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${!viewAll ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                !viewAll
+                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-btn'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
               onClick={() => setViewAll(false)}>
               <FiChevronLeft size={14} className="inline mr-1" />Theo tuần
             </button>
             <button
-              className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${viewAll ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                viewAll
+                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-btn'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
               onClick={() => setViewAll(true)}>
               <FiList size={14} className="inline mr-1" />Tất cả
             </button>
@@ -184,7 +195,7 @@ export default function StudentHome() {
                 className="btn-secondary py-1.5 px-3 gap-1">
                 <FiChevronLeft size={15} /> Tuần trước
               </button>
-              <span className="text-sm font-medium text-gray-700 text-center">{week.label}</span>
+              <span className="text-sm font-semibold text-slate-700 text-center">{week.label}</span>
               <button onClick={() => setWeekOffset(o => o + 1)}
                 className="btn-secondary py-1.5 px-3 gap-1" disabled={weekOffset >= 0}>
                 Tuần sau <FiChevronRight size={15} />
@@ -195,13 +206,14 @@ export default function StudentHome() {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
-          {stats.map(({ label, value, icon: Icon, bg, text }) => (
-            <div key={label} className="card flex flex-col items-center py-4 gap-2">
-              <div className={`w-9 h-9 ${bg} rounded-xl flex items-center justify-center`}>
-                <Icon size={17} className={text} />
+          {stats.map(({ label, value, icon: Icon, from, to }) => (
+            <div key={label}
+              className="bg-white rounded-xl border border-slate-100 shadow-soft hover:shadow-soft-hover hover:-translate-y-0.5 transition-all duration-200 flex flex-col items-center py-4 gap-2">
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${from} ${to} flex items-center justify-center shadow-sm`}>
+                <Icon size={18} className="text-white" />
               </div>
-              <p className="text-2xl font-bold text-gray-900">{value}</p>
-              <p className="text-xs text-gray-500">{label}</p>
+              <p className="text-2xl font-extrabold text-slate-900">{value}</p>
+              <p className="text-xs text-slate-500 font-medium">{label}</p>
             </div>
           ))}
         </div>

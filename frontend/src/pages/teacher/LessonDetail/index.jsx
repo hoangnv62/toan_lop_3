@@ -20,11 +20,11 @@ export default function LessonDetail() {
   const { lessonId } = useParams();
   const [lesson, setLesson]           = useState(null);
   const [modal, setModal]             = useState(null);
-  const [assignModal, setAssignModal] = useState(null); // { exam: { id, name } }
-  const [statsModal, setStatsModal]   = useState(null); // { examId, examName }
+  const [assignModal, setAssignModal] = useState(null);
+  const [statsModal, setStatsModal]   = useState(null);
   const [deleting, setDeleting]       = useState(null);
   const [cloning, setCloning]         = useState(null);
-  const [pdfModal, setPdfModal]       = useState(null); // { id, name }
+  const [pdfModal, setPdfModal]       = useState(null);
 
   useEffect(() => { load(); }, [lessonId]);
 
@@ -51,7 +51,7 @@ export default function LessonDetail() {
         },
       });
     } catch (err) {
-      toast.error(err.message || 'Không tải được  bài tập');
+      toast.error(err.message || 'Không tải được bài tập');
     }
   }
 
@@ -70,7 +70,7 @@ export default function LessonDetail() {
     setCloning(id);
     try {
       await cloneExam(id);
-      toast.success('Đã sao chép  bài tập');
+      toast.success('Đã sao chép bài tập');
       load();
     } catch (err) {
       toast.error(err.message || 'Sao chép thất bại');
@@ -83,34 +83,34 @@ export default function LessonDetail() {
       <div className="page-header">
         <div>
           <h1 className="page-title">{lesson?.lessonTitle || '...'}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{lesson?.exams?.length ?? 0} bài tập</p>
+          <p className="text-sm text-slate-500 mt-0.5">{lesson?.exams?.length ?? 0} bài tập</p>
         </div>
         <button className="btn-primary" onClick={() => setModal({ examId: null, initialData: null })}>
-          <FiPlus size={16} /> Tạo  bài tập
+          <FiPlus size={16} /> Tạo bài tập
         </button>
       </div>
 
       {/* Exam list */}
       {lesson?.exams?.length === 0 ? (
         <div className="text-center py-20">
-          <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-            <FiEdit2 size={22} className="text-gray-400" />
+          <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+            <FiEdit2 size={22} className="text-indigo-400" />
           </div>
-          <p className="text-gray-500 font-medium">Chưa có bài tập nào</p>
-          <p className="text-sm text-gray-400 mt-1">Tạo bài tập đầu tiên cho bài học này</p>
+          <p className="text-slate-500 font-semibold">Chưa có bài tập nào</p>
+          <p className="text-sm text-slate-400 mt-1">Tạo bài tập đầu tiên cho bài học này</p>
         </div>
       ) : (
         <div className="space-y-2">
           {lesson?.exams?.map(exam => (
             <div key={exam.id}
-              className="card flex items-center justify-between gap-4 py-4 hover:shadow-md transition-all duration-200">
+              className="card flex items-center justify-between gap-4 py-4">
               <div className="flex items-center gap-4 flex-1 min-w-0">
                 <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center shrink-0">
                   <FiEdit2 size={15} className="text-amber-600" />
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">{exam.name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{formatDate(exam.date_created)}</p>
+                  <p className="font-semibold text-slate-900">{exam.name}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{formatDate(exam.date_created)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
@@ -130,7 +130,7 @@ export default function LessonDetail() {
                   <FiFileText size={15} />
                 </button>
                 <button title="Sao chép"
-                  className="btn-ghost text-gray-500 hover:bg-gray-100 p-2"
+                  className="btn-ghost text-slate-500 hover:bg-slate-100 p-2"
                   disabled={cloning === exam.id}
                   onClick={() => handleClone(exam.id)}>
                   {cloning === exam.id

@@ -67,26 +67,26 @@ export default function StudentResultsModal({ student, onClose }) {
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
           {/* Header */}
-          <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 shrink-0">
+          <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 shrink-0">
             <button
               onClick={() => setDetail(null)}
-              className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+              className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
               <FiChevronLeft size={17} />
             </button>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-gray-900 truncate">{detail.examNameLabel}</h3>
-              <p className="text-xs text-gray-400 mt-0.5">{student.full_name}</p>
+              <h3 className="font-semibold text-slate-900 truncate">{detail.examNameLabel}</h3>
+              <p className="text-xs text-slate-400 mt-0.5">{student.full_name}</p>
             </div>
             <div className={`px-3 py-1 rounded-lg text-sm font-bold ${passed ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
               {detail.score}/10
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+            <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
               <FiX size={17} />
             </button>
           </div>
 
           {/* Info bar */}
-          <div className="flex items-center gap-4 px-6 py-3 bg-gray-50 border-b border-gray-100 text-xs text-gray-500 shrink-0">
+          <div className="flex items-center gap-4 px-6 py-3 bg-slate-50 border-b border-slate-100 text-xs text-slate-500 shrink-0">
             <span>{detail.correct}/{detail.total} câu đúng</span>
             {detail.timeSpent > 0 && (
               <span className="flex items-center gap-1">
@@ -105,7 +105,7 @@ export default function StudentResultsModal({ student, onClose }) {
                   <span className={`mt-0.5 shrink-0 ${q.isCorrect ? 'text-emerald-500' : 'text-red-400'}`}>
                     {q.isCorrect ? <FiCheckCircle size={16} /> : <FiXCircle size={16} />}
                   </span>
-                  <p className="text-sm font-medium text-gray-900 leading-relaxed">
+                  <p className="text-sm font-medium text-slate-900 leading-relaxed">
                     <span className="badge-indigo mr-2 text-xs">Câu {qi + 1}</span>
                     {q.questionContent}
                   </p>
@@ -114,7 +114,7 @@ export default function StudentResultsModal({ student, onClose }) {
                   {q.answers.map(a => {
                     const isCorrect   = a.isCorrected === 1;
                     const isSelected  = a.isSelected;
-                    let cls = 'border-gray-200 text-gray-600';
+                    let cls = 'border-slate-200 text-slate-600';
                     if (isCorrect)                cls = 'border-emerald-400 bg-emerald-50 text-emerald-700 font-medium';
                     if (isSelected && !isCorrect) cls = 'border-red-400 bg-red-50 text-red-600 font-medium';
                     return (
@@ -130,7 +130,7 @@ export default function StudentResultsModal({ student, onClose }) {
                   })}
                 </div>
                 {q.explanation && (
-                  <p className="mt-2 ml-6 text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2">
+                  <p className="mt-2 ml-6 text-xs text-slate-500 italic border-l-2 border-slate-200 pl-2">
                     {q.explanation}
                   </p>
                 )}
@@ -172,20 +172,20 @@ export default function StudentResultsModal({ student, onClose }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="font-semibold text-gray-900">Bài làm của học sinh</h3>
-            <p className="text-xs text-gray-400 mt-0.5">{student.full_name}</p>
+            <h3 className="font-semibold text-slate-900">Bài làm của học sinh</h3>
+            <p className="text-xs text-slate-400 mt-0.5">{student.full_name}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
             <FiX size={17} />
           </button>
         </div>
 
         {/* Progress chart */}
         {progress.length > 1 && (
-          <div className="mb-5 bg-gray-50 rounded-xl p-4 border border-gray-100">
+          <div className="mb-5 bg-slate-50 rounded-xl p-4 border border-slate-100">
             <div className="flex items-center gap-2 mb-3">
               <FiTrendingUp size={14} className="text-indigo-600" />
-              <p className="text-xs font-semibold text-gray-700">Tiến bộ qua thời gian</p>
+              <p className="text-xs font-semibold text-slate-700">Tiến bộ qua thời gian</p>
             </div>
             <Line
               data={{
@@ -215,20 +215,20 @@ export default function StudentResultsModal({ student, onClose }) {
 
         {results === null ? (
           <div className="flex justify-center py-10">
-            <FiLoader size={20} className="animate-spin text-gray-300" />
+            <FiLoader size={20} className="animate-spin text-slate-300" />
           </div>
         ) : results.results.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-10">Học sinh chưa làm bài nào.</p>
+          <p className="text-sm text-slate-400 text-center py-10">Học sinh chưa làm bài nào.</p>
         ) : (
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {results.results.map(r => {
               const passed = r.score >= 5;
               return (
                 <div key={r.examId}
-                  className="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
+                  className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
                   <div className="min-w-0 mr-3">
-                    <p className="text-sm font-medium text-gray-900 truncate">{r.examName}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{r.lessonName}</p>
+                    <p className="text-sm font-medium text-slate-900 truncate">{r.examName}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{r.lessonName}</p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <span className={`text-sm font-bold ${passed ? 'text-emerald-600' : 'text-red-500'}`}>

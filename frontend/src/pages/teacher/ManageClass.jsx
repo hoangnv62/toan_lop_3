@@ -7,11 +7,11 @@ import { FiPlus, FiTrash2, FiArrowRight, FiUsers } from 'react-icons/fi';
 import Pagination from '../../components/Pagination';
 
 const STATUS = {
-  good:    { badge: 'badge-green',  label: 'Tốt',           accent: 'bg-emerald-400', avatar: 'bg-emerald-500' },
-  warning: { badge: 'badge-yellow', label: 'Trung bình',    accent: 'bg-amber-400',   avatar: 'bg-amber-500'   },
-  bad:     { badge: 'badge-red',    label: 'Cần cải thiện', accent: 'bg-red-400',     avatar: 'bg-red-500'     },
+  good:    { badge: 'badge-green',  label: 'Tốt',           accent: 'from-emerald-400 to-emerald-500', avatar: 'from-emerald-500 to-emerald-600' },
+  warning: { badge: 'badge-yellow', label: 'Trung bình',    accent: 'from-amber-400 to-amber-500',     avatar: 'from-amber-500 to-amber-600'     },
+  bad:     { badge: 'badge-red',    label: 'Cần cải thiện', accent: 'from-red-400 to-red-500',         avatar: 'from-red-500 to-red-600'         },
 };
-const DEFAULT_COLORS = { accent: 'bg-indigo-400', avatar: 'bg-indigo-500' };
+const DEFAULT_COLORS = { accent: 'from-indigo-500 to-violet-500', avatar: 'from-indigo-500 to-violet-600' };
 
 export default function ManageClass() {
   const [classes, setClasses]   = useState([]);
@@ -67,13 +67,13 @@ export default function ManageClass() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Quản lý lớp học</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{total} lớp</p>
+          <p className="text-sm text-slate-500 mt-0.5">{total} lớp</p>
         </div>
       </div>
 
       {/* Create */}
       <div className="card mb-6">
-        <p className="text-sm font-medium text-gray-700 mb-3">Thêm lớp học mới</p>
+        <p className="text-sm font-semibold text-slate-700 mb-3">Thêm lớp học mới</p>
         <div className="flex gap-3">
           <input
             className="input flex-1"
@@ -92,11 +92,11 @@ export default function ManageClass() {
       {/* Grid */}
       {classes.length === 0 ? (
         <div className="text-center py-20">
-          <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-            <FiUsers size={22} className="text-gray-400" />
+          <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+            <FiUsers size={22} className="text-indigo-400" />
           </div>
-          <p className="text-gray-500 font-medium">Chưa có lớp học nào</p>
-          <p className="text-sm text-gray-400 mt-1">Tạo lớp đầu tiên để bắt đầu</p>
+          <p className="text-slate-500 font-semibold">Chưa có lớp học nào</p>
+          <p className="text-sm text-slate-400 mt-1">Tạo lớp đầu tiên để bắt đầu</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -105,26 +105,26 @@ export default function ManageClass() {
             const initial = c.className.trim().charAt(0).toUpperCase();
             return (
               <div key={c.classId}
-                className="rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden flex flex-col">
+                className="rounded-2xl border border-slate-100 bg-white shadow-soft hover:shadow-soft-hover hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col">
 
                 {/* Color strip */}
-                <div className={`h-1.5 ${s.accent}`} />
+                <div className={`h-1 bg-gradient-to-r ${s.accent}`} />
 
                 <div className="p-5 flex flex-col flex-1">
                   {/* Top row */}
                   <div className="flex items-start gap-3 mb-5">
-                    <div className={`w-11 h-11 rounded-xl ${s.avatar} flex items-center justify-center text-white font-bold text-lg shrink-0 select-none`}>
+                    <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${s.avatar} flex items-center justify-center text-white font-extrabold text-lg shrink-0 select-none shadow-sm`}>
                       {initial}
                     </div>
                     <div className="flex-1 min-w-0 pt-0.5">
-                      <h3 className="font-semibold text-gray-900 text-base leading-tight truncate">{c.className}</h3>
+                      <h3 className="font-bold text-slate-900 text-base leading-tight truncate">{c.className}</h3>
                       {s.label && (
                         <span className={`${s.badge} mt-1.5 inline-block`}>{s.label}</span>
                       )}
                     </div>
                     <button
                       title="Xóa lớp"
-                      className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0 mt-0.5"
+                      className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0 mt-0.5"
                       onClick={() => handleDelete(c.classId, c.className)}>
                       <FiTrash2 size={14} />
                     </button>
@@ -137,9 +137,9 @@ export default function ManageClass() {
                       { label: 'Điểm TB',   value: c.avgScore  ?? '--' },
                       { label: 'Tỷ lệ đạt', value: c.passRate != null ? `${c.passRate}%` : '--' },
                     ].map(({ label, value }) => (
-                      <div key={label} className="bg-gray-50 rounded-xl p-3 text-center">
-                        <p className="text-base font-bold text-gray-800 leading-none">{value}</p>
-                        <p className="text-xs text-gray-400 mt-1.5">{label}</p>
+                      <div key={label} className="bg-slate-50 rounded-xl p-3 text-center">
+                        <p className="text-base font-extrabold text-slate-800 leading-none">{value}</p>
+                        <p className="text-xs text-slate-400 mt-1.5">{label}</p>
                       </div>
                     ))}
                   </div>

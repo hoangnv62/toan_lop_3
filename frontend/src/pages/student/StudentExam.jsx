@@ -7,20 +7,20 @@ import { FiAlertCircle, FiLoader } from 'react-icons/fi';
 function ConfirmSubmitModal({ answered, total, onConfirm, onCancel }) {
   const unanswered = total - answered;
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-modal border border-slate-100 w-full max-w-sm p-6">
         <div className="text-center mb-5">
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 ${
             unanswered > 0 ? 'bg-amber-50' : 'bg-indigo-50'
           }`}>
             <FiAlertCircle size={24} className={unanswered > 0 ? 'text-amber-500' : 'text-indigo-500'} />
           </div>
-          <h3 className="font-semibold text-gray-900 text-base">Xác nhận nộp bài?</h3>
-          <p className="text-sm text-gray-500 mt-2">
-            Đã trả lời <span className="font-semibold text-gray-800">{answered}/{total}</span> câu hỏi.
+          <h3 className="font-bold text-slate-900 text-base">Xác nhận nộp bài?</h3>
+          <p className="text-sm text-slate-500 mt-2">
+            Đã trả lời <span className="font-bold text-slate-800">{answered}/{total}</span> câu hỏi.
           </p>
           {unanswered > 0 && (
-            <p className="text-xs text-amber-600 mt-1 font-medium">
+            <p className="text-xs text-amber-600 mt-1 font-semibold">
               Còn {unanswered} câu chưa trả lời.
             </p>
           )}
@@ -37,14 +37,14 @@ function ConfirmSubmitModal({ answered, total, onConfirm, onCancel }) {
 export default function StudentExam() {
   const { examId }  = useParams();
   const navigate    = useNavigate();
-  const [exam, setExam]           = useState(null);
-  const [answers, setAnswers]     = useState({});
-  const [timeLeft, setTimeLeft]   = useState(null); // null = not yet loaded
+  const [exam, setExam]               = useState(null);
+  const [answers, setAnswers]         = useState({});
+  const [timeLeft, setTimeLeft]       = useState(null);
   const [submitting, setSubmitting]   = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const timerRef        = useRef(null);
   const timerStartedRef = useRef(false);
-  const examDurationRef = useRef(20 * 60); // fallback default
+  const examDurationRef = useRef(20 * 60);
 
   useEffect(() => {
     fetchExam(examId).then(data => {
@@ -106,10 +106,10 @@ export default function StudentExam() {
   const timerCls =
     timeStatus === 'urgent'  ? 'text-red-600 bg-red-50 border-red-200' :
     timeStatus === 'warning' ? 'text-amber-600 bg-amber-50 border-amber-200' :
-                               'text-indigo-600 bg-indigo-50 border-indigo-200';
+                               'text-indigo-700 bg-indigo-50 border-indigo-200';
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {showConfirm && (
         <ConfirmSubmitModal
           answered={answered}
@@ -119,11 +119,11 @@ export default function StudentExam() {
         />
       )}
       {/* Sticky header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
+      <div className="sticky top-0 z-10 bg-white border-b border-slate-100 shadow-[0_1px_20px_-4px_rgba(79,70,229,0.1)]">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="min-w-0">
-            <p className="font-semibold text-gray-900 text-sm truncate">{exam?.name || 'Đang tải...'}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{answered}/{total} câu đã trả lời</p>
+            <p className="font-bold text-slate-900 text-sm truncate">{exam?.name || 'Đang tải...'}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{answered}/{total} câu đã trả lời</p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <div className={`font-mono font-bold text-base px-3 py-1 rounded-lg border ${timerCls}`}>
@@ -136,9 +136,9 @@ export default function StudentExam() {
         </div>
         {/* Progress bar */}
         {total > 0 && (
-          <div className="h-1 bg-gray-100">
+          <div className="h-1 bg-slate-100">
             <div
-              className="h-full bg-indigo-500 transition-all duration-300"
+              className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-300"
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -149,11 +149,11 @@ export default function StudentExam() {
       <div className="max-w-2xl mx-auto p-4 space-y-4 pb-8">
         {timeLeft === null || !exam ? (
           <div className="flex justify-center py-20">
-            <FiLoader size={24} className="animate-spin text-gray-400" />
+            <FiLoader size={24} className="animate-spin text-indigo-400" />
           </div>
         ) : exam.questions.map((q, qi) => (
           <div key={q.questionId} className="card">
-            <p className="font-semibold text-gray-900 mb-4 text-sm leading-relaxed">
+            <p className="font-bold text-slate-900 mb-4 text-sm leading-relaxed">
               <span className="badge-indigo mr-2">Câu {qi + 1}</span>
               {q.questionContent}
             </p>
@@ -162,10 +162,10 @@ export default function StudentExam() {
                 const selected = answers[q.questionId] === a.answerId;
                 return (
                   <button key={a.answerId}
-                    className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all ${
+                    className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all duration-200 ${
                       selected
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-medium shadow-sm'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700'
+                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold shadow-[0_2px_8px_rgba(79,70,229,0.15)]'
+                        : 'border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30 text-slate-700'
                     }`}
                     onClick={() => selectAnswer(q.questionId, a.answerId)}>
                     {a.content}

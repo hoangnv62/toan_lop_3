@@ -112,15 +112,15 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
           <div>
-            <h3 className="font-semibold text-gray-900">
+            <h3 className="font-semibold text-slate-900">
               {examId ? 'Chỉnh sửa bài tập' : 'Tạo bài tập mới'}
             </h3>
-            <p className="text-xs text-gray-400 mt-0.5">{lesson?.lessonTitle}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{lesson?.lessonTitle}</p>
           </div>
           <button onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
             <FiX size={18} />
           </button>
         </div>
@@ -131,14 +131,14 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
           {/* Info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 Tên  bài tập <span className="text-red-500">*</span>
               </label>
               <input className="input" placeholder="VD: Bài kiểm tra số 1"
                 value={examName} onChange={e => setExamName(e.target.value)} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 Mô tả / chủ đề AI
               </label>
               <input className="input" placeholder="VD: Phép cộng có nhớ..."
@@ -147,8 +147,8 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
           </div>
 
           {/* Toolbar */}
-          <div className="flex items-center gap-2 flex-wrap bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-            <span className="text-sm text-gray-600 font-medium">Tạo bằng AI:</span>
+          <div className="flex items-center gap-2 flex-wrap bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
+            <span className="text-sm text-slate-600 font-medium">Tạo bằng AI:</span>
             <select className="input w-24 text-sm py-1.5"
               value={qCount} onChange={e => setQCount(e.target.value)}>
               <option value="5">5 câu</option>
@@ -190,9 +190,9 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
 
           {/* Questions */}
           {questions.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
-              <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-                <FiEdit2 size={20} className="text-gray-400" />
+            <div className="text-center py-12 text-slate-400">
+              <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <FiEdit2 size={20} className="text-slate-400" />
               </div>
               <p className="text-sm">Chưa có câu hỏi nào. Tạo bằng AI hoặc thêm thủ công.</p>
             </div>
@@ -203,7 +203,7 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
                 return (
                   <div key={qi}
                     className={`rounded-xl border-2 transition-colors ${
-                      hasCorrect ? 'border-gray-200' : 'border-amber-300 bg-amber-50/30'
+                      hasCorrect ? 'border-slate-200' : 'border-amber-300 bg-amber-50/30'
                     }`}>
 
                     {/* Q header */}
@@ -218,7 +218,7 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
                         </span>
                       )}
                       <button
-                        className="ml-auto p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                        className="ml-auto p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
                         onClick={() => removeQ(qi)}>
                         <FiTrash2 size={14} />
                       </button>
@@ -235,7 +235,7 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
 
                       {/* Answers */}
                       <div>
-                        <p className="text-xs font-medium text-gray-500 mb-2">
+                        <p className="text-xs font-medium text-slate-500 mb-2">
                           Chọn đáp án đúng <span className="text-red-500">*</span>
                         </p>
                         <div className="space-y-2">
@@ -244,23 +244,23 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
                               className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-pointer transition-all ${
                                 a.correct
                                   ? 'border-emerald-400 bg-emerald-50'
-                                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                  : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                               }`}>
                               <input type="radio" name={`correct-${qi}`}
                                 checked={a.correct} onChange={() => setCorrect(qi, ai)}
                                 className="accent-emerald-500 shrink-0" />
-                              <span className={`text-xs font-bold w-5 shrink-0 ${a.correct ? 'text-emerald-600' : 'text-gray-400'}`}>
+                              <span className={`text-xs font-bold w-5 shrink-0 ${a.correct ? 'text-emerald-600' : 'text-slate-400'}`}>
                                 {ANSWER_LABELS[ai] ?? ai + 1}
                               </span>
                               <input
-                                className="flex-1 bg-transparent outline-none text-sm text-gray-700 placeholder-gray-400"
+                                className="flex-1 bg-transparent outline-none text-sm text-slate-700 placeholder-gray-400"
                                 placeholder={`Đáp án ${ANSWER_LABELS[ai] ?? ai + 1}...`}
                                 value={a.content}
                                 onChange={e => updateA(qi, ai, e.target.value)}
                               />
                               {q.answers.length > 2 && (
                                 <button
-                                  className="shrink-0 text-gray-300 hover:text-red-400 transition-colors"
+                                  className="shrink-0 text-slate-300 hover:text-red-400 transition-colors"
                                   onClick={e => { e.preventDefault(); removeAnswer(qi, ai); }}>
                                   <FiX size={13} />
                                 </button>
@@ -279,7 +279,7 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
 
                       {/* Explanation */}
                       <div>
-                        <p className="text-xs font-medium text-gray-500 mb-1.5">Giải thích đáp án</p>
+                        <p className="text-xs font-medium text-slate-500 mb-1.5">Giải thích đáp án</p>
                         <textarea
                           className="input resize-none text-sm"
                           rows={2}
@@ -297,8 +297,8 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl shrink-0">
-          <span className="text-sm text-gray-400 font-medium">{questions.length} câu hỏi</span>
+        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl shrink-0">
+          <span className="text-sm text-slate-400 font-medium">{questions.length} câu hỏi</span>
           <div className="flex gap-3">
             <button className="btn-secondary" onClick={onClose}>Hủy</button>
             <button className="btn-primary" onClick={handleSave} disabled={saving}>

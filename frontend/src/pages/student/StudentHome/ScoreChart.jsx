@@ -66,16 +66,16 @@ export default function ScoreChart({ scores }) {
         ticks: {
           stepSize: 2,
           font: { size: 11 },
-          color: '#9CA3AF',
+          color: '#94A3B8',
           callback: v => v === 5 ? '5 ✦' : v,
         },
-        grid: { color: ctx => ctx.tick.value === 5 ? 'rgba(245,158,11,0.2)' : '#F3F4F6' },
+        grid: { color: ctx => ctx.tick.value === 5 ? 'rgba(245,158,11,0.2)' : '#F1F5F9' },
         border: { display: false },
       },
       x: {
         ticks: {
           font: { size: 10 },
-          color: '#9CA3AF',
+          color: '#94A3B8',
           maxRotation: 25,
           callback(val, i) {
             const label = scores[i]?.examName || '';
@@ -107,7 +107,7 @@ export default function ScoreChart({ scores }) {
   };
 
   const TrendIcon = trend === null ? null : trend > 0 ? FiTrendingUp : trend < 0 ? FiTrendingDown : FiMinus;
-  const trendColor = trend > 0 ? 'text-emerald-600 bg-emerald-50' : trend < 0 ? 'text-red-500 bg-red-50' : 'text-gray-400 bg-gray-100';
+  const trendColor = trend > 0 ? 'text-emerald-600 bg-emerald-50' : trend < 0 ? 'text-red-500 bg-red-50' : 'text-slate-400 bg-slate-100';
   const trendLabel = trend === null ? null : trend > 0 ? `+${trend}` : trend < 0 ? `${trend}` : '0';
 
   return (
@@ -115,7 +115,7 @@ export default function ScoreChart({ scores }) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <FiTrendingUp size={16} className="text-indigo-600" />
-          <h3 className="text-sm font-semibold text-gray-900">Biểu đồ điểm số</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Biểu đồ điểm số</h3>
         </div>
         {TrendIcon && (
           <span className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${trendColor}`}>
@@ -140,13 +140,13 @@ export default function ScoreChart({ scores }) {
       <Line data={data} options={options} />
 
       <div className="flex items-center gap-4 mt-3 justify-center">
-        <span className="flex items-center gap-1.5 text-[11px] text-gray-400">
+        <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Đạt (≥5)
         </span>
-        <span className="flex items-center gap-1.5 text-[11px] text-gray-400">
+        <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
           <span className="w-2.5 h-2.5 rounded-full bg-red-400 inline-block" /> Chưa đạt (&lt;5)
         </span>
-        <span className="flex items-center gap-1.5 text-[11px] text-gray-400">
+        <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
           <span className="w-5 border-t border-dashed border-amber-400 inline-block" /> Mức đạt
         </span>
       </div>

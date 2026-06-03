@@ -15,7 +15,7 @@ import ExamResult from './pages/student/ExamResult';
 
 function RequireAuth({ children, role }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Đang tải...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-slate-400">Đang tải...</div>;
   if (!user) return <Navigate to="/" replace />;
   if (role && user.role !== role) return <Navigate to="/" replace />;
   return children;
