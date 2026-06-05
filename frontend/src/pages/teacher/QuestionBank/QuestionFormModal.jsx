@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 const ANSWER_LABELS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 function emptyAnswers() {
-  return ['', '', '', ''].map(() => ({ content: '', is_correct: false }));
+  return ['', '', '', ''].map(() => ({ content: '', isCorrect: false }));
 }
 
 export default function QuestionFormModal({ initial, lessons = [], defaultLessonId = null, onClose, onSaved }) {
@@ -16,7 +16,7 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
   const [lessonId, setLessonId]       = useState(defaultLessonId ?? null);
   const [answers, setAnswers]         = useState(
     initial?.answers
-      ? initial.answers.map(a => ({ content: a.content, is_correct: a.is_correct === 1 || a.is_correct === true }))
+      ? initial.answers.map(a => ({ content: a.content, isCorrect: a.isCorrect === 1 || a.isCorrect === true }))
       : emptyAnswers()
   );
   const [saving, setSaving] = useState(false);
@@ -25,11 +25,11 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
     setAnswers(prev => prev.map((a, i) => i === ai ? { ...a, content: val } : a));
   }
   function setCorrect(ai) {
-    setAnswers(prev => prev.map((a, i) => ({ ...a, is_correct: i === ai })));
+    setAnswers(prev => prev.map((a, i) => ({ ...a, isCorrect: i === ai })));
   }
   function addAnswer() {
     if (answers.length >= 6) return;
-    setAnswers(prev => [...prev, { content: '', is_correct: false }]);
+    setAnswers(prev => [...prev, { content: '', isCorrect: false }]);
   }
   function removeAnswer(ai) {
     if (answers.length <= 2) return;
@@ -38,7 +38,7 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
 
   async function handleSave() {
     if (!content.trim()) return toast.error('Nội dung câu hỏi không được trống');
-    if (!answers.some(a => a.is_correct)) return toast.error('Vui lòng chọn 1 đáp án đúng');
+    if (!answers.some(a => a.isCorrect)) return toast.error('Vui lòng chọn 1 đáp án đúng');
     const emptyIdx = answers.findIndex(a => !a.content.trim());
     if (emptyIdx !== -1) return toast.error('Đáp án ' + (ANSWER_LABELS[emptyIdx] ?? emptyIdx + 1) + ' chưa có nội dung');
     setSaving(true);
@@ -46,8 +46,8 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
       const payload = {
         content: content.trim(),
         explanation: explanation.trim(),
-        lesson_id: lessonId || null,
-        answers: answers.map(a => ({ content: a.content.trim(), is_correct: a.is_correct ? 1 : 0 })),
+        lessonId: lessonId || null,
+        answers: answers.map(a => ({ content: a.content.trim(), isCorrect: a.isCorrect ? 1 : 0 })),
       };
       if (isEdit) {
         await updateBankQuestion(initial.id, payload);
@@ -62,7 +62,7 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
     } finally { setSaving(false); }
   }
 
-  const hasCorrect = answers.some(a => a.is_correct);
+  const hasCorrect = answers.some(a => a.isCorrect);
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -128,11 +128,11 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
               {answers.map((a, ai) => (
                 <label key={ai}
                   className={'flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-pointer transition-all ' +
-                    (a.is_correct ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50')}>
+                    (a.isCorrect ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50')}>
                   <input type="radio" name="correct-answer"
-                    checked={a.is_correct} onChange={() => setCorrect(ai)}
+                    checked={a.isCorrect} onChange={() => setCorrect(ai)}
                     className="accent-emerald-500 shrink-0" />
-                  <span className={'text-xs font-bold w-5 shrink-0 ' + (a.is_correct ? 'text-emerald-600' : 'text-slate-400')}>
+                  <span className={'text-xs font-bold w-5 shrink-0 ' + (a.isCorrect ? 'text-emerald-600' : 'text-slate-400')}>
                     {ANSWER_LABELS[ai] ?? ai + 1}
                   </span>
                   <input

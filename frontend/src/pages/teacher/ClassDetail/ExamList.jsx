@@ -24,8 +24,8 @@ export default function ExamList({ exams, exportingId, onExport, onUnassign }) {
 
   const pages        = Math.max(1, Math.ceil(exams.length / LIMIT));
   const paged        = exams.slice((page - 1) * LIMIT, page * LIMIT);
-  const totalCompleted = exams.reduce((s, e) => s + (e.completed_count ?? 0), 0);
-  const totalAssigned  = exams.reduce((s, e) => s + (e.total_students ?? 0), 0);
+  const totalCompleted = exams.reduce((s, e) => s + (e.completedCount ?? 0), 0);
+  const totalAssigned  = exams.reduce((s, e) => s + (e.totalStudents ?? 0), 0);
 
   useEffect(() => { setPage(1); }, [exams.length]);
 
@@ -57,12 +57,12 @@ export default function ExamList({ exams, exportingId, onExport, onUnassign }) {
       ) : (
         <div className="space-y-3">
           {paged.map(ae => {
-            const pct      = ae.total_students > 0 ? Math.round((ae.completed_count / ae.total_students) * 100) : 0;
+            const pct      = ae.totalStudents > 0 ? Math.round((ae.completedCount / ae.totalStudents) * 100) : 0;
             const allDone  = pct === 100;
             const dl       = deadlineInfo(ae.deadline);
 
             return (
-              <div key={ae.exam_id}
+              <div key={ae.examId}
                 className="rounded-xl border border-slate-100 hover:border-indigo-100 hover:shadow-sm transition-all duration-200 overflow-hidden">
 
                 {/* Top stripe: completion color */}
@@ -78,24 +78,24 @@ export default function ExamList({ exams, exportingId, onExport, onUnassign }) {
                           : <FiFileText size={15} className="text-indigo-600" />}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 leading-tight truncate">{ae.exam_name}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{ae.lesson_name}</p>
+                        <p className="text-sm font-semibold text-slate-900 leading-tight truncate">{ae.examName}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{ae.lessonName}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         title="Xuất Excel"
                         className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                        disabled={exportingId === ae.exam_id}
-                        onClick={() => onExport(ae.exam_id, ae.exam_name)}>
-                        {exportingId === ae.exam_id
+                        disabled={exportingId === ae.examId}
+                        onClick={() => onExport(ae.examId, ae.examName)}>
+                        {exportingId === ae.examId
                           ? <FiLoader size={14} className="animate-spin" />
                           : <FiDownload size={14} />}
                       </button>
                       <button
                         title="Thu hồi  bài tập"
                         className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                        onClick={() => onUnassign(ae.exam_id)}>
+                        onClick={() => onUnassign(ae.examId)}>
                         <FiX size={14} />
                       </button>
                     </div>
@@ -108,7 +108,7 @@ export default function ExamList({ exams, exportingId, onExport, onUnassign }) {
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs text-slate-400">Hoàn thành</span>
                         <span className={`text-xs font-semibold ${allDone ? 'text-emerald-600' : 'text-slate-700'}`}>
-                          {ae.completed_count}/{ae.total_students} học sinh · {pct}%
+                          {ae.completedCount}/{ae.totalStudents} học sinh · {pct}%
                         </span>
                       </div>
                       <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">

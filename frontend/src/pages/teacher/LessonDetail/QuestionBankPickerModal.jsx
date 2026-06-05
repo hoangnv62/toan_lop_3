@@ -50,7 +50,7 @@ export default function QuestionBankPickerModal({ lessonId = null, onClose, onAd
       answers: (q.answers || []).map(a => ({
         answerId: null,
         content: a.content,
-        correct: a.is_correct === 1 || a.is_correct === true,
+        correct: a.isCorrect === 1 || a.isCorrect === true,
       })),
     }));
     onAdd(mapped);

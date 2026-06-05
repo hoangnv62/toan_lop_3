@@ -14,5 +14,5 @@ export async function importQuestionsFromExcel(file) {
   });
   const json = await res.json();
   if (!json.success) throw new Error(json.message || 'Import thất bại');
-  return json;
+  return json.data;
 }

@@ -4,7 +4,7 @@ import { API_BASE } from '../config';
 export const getQuestionBank = (page = 1, limit = 10, q = '', lessonId = null) => {
   const params = new URLSearchParams({ page, limit });
   if (q) params.set('q', q);
-  if (lessonId !== null) params.set('lesson_id', lessonId);
+  if (lessonId !== null) params.set('lessonId', lessonId);
   return apiFetch(`/api/question-bank?${params}`);
 };
 export const createBankQuestion = (payload) => apiFetch('/api/question-bank', { method: 'POST', body: JSON.stringify(payload) });
@@ -14,7 +14,7 @@ export const deleteBankQuestion = (id) => apiFetch(`/api/question-bank/${id}`, {
 export const importQuestionBankFromExcel = (file, lessonId = null) => {
   const form = new FormData();
   form.append('file', file);
-  if (lessonId !== null) form.append('lesson_id', lessonId);
+  if (lessonId !== null) form.append('lessonId', lessonId);
   return apiFetch('/api/question-bank/import-excel', { method: 'POST', body: form });
 };
 

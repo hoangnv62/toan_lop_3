@@ -11,7 +11,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!getToken()) { setLoading(false); return; }
     getMe()
-      .then(data => { if (data.logged_in) setUser(data); })
+      .then(data => { if (data.loggedIn) setUser(data); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

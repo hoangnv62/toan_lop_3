@@ -110,7 +110,7 @@ export default function LessonDetail() {
                 </div>
                 <div>
                   <p className="font-semibold text-slate-900">{exam.name}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{formatDate(exam.date_created)}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{formatDate(exam.dateCreated)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">

@@ -52,7 +52,7 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
     setImporting(true);
     try {
       const res = await importQuestionsFromExcel(file);
-      const imported = res.data.map(q => ({
+      const imported = res.questions.map(q => ({
         questionId: null, content: q.questionContent, explanation: q.explanation || '',
         answers: q.answers.map(a => ({ answerId: null, content: a.content, correct: a.isCorrected === 1 })),
       }));

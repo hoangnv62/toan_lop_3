@@ -191,7 +191,7 @@ export default function QuestionBank() {
       ) : (
         <div className="space-y-3">
           {questions.map(q => {
-            const lessonName = getLessonName(q.lesson_id);
+            const lessonName = getLessonName(q.lessonId);
             return (
               <div key={q.id} className="card">
                 <div className="flex items-start justify-between gap-4">
@@ -202,7 +202,7 @@ export default function QuestionBank() {
                       {lessonName
                         ? <span className="badge-green text-xs">{lessonName}</span>
                         : <span className="badge-gray text-xs">Chưa phân loại</span>}
-                      <span className="text-xs text-slate-400">{formatDate(q.created_at)}</span>
+                      <span className="text-xs text-slate-400">{formatDate(q.createdAt)}</span>
                       {q.explanation && (
                         <span className="text-xs text-slate-400 truncate max-w-[200px]" title={q.explanation}>
                           Giải thích: {q.explanation}
@@ -235,7 +235,7 @@ export default function QuestionBank() {
         <QuestionFormModal
           initial={modal.initial}
           lessons={lessons}
-          defaultLessonId={modal.initial ? modal.initial.lesson_id : (selectedLesson > 0 ? selectedLesson : null)}
+          defaultLessonId={modal.initial ? modal.initial.lessonId : (selectedLesson > 0 ? selectedLesson : null)}
           onClose={() => setModal(null)}
           onSaved={() => { setModal(null); const p = modal?.initial ? page : 1; setPage(p); load(query, p, selectedLesson); }}
         />

@@ -56,7 +56,7 @@ export default function StudentHome() {
   }, [weekOffset, viewAll]);
 
   useEffect(() => {
-    if (user?.user_id) loadRelatives();
+    if (user?.userId) loadRelatives();
   }, [user]);
 
   useEffect(() => {
@@ -73,7 +73,7 @@ export default function StudentHome() {
   }, [weekOffset, viewAll]);
 
   async function loadRelatives() {
-    try { setRelatives(await getRelatives(user.user_id)); } catch { /* ignore */ }
+    try { setRelatives(await getRelatives(user.userId)); } catch { /* ignore */ }
   }
 
   async function handleRelSubmit(formData) {
@@ -82,7 +82,7 @@ export default function StudentHome() {
     setRelLoading(true);
     try {
       if (relModal.mode === 'add') {
-        await addRelative(user.user_id, formData);
+        await addRelative(user.userId, formData);
         toast.success('Thêm người thân thành công');
       } else {
         await updateRelative(relModal.item.id, formData);
@@ -221,7 +221,7 @@ export default function StudentHome() {
         <ScoreChart scores={scores} />
         <AnnouncementsCard announcements={data?.announcements} />
         <ExamList exams={exams} viewAll={viewAll} />
-        <RankingCard ranking={ranking} userId={user?.user_id} />
+        <RankingCard ranking={ranking} userId={user?.userId} />
         <RelativesCard
           relatives={relatives}
           onAdd={() => setRelModal({ mode: 'add' })}

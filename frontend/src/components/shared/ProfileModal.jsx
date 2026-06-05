@@ -32,7 +32,7 @@ export default function ProfileModal({ onClose }) {
       .then(res => {
         const d = res || {};
         setUsername(d.username || '');
-        setFullName(d.full_name || '');
+        setFullName(d.fullName || '');
         setDob(d.dob || '');
         setEmail(d.email || '');
         setPhone(d.phone || '');

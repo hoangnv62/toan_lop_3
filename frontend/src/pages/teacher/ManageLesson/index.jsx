@@ -156,8 +156,8 @@ export default function ManageLesson() {
                 <div className="min-w-0">
                   <p className="font-semibold text-slate-900 truncate">{l.title}</p>
                   <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-xs text-slate-400">{formatDate(l.created_at)}</span>
-                    <span className="badge-indigo">{l.exam_count ?? 0} bài tập</span>
+                    <span className="text-xs text-slate-400">{formatDate(l.createdAt)}</span>
+                    <span className="badge-indigo">{l.examCount ?? 0} bài tập</span>
                   </div>
                 </div>
               </div>

@@ -7,7 +7,7 @@ export default function RelativesModal({ student, relatives, loading, onClose })
         <div className="flex items-center justify-between mb-5">
           <div>
             <h3 className="font-semibold text-slate-900">Người thân</h3>
-            <p className="text-xs text-slate-400 mt-0.5">{student.full_name}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{student.fullName}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
             <FiX size={17} />

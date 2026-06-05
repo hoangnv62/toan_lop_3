@@ -32,9 +32,9 @@ export default function AssignExamModal({ exam, onClose }) {
   }
 
   function startEdit(cls) {
-    setEditingId(cls.class_id);
-    setEditTimeLimit(cls.time_limit ? String(Math.round(cls.time_limit / 60)) : '');
-    setEditOpenTime(toDatetimeLocal(cls.open_time));
+    setEditingId(cls.classId);
+    setEditTimeLimit(cls.timeLimit ? String(Math.round(cls.timeLimit / 60)) : '');
+    setEditOpenTime(toDatetimeLocal(cls.openTime));
     setEditDeadline(toDatetimeLocal(cls.deadline));
     setPendingId(null);
   }
@@ -111,28 +111,28 @@ export default function AssignExamModal({ exam, onClose }) {
         ) : (
           <div className="space-y-2 max-h-80 overflow-y-auto">
             {assignments.map(cls => (
-              <div key={cls.class_id}
+              <div key={cls.classId}
                 className={`rounded-xl border p-3 transition-colors ${
                   cls.assigned ? 'border-indigo-200 bg-indigo-50/40' : 'border-slate-200'
                 }`}>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-slate-900 truncate">{cls.class_name}</span>
+                  <span className="text-sm font-medium text-slate-900 truncate">{cls.className}</span>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {cls.assigned ? (
                       <>
                         <span className="badge-green text-xs">Đã giao</span>
                         <button
                           className="btn-ghost py-0.5 px-2 text-xs gap-0.5"
-                          disabled={actionId === cls.class_id}
-                          onClick={() => editingId === cls.class_id ? cancelEdit() : startEdit(cls)}>
+                          disabled={actionId === cls.classId}
+                          onClick={() => editingId === cls.classId ? cancelEdit() : startEdit(cls)}>
                           <FiEdit2 size={11} />
-                          {editingId === cls.class_id ? 'Hủy' : 'Sửa'}
+                          {editingId === cls.classId ? 'Hủy' : 'Sửa'}
                         </button>
                         <button
                           className="btn-ghost text-red-500 hover:bg-red-50 py-0.5 px-2 text-xs gap-0.5"
-                          disabled={actionId === cls.class_id}
-                          onClick={() => handleUnassign(cls.class_id)}>
-                          {actionId === cls.class_id
+                          disabled={actionId === cls.classId}
+                          onClick={() => handleUnassign(cls.classId)}>
+                          {actionId === cls.classId
                             ? <FiLoader size={11} className="animate-spin" />
                             : <><FiX size={11} /> Thu hồi</>}
                         </button>
@@ -140,7 +140,7 @@ export default function AssignExamModal({ exam, onClose }) {
                     ) : (
                       <button
                         className="btn-primary py-0.5 px-2.5 text-xs gap-1"
-                        onClick={() => { setPendingId(cls.class_id); cancelEdit(); setTimeLimit(''); setDeadline(''); setOpenTime(''); }}>
+                        onClick={() => { setPendingId(cls.classId); cancelEdit(); setTimeLimit(''); setDeadline(''); setOpenTime(''); }}>
                         <FiSend size={11} /> Giao
                       </button>
                     )}
@@ -148,16 +148,16 @@ export default function AssignExamModal({ exam, onClose }) {
                 </div>
 
                 {/* Assignment info — ẩn khi đang edit */}
-                {cls.assigned && editingId !== cls.class_id && (
+                {cls.assigned && editingId !== cls.classId && (
                   <div className="mt-1.5 space-y-0.5">
-                    {cls.time_limit && (
+                    {cls.timeLimit && (
                       <p className="text-xs text-indigo-600 flex items-center gap-1">
-                        <FiClock size={10} /> Thời gian: {Math.round(cls.time_limit / 60)} phút
+                        <FiClock size={10} /> Thời gian: {Math.round(cls.timeLimit / 60)} phút
                       </p>
                     )}
-                    {cls.open_time && (
+                    {cls.openTime && (
                       <p className="text-xs text-slate-500 flex items-center gap-1">
-                        <FiClock size={10} /> Mở: {new Date(cls.open_time).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
+                        <FiClock size={10} /> Mở: {new Date(cls.openTime).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
                       </p>
                     )}
                     {cls.deadline && (
@@ -169,7 +169,7 @@ export default function AssignExamModal({ exam, onClose }) {
                 )}
 
                 {/* Form sửa lịch giao bài */}
-                {editingId === cls.class_id && (
+                {editingId === cls.classId && (
                   <div className="mt-2.5 pt-2.5 border-t border-indigo-200 space-y-2">
                     <div>
                       <label className="block text-xs font-medium text-slate-600 mb-1">
@@ -199,9 +199,9 @@ export default function AssignExamModal({ exam, onClose }) {
                       </button>
                       <button
                         className="btn-primary flex-1 text-xs py-1.5"
-                        disabled={actionId === cls.class_id}
-                        onClick={() => handleUpdate(cls.class_id)}>
-                        {actionId === cls.class_id
+                        disabled={actionId === cls.classId}
+                        onClick={() => handleUpdate(cls.classId)}>
+                        {actionId === cls.classId
                           ? <FiLoader size={11} className="animate-spin" />
                           : 'Lưu'}
                       </button>
@@ -210,7 +210,7 @@ export default function AssignExamModal({ exam, onClose }) {
                 )}
 
                 {/* Form giao bài mới */}
-                {pendingId === cls.class_id && (
+                {pendingId === cls.classId && (
                   <div className="mt-2.5 pt-2.5 border-t border-slate-200 space-y-2">
                     <div>
                       <label className="block text-xs font-medium text-slate-600 mb-1">
@@ -242,9 +242,9 @@ export default function AssignExamModal({ exam, onClose }) {
                       </button>
                       <button
                         className="btn-primary flex-1 text-xs py-1.5"
-                        disabled={actionId === cls.class_id}
-                        onClick={() => handleAssign(cls.class_id)}>
-                        {actionId === cls.class_id
+                        disabled={actionId === cls.classId}
+                        onClick={() => handleAssign(cls.classId)}>
+                        {actionId === cls.classId
                           ? <FiLoader size={11} className="animate-spin" />
                           : 'Xác nhận'}
                       </button>

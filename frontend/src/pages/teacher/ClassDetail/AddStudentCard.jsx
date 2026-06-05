@@ -64,18 +64,18 @@ export default function AddStudentCard({ classId, onAssigned }) {
             <div key={s.id}
               className="flex items-center justify-between gap-2 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-slate-900 truncate">{s.full_name}</p>
+                <p className="text-sm font-medium text-slate-900 truncate">{s.fullName}</p>
                 <p className="text-xs text-indigo-600 font-mono">{s.username}</p>
-                {s.already_in_class
+                {s.alreadyInClass
                   ? <span className="badge-green text-xs">Đã trong lớp</span>
-                  : s.current_class
-                    ? <span className="badge-yellow text-xs">{s.current_class}</span>
+                  : s.currentClass
+                    ? <span className="badge-yellow text-xs">{s.currentClass}</span>
                     : null}
               </div>
-              {!s.already_in_class && !s.current_class && (
+              {!s.alreadyInClass && !s.currentClass && (
                 <button
                   className="btn-primary py-1 px-2.5 text-xs shrink-0"
-                  onClick={() => handleAssign(s.username, s.full_name)}>
+                  onClick={() => handleAssign(s.username, s.fullName)}>
                   <FiUserPlus size={12} /> Thêm
                 </button>
               )}

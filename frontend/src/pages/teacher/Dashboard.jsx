@@ -73,7 +73,7 @@ export default function Dashboard() {
       / Math.max(totalStudents, 1);
     try {
       const res = await getAIAdvice({ avg: +avg.toFixed(2), totalStudents, dist });
-      setAdvice(res.advice || []);
+      setAdvice(res || []);
     } catch {
       toast.error('Không lấy được lời khuyên AI');
     }

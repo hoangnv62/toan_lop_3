@@ -31,7 +31,7 @@ export default function StudentResultsModal({ student, onClose }) {
   useEffect(() => {
     getStudentResults(student.id)
       .then(data => setResults(data))
-      .catch(() => setResults({ studentName: student.full_name, results: [] }));
+      .catch(() => setResults({ studentName: student.fullName, results: [] }));
     getStudentProgress(student.id)
       .then(rows => setProgress(rows))
       .catch(() => {});
@@ -75,7 +75,7 @@ export default function StudentResultsModal({ student, onClose }) {
             </button>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-slate-900 truncate">{detail.examNameLabel}</h3>
-              <p className="text-xs text-slate-400 mt-0.5">{student.full_name}</p>
+              <p className="text-xs text-slate-400 mt-0.5">{student.fullName}</p>
             </div>
             <div className={`px-3 py-1 rounded-lg text-sm font-bold ${passed ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
               {detail.score}/10
@@ -173,7 +173,7 @@ export default function StudentResultsModal({ student, onClose }) {
         <div className="flex items-center justify-between mb-5">
           <div>
             <h3 className="font-semibold text-slate-900">Bài làm của học sinh</h3>
-            <p className="text-xs text-slate-400 mt-0.5">{student.full_name}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{student.fullName}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
             <FiX size={17} />

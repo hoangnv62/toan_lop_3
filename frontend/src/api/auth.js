@@ -21,7 +21,7 @@ export const loginStudent = async (username, password) => {
 export const registerTeacher = async (username, password, fullName) => {
   const data = await apiFetch('/api/auth/register/teacher', {
     method: 'POST',
-    body: JSON.stringify({ username, password, full_name: fullName }),
+    body: JSON.stringify({ username, password, fullName }),
   });
   if (data.token) setToken(data.token);
   return data;
@@ -33,7 +33,7 @@ export const registerStudent = async ({ username, password, fullName, dob }) => 
     body: JSON.stringify({
       username,
       password,
-      full_name: fullName,
+      fullName,
       dob:       dob || null,
     }),
   });

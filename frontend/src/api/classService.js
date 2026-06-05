@@ -2,13 +2,13 @@ import { apiFetch, getToken } from './index';
 import { API_BASE } from '../config';
 
 export const fetchClasses    = (page = 1, limit = 12) => apiFetch(`/api/classes?page=${page}&limit=${limit}`);
-export const createClass     = (class_name)           => apiFetch('/api/classes', { method: 'POST', body: JSON.stringify({ class_name }) });
+export const createClass     = (className)             => apiFetch('/api/classes', { method: 'POST', body: JSON.stringify({ className }) });
 export const deleteClass     = (id)                   => apiFetch(`/api/classes/${id}`, { method: 'DELETE' });
 export const updateClass     = (id, className)        => apiFetch(`/api/classes/${id}`, { method: 'PUT', body: JSON.stringify({ className }) });
-export const getClassDetail  = (id, studentPage = 1)  => apiFetch(`/api/classes/${id}?student_page=${studentPage}`);
+export const getClassDetail  = (id, studentPage = 1)  => apiFetch(`/api/classes/${id}?studentPage=${studentPage}`);
 
 export const searchStudents  = (q, classId)    =>
-  apiFetch(`/api/students/search?q=${encodeURIComponent(q)}&class_id=${classId}`);
+  apiFetch(`/api/students/search?q=${encodeURIComponent(q)}&classId=${classId}`);
 
 export const assignStudent   = (classId, username) =>
   apiFetch(`/api/classes/${classId}/students`, { method: 'POST', body: JSON.stringify({ username }) });
@@ -27,19 +27,19 @@ export const assignExam      = (classId, examId, timeLimitMin, deadline, openTim
   apiFetch(`/api/classes/${classId}/exams`, {
     method: 'POST',
     body: JSON.stringify({
-      exam_id: examId,
-      time_limit: timeLimitMin ? Number(timeLimitMin) * 60 : null,
-      deadline: deadline || null,
-      open_time: openTime || null,
+      examId,
+      timeLimit: Number(timeLimitMin) * 60,
+      deadline,
+      openTime,
     }),
   });
 export const updateExamAssignment = (classId, examId, timeLimitMin, deadline, openTime) =>
   apiFetch(`/api/classes/${classId}/exams/${examId}`, {
     method: 'PUT',
     body: JSON.stringify({
-      time_limit: timeLimitMin ? Number(timeLimitMin) * 60 : null,
-      deadline: deadline || null,
-      open_time: openTime || null,
+      timeLimit: Number(timeLimitMin) * 60,
+      deadline,
+      openTime,
     }),
   });
 export const unassignExam    = (classId, examId)           =>

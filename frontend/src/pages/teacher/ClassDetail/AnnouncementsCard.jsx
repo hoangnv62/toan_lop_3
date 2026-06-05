@@ -120,7 +120,7 @@ export default function AnnouncementsCard({ classId, announcements, onChanged })
                 </div>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2">{a.content}</p>
                 <p className="text-xs text-slate-400 mt-1.5">
-                  {new Date(a.created_at).toLocaleDateString('vi-VN')}
+                  {new Date(a.createdAt).toLocaleDateString('vi-VN')}
                 </p>
               </div>
             ))}
