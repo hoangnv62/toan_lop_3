@@ -8,7 +8,10 @@ frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 
-# Backend dependencies & virtual env
+# Backend dependencies
+backend/node_modules/
+
+# Legacy Python (unused)
 backend/venv/
 backend/__pycache__/
 backend/**/__pycache__/
