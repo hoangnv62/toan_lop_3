@@ -10,5 +10,5 @@ export const env = {
   DB_NAME: process.env.DB_NAME || 'math_learning',
   SECRET_KEY: process.env.SECRET_KEY || 'math_secret_key',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
-  OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY || '',
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
 };

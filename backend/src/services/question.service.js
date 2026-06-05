@@ -1,25 +1,14 @@
 import XLSX from 'xlsx';
-import { z } from 'zod';
-import { generateStructured } from '../utils/llm.utils.js';
+import { generateJSON } from '../utils/llm.utils.js';
 import { AppError } from '../utils/error.utils.js';
-
-const questionsSchema = z.object({
-  questions: z.array(z.object({
-    questionContent: z.string().describe('Nội dung câu hỏi'),
-    explanation: z.string().describe('Giải thích đáp án đúng'),
-    answers: z.array(z.object({
-      content: z.string().describe('Nội dung đáp án'),
-      isCorrected: z.number().describe('1 nếu đúng, 0 nếu sai'),
-    })).describe('Đúng 4 đáp án, chỉ 1 cái có isCorrected = 1'),
-  })),
-});
 
 export const generateQuestions = async (numQuestions, lessonTitle, examDescription) => {
   const prompt = `Bạn là giáo viên Toán lớp 3. Hãy tạo ${numQuestions} câu hỏi trắc nghiệm về chủ đề '${lessonTitle}'. ${examDescription}
-Mỗi câu hỏi có đúng 4 đáp án, trong đó chỉ 1 đáp án đúng (isCorrected = 1), 3 đáp án còn lại sai (isCorrected = 0).`;
+Mỗi câu hỏi có đúng 4 đáp án, trong đó chỉ 1 đáp án đúng (isCorrected = 1), 3 đáp án còn lại sai (isCorrected = 0).
+Trả về JSON: {"questions": [{"questionContent": "...", "explanation": "...", "answers": [{"content": "...", "isCorrected": 0}, ...]}, ...]}`;
 
   try {
-    const result = await generateStructured(questionsSchema, prompt);
+    const result = await generateJSON(prompt);
     return result.questions || [];
   } catch (e) {
     throw new AppError(String(e), 500);

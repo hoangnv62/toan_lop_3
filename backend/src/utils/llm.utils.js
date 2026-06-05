@@ -1,21 +1,23 @@
-import { ChatOpenAI } from '@langchain/openai';
+import OpenAI from 'openai';
 import { env } from '../config/env.js';
+
+const client = new OpenAI({
+  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: env.OPENROUTER_API_KEY,
+  timeout: 60000,
+  maxRetries: 1,
+});
 
 const DEFAULT_MODEL = 'openai/gpt-oss-120b:free';
 
-export const initChatModel = (model = DEFAULT_MODEL) => new ChatOpenAI({
-  modelName: model,
-  openAIApiKey: env.OPENROUTER_API_KEY,
-  temperature: 0.1,
-  topP: 0.7,
-  timeout: 180000,
-  maxRetries: 2,
-  configuration: {
-    baseURL: 'https://openrouter.ai/api/v1',
-  },
-});
-
-export const generateStructured = async (schema, prompt, model = DEFAULT_MODEL) => {
-  const structuredModel = initChatModel(model).withStructuredOutput(schema, { method: 'json_mode' });
-  return structuredModel.invoke(prompt);
+export const generateJSON = async (prompt, model = DEFAULT_MODEL) => {
+  const response = await client.chat.completions.create({
+    model,
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.1,
+    top_p: 0.7,
+    response_format: { type: 'json_object' },
+  });
+  const content = response.choices[0].message.content;
+  return JSON.parse(content);
 };

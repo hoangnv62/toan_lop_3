@@ -1,8 +1,7 @@
 import * as examRepo from '../repositories/exam.repository.js';
 import * as classRepo from '../repositories/class.repository.js';
 import {NotFoundError, ConflictError, ForbiddenError} from '../utils/error.utils.js';
-import {z} from 'zod';
-import {generateStructured} from '../utils/llm.utils.js';
+import {generateJSON} from '../utils/llm.utils.js';
 import {buildExamPdf} from './pdf.service.js';
 import {formatDate, formatDateTime} from '../utils/date.utils.js';
 
@@ -113,39 +112,30 @@ export const getStats = async (examId) => {
     };
 };
 
-const feedbackSchema = z.object({
-    feedback: z.string().describe('Nhận xét 2-4 câu bằng tiếng Việt, thân thiện dành cho học sinh lớp 3'),
-});
-
 export const generateAiFeedback = async (examId, studentId) => {
     const data = await getResult(examId, studentId);
     const wrong = (data.questions || []).filter(q => !q.isCorrect);
     if (!wrong.length) return 'Xuất sắc! Em đã trả lời đúng tất cả các câu hỏi. Hãy tiếp tục phát huy nhé!';
 
     const lines = wrong.map(q => {
-        const correct = (q.answers || []).find(a => a.isCorrected === 1)?.content || '';
-        const chosen = (q.answers || []).find(a => a.isSelected && a.isCorrected !== 1)?.content || 'không rõ';
+        const correct = (q.answers || []).find(a => a.isCorrected == 1)?.content || '';
+        const chosen = (q.answers || []).find(a => a.isSelected && a.isCorrected != 1)?.content || 'không rõ';
         return `- "${q.questionContent}"\n  Đáp án đúng: ${correct} | Em chọn: ${chosen}`;
     });
 
-    const prompt = `
-        Bạn là giáo viên Toán lớp 3 đang nhận xét bài làm của học sinh.
-        Bài kiểm tra: ${data.examName || 'Toán lớp 3'}
-        Kết quả: ${data.score}/10 — đúng ${data.correct}/${data.total} câu.
-        Các câu trả lời sai:
-        ${lines.join('\n')}        
-        Viết 1 đoạn nhận xét (2-4 câu) bằng tiếng Việt, thân thiện dành cho học sinh lớp 3.`;
+    const prompt = `Bạn là giáo viên Toán lớp 3 đang nhận xét bài làm của học sinh.
+Bài kiểm tra: ${data.examName || 'Toán lớp 3'}
+Kết quả: ${data.score}/10 — đúng ${data.correct}/${data.total} câu.
 
-    const result = await generateStructured(feedbackSchema, prompt);
+Các câu trả lời sai:
+${lines.join('\n')}
+
+Viết 1 đoạn nhận xét (2-4 câu) bằng tiếng Việt, thân thiện dành cho học sinh lớp 3.
+Trả về JSON: {"feedback": "..."}`;
+
+    const result = await generateJSON(prompt);
     return result.feedback || '';
 };
-
-const insightsSchema = z.object({
-    insights: z.array(z.object({
-        title: z.string().describe('Tiêu đề nhận xét ngắn gọn'),
-        detail: z.string().describe('Lời khuyên thực tế cho giáo viên'),
-    })).describe('Đúng 3 nhận xét'),
-});
 
 export const analyzeExamStats = async (examId) => {
     const stats = await getStats(examId);
@@ -169,9 +159,10 @@ Phân bố: 0-4: ${dist['0-4'] || 0} HS, 4-6: ${dist['4-6'] || 0} HS, 6-8: ${dis
 Câu hỏi học sinh làm sai nhiều nhất:
 ${hardSummary}
 
-Đưa ra CHÍNH XÁC 3 nhận xét và lời khuyên thực tế cho giáo viên Toán lớp 3.`;
+Đưa ra CHÍNH XÁC 3 nhận xét và lời khuyên thực tế cho giáo viên Toán lớp 3.
+Trả về JSON: {"insights": [{"title": "...", "detail": "..."}, ...]}`;
 
-    const result = await generateStructured(insightsSchema, prompt);
+    const result = await generateJSON(prompt);
     return result.insights || [];
 };
 

@@ -1,6 +1,5 @@
 import {query, queryOne} from '../config/database.js';
-import {z} from 'zod';
-import {generateStructured} from '../utils/llm.utils.js';
+import {generateJSON} from '../utils/llm.utils.js';
 
 export const getTeacherDashboard = async (teacherId) => {
     const summary = await queryOne(
@@ -84,23 +83,17 @@ export const getTeacherDashboard = async (teacherId) => {
     };
 };
 
-const advicesSchema = z.object({
-    advices: z.array(z.object({
-        title: z.string().describe('Tiêu đề lời khuyên ngắn gọn'),
-        detail: z.string().describe('Nội dung lời khuyên thực tế'),
-    })).describe('Đúng 3 lời khuyên'),
-});
-
 export const getAiAdvice = async (avg, totalStudents, dist) => {
     const prompt = `Bạn là trợ lý giáo dục chuyên về Toán lớp 3.
 Dữ liệu lớp học:
 - Điểm trung bình: ${avg}
 - Tổng số học sinh: ${totalStudents}
 - Phân bố điểm: 0–4: ${dist['0-4'] || 0}, 4–6: ${dist['4-6'] || 0}, 6–8: ${dist['6-8'] || 0}, 8–10: ${dist['8-10'] || 0}
-Đưa ra CHÍNH XÁC 3 lời khuyên ngắn gọn, thực tế cho giáo viên Toán lớp 3.`;
+Đưa ra CHÍNH XÁC 3 lời khuyên ngắn gọn, thực tế cho giáo viên Toán lớp 3.
+Trả về JSON: {"advices": [{"title": "...", "detail": "..."}, ...]}`;
 
     try {
-        const result = await generateStructured(advicesSchema, prompt);
+        const result = await generateJSON(prompt);
         return result.advices || [];
     } catch {
         return [
