@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project overview
 
 E-learning platform for Grade 3 Math (Vietnamese). Two separate sub-projects:
-- `backend/` — Flask REST API, MySQL, OpenRouter AI (via instructor + OpenAI client)
+- `backend/` — Node.js/Express REST API, MariaDB/MySQL, OpenRouter AI (via openai SDK)
 - `frontend/` — React 19 SPA (Vite, Tailwind CSS)
 
 Two user roles: **teacher** (manages classes/lessons/exams/question bank, views dashboard) and **student** (takes exams, views progress, manages relatives).
@@ -15,10 +15,12 @@ Two user roles: **teacher** (manages classes/lessons/exams/question bank, views 
 ### Backend
 ```bash
 cd backend
-pip install -r requirements.txt
-python app.py          # runs on http://localhost:5000
+npm install
+node database/create_db.js   # initialize schema (run once)
+npm run dev                  # nodemon dev server on http://localhost:5000
+npm start                    # production
 ```
-Requires a MySQL database and a `.env` file with `OPENROUTER_API_KEY`, `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `SECRET_KEY`. Database schema is in `database/create_db.py`.
+Requires a MariaDB/MySQL database and a `.env` file — see `.env.example`. Database schema is in `database/create_db.js`.
 
 ### Frontend
 ```bash
@@ -44,18 +46,24 @@ npm run lint           # ESLint
 ## Architecture
 
 ### Backend structure
-Each feature has a route file in `routes/` that maps URLs to controllers, then services, then repositories:
+Node.js ESM (`"type": "module"`), entry point `index.js`. Each feature has a route file in `src/routes/` that maps URLs to controllers, then services, then repositories:
 
 ```
-routes/      → Blueprint URL rules only
-controllers/ → Request parsing, auth checks, response formatting
-services/    → Business logic
-repositories/→ DB queries (SQLAlchemy ORM)
-models/      → SQLAlchemy model definitions
+index.js              → App bootstrap, middleware setup, router registration
+src/routes/           → Express Router URL rules only (no logic)
+src/controllers/      → Request parsing, auth checks, response formatting
+src/services/         → Business logic
+src/repositories/     → DB queries (raw SQL via mariadb connection pool)
+src/middleware/       → authenticate, asyncHandler, errorHandler, camelCaseResponse, upload
+src/validation/       → Zod schemas used as route middleware
+src/utils/error.utils.js → AppError subclasses (NotFoundError, UnauthorizedError, etc.)
+src/config/env.js     → Typed env vars
 ```
 
-Database access: SQLAlchemy ORM via `extensions.db` (session-based, no raw connections).
-AI calls: `config.init_chat_model()` uses `instructor` + OpenAI client pointed at `openrouter.ai/api/v1`, default model `openai/gpt-oss-120b:free`.
+Database access: `mariadb` npm package, raw SQL, no ORM. `camelCaseResponse` middleware auto-converts snake_case DB column names to camelCase in JSON responses.
+Auth: `jsonwebtoken` (HS256, 24h) + `bcryptjs`. Token validated by `authenticate` middleware, populates `req.user`.
+Validation: `zod` schemas applied as Express middleware before controllers.
+AI calls: `openai` SDK pointed at `openrouter.ai/api/v1`, default model `openai/gpt-oss-120b:free`.
 
 ### Key API endpoints (non-obvious ones)
 
@@ -63,23 +71,25 @@ AI calls: `config.init_chat_model()` uses `instructor` + OpenAI client pointed a
 |--------|------|-------------|
 | GET/PUT | `/api/auth/profile` | View/update profile (fullName, dob, email, phone) |
 | PUT | `/api/auth/password` | Change password (`{currentPassword, newPassword}`) |
-| POST | `/api/exams/<id>/clone` | Deep-copy exam + questions + answers |
-| POST | `/api/exams/<id>/submissions/<sid>/comment` | Upsert teacher comment on student submission |
-| GET | `/api/exams/<id>/export` | Download Excel of all results (teacher only) |
-| GET | `/api/exams/<id>/export-pdf` | Download PDF exam paper (`?variants=1&duration=45`) |
-| GET | `/api/exams/<id>/assignments` | Per-class assignment status for an exam |
+| POST | `/api/exams/:id/clone` | Deep-copy exam + questions + answers |
+| POST | `/api/exams/:id/submissions/:studentId/comment` | Upsert teacher comment on student submission |
+| GET | `/api/exams/:id/export` | Download Excel of all results (teacher only) |
+| GET | `/api/exams/:id/export-pdf` | Download PDF exam paper (`?variants=1&duration=45`) |
+| GET | `/api/exams/:id/assignments` | Per-class assignment status for an exam |
+| POST | `/api/exams/:id/ai-feedback` | AI nhận xét đề thi |
+| POST | `/api/exams/:id/ai-analysis` | AI phân tích thống kê kết quả |
 | POST | `/api/questions/import-excel` | Parse Excel → return question array (not saved to DB) |
-| GET | `/api/students/<id>/progress` | All exam scores ordered by submit date (for line chart) |
+| GET | `/api/students/:id/progress` | All exam scores ordered by submit date (for line chart) |
 | GET | `/api/dashboard/student?all=true` | Student dashboard without date filter |
-| GET | `/api/classes/<id>/exams` | Exams assigned to a class with completion stats |
-| POST | `/api/classes/<id>/exams` | Assign exam to class (`{exam_id, deadline, time_limit, open_time}`) |
-| PUT | `/api/classes/<id>/exams/<eid>` | Update exam assignment (deadline, time_limit, open_time) |
-| DELETE | `/api/classes/<id>/exams/<eid>` | Unassign exam from class |
-| GET | `/api/classes/<id>/students/export` | Export Excel danh sách học sinh |
-| GET/POST | `/api/classes/<id>/announcements` | Thông báo lớp học |
-| DELETE | `/api/announcements/<id>` | Xóa thông báo |
-| GET/POST | `/api/students/<id>/relatives` | Danh sách / thêm người thân học sinh |
-| PUT/DELETE | `/api/relatives/<id>` | Sửa / xóa người thân |
+| GET | `/api/classes/:id/exams` | Exams assigned to a class with completion stats |
+| POST | `/api/classes/:id/exams` | Assign exam to class (`{examId, deadline, timeLimit, openTime}`) |
+| PUT | `/api/classes/:id/exams/:examId` | Update exam assignment (deadline, timeLimit, openTime) |
+| DELETE | `/api/classes/:id/exams/:examId` | Unassign exam from class |
+| GET | `/api/classes/:id/students/export` | Export Excel danh sách học sinh |
+| GET/POST | `/api/classes/:id/announcements` | Thông báo lớp học |
+| DELETE | `/api/announcements/:annId` | Xóa thông báo |
+| GET/POST | `/api/students/:studentId/relatives` | Danh sách / thêm người thân học sinh |
+| PUT/DELETE | `/api/relatives/:id` | Sửa / xóa người thân |
 | GET/POST | `/api/question-bank` | Ngân hàng câu hỏi (có phân trang, tìm kiếm, lọc theo lesson) |
 | POST | `/api/question-bank/import-excel` | Import câu hỏi vào ngân hàng từ Excel |
 | GET | `/api/question-bank/sample-excel` | Tải file Excel mẫu |

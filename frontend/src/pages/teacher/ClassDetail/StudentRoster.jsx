@@ -109,7 +109,8 @@ export default function StudentRoster({
         ) : (
           <div className="space-y-1">
             {students.map((s, idx) => {
-              const style = scoreStyle(s.avgScore);
+              const name  = s.fullName || s.full_name || '';
+              const style = scoreStyle(s.avgScore ?? s.avg_score);
               return (
                 <div key={s.id}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group">
@@ -121,12 +122,12 @@ export default function StudentRoster({
 
                   {/* Avatar — color reflects score level */}
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 select-none ${style.avatar}`}>
-                    {s.fullName.trim().charAt(0).toUpperCase()}
+                    {name.trim().charAt(0).toUpperCase() || '?'}
                   </div>
 
                   {/* Name + username */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 truncate leading-tight">{s.fullName}</p>
+                    <p className="text-sm font-semibold text-slate-900 truncate leading-tight">{name}</p>
                     <p className="text-xs text-slate-400 font-mono mt-0.5">{s.username}</p>
                   </div>
 
@@ -152,7 +153,7 @@ export default function StudentRoster({
                     <button
                       title="Gỡ khỏi lớp"
                       className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                      onClick={() => setConfirm({ studentId: s.id, fullName: s.fullName })}>
+                      onClick={() => setConfirm({ studentId: s.id, fullName: name })}>
                       <FiUserX size={14} />
                     </button>
                   </div>

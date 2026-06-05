@@ -21,16 +21,29 @@ export const findByTeacher = async (teacherId, q = '', page = 1, limit = 10, les
   const total = totalRow?.total || 0;
   params.limit = limit;
   params.offset = offset;
-  const items = await query(
+  const rows = await query(
     `SELECT id, content, explanation, lesson_id, created_at FROM question_bank ${where}
      ORDER BY created_at DESC LIMIT :limit OFFSET :offset`,
     params
   );
-  for (const item of items) {
-    item.answers = await query(
+  const items = [];
+  for (const row of rows) {
+    const answerRows = await query(
       'SELECT id, content, is_correct FROM question_bank_answers WHERE question_id = :qid ORDER BY id',
-      { qid: item.id }
+      { qid: row.id }
     );
+    items.push({
+      id: row.id,
+      content: row.content,
+      explanation: row.explanation,
+      lessonId: row.lesson_id ?? null,
+      createdAt: row.created_at ? String(row.created_at) : null,
+      answers: answerRows.map(a => ({
+        id: a.id,
+        content: a.content,
+        isCorrect: a.is_correct === 1 || a.is_correct === true,
+      })),
+    });
   }
   return { items, total, page, pages: Math.max(1, Math.ceil(total / limit)) };
 };
@@ -48,7 +61,7 @@ export const createQuestion = async (teacherId, content, explanation, answersDat
     for (const a of answersData) {
       await conn.query(
         'INSERT INTO question_bank_answers (question_id, content, is_correct) VALUES (:qId, :content, :isCorrect)',
-        { qId, content: a.content || '', isCorrect: a.is_correct ? 1 : 0 }
+        { qId, content: a.content || '', isCorrect: a.isCorrect ? 1 : 0 }
       );
     }
     return qId;
@@ -65,7 +78,7 @@ export const updateQuestion = async (id, content, explanation, answersData, less
     for (const a of answersData) {
       await conn.query(
         'INSERT INTO question_bank_answers (question_id, content, is_correct) VALUES (:qId, :content, :isCorrect)',
-        { qId: id, content: a.content || '', isCorrect: a.is_correct ? 1 : 0 }
+        { qId: id, content: a.content || '', isCorrect: a.isCorrect ? 1 : 0 }
       );
     }
   });

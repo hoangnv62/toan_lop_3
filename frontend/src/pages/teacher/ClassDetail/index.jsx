@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import TeacherLayout from '../../../components/TeacherLayout';
+import ErrorBoundary from '../../../components/ErrorBoundary';
 import { getClassDetail, updateClass, getClassExams, unassignExam, exportStudents } from '../../../api/classService';
 import { exportExam } from '../../../api/examService';
 import { getAnnouncements } from '../../../api/announcementService';
@@ -110,57 +111,59 @@ export default function ClassDetail() {
 
   return (
     <TeacherLayout>
-      {relModal && (
-        <RelativesModal
-          student={relModal.student}
-          relatives={relList}
-          loading={relLoading}
-          onClose={() => { setRelModal(null); setRelList([]); }}
-        />
-      )}
-      {studentModal && (
-        <StudentResultsModal
-          student={studentModal.student}
-          onClose={() => setStudentModal(null)}
-        />
-      )}
-
-      <ClassHeader
-        detail={detail}
-        assignedExams={assignedExams}
-        announcements={announcements}
-        onUpdate={handleUpdate}
-      />
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
-        <div className="xl:col-span-2 space-y-5">
-          <ExamList
-            exams={assignedExams}
-            exportingId={exportingId}
-            onExport={handleExport}
-            onUnassign={handleUnassign}
+      <ErrorBoundary>
+        {relModal && (
+          <RelativesModal
+            student={relModal.student}
+            relatives={relList}
+            loading={relLoading}
+            onClose={() => { setRelModal(null); setRelList([]); }}
           />
-          <StudentRoster
-            classId={classId}
-            students={detail.students}
-            totalStudents={detail.totalStudents}
-            classAvg={detail.classAvg}
-            page={studentPage}
-            pages={studentPages}
-            exportingStudents={exportingStudents}
-            onExportStudents={handleExportStudents}
-            onPageChange={setStudentPage}
-            onViewExams={s => setStudentModal({ student: s })}
-            onViewRelatives={handleViewRelatives}
-            onRemoved={load}
+        )}
+        {studentModal && (
+          <StudentResultsModal
+            student={studentModal.student}
+            onClose={() => setStudentModal(null)}
           />
+        )}
+
+        <ClassHeader
+          detail={detail}
+          assignedExams={assignedExams}
+          announcements={announcements}
+          onUpdate={handleUpdate}
+        />
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
+          <div className="xl:col-span-2 space-y-5">
+            <ExamList
+              exams={assignedExams}
+              exportingId={exportingId}
+              onExport={handleExport}
+              onUnassign={handleUnassign}
+            />
+            <StudentRoster
+              classId={classId}
+              students={detail.students}
+              totalStudents={detail.totalStudents}
+              classAvg={detail.classAvg}
+              page={studentPage}
+              pages={studentPages}
+              exportingStudents={exportingStudents}
+              onExportStudents={handleExportStudents}
+              onPageChange={setStudentPage}
+              onViewExams={s => setStudentModal({ student: s })}
+              onViewRelatives={handleViewRelatives}
+              onRemoved={load}
+            />
+          </div>
+          <div className="space-y-5">
+            <AddStudentCard classId={classId} onAssigned={load} />
+            <ImportCard classId={classId} onUploaded={load} />
+            <AnnouncementsCard classId={classId} announcements={announcements} onChanged={load} />
+          </div>
         </div>
-        <div className="space-y-5">
-          <AddStudentCard classId={classId} onAssigned={load} />
-          <ImportCard classId={classId} onUploaded={load} />
-          <AnnouncementsCard classId={classId} announcements={announcements} onChanged={load} />
-        </div>
-      </div>
+      </ErrorBoundary>
     </TeacherLayout>
   );
 }

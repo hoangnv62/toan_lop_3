@@ -47,7 +47,7 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
         content: content.trim(),
         explanation: explanation.trim(),
         lessonId: lessonId || null,
-        answers: answers.map(a => ({ content: a.content.trim(), isCorrect: a.isCorrect ? 1 : 0 })),
+        answers: answers.map(a => ({ content: a.content.trim(), isCorrect: !!a.isCorrect })),
       };
       if (isEdit) {
         await updateBankQuestion(initial.id, payload);
@@ -84,6 +84,7 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
               value={lessonId ?? ''}
               onChange={e => setLessonId(e.target.value ? Number(e.target.value) : null)}
             >
+              <option value="">Chưa phân loại</option>
               {lessons.map(l => (
                 <option key={l.id} value={l.id}>{l.title}</option>
               ))}

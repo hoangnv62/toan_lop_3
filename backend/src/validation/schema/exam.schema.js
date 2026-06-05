@@ -1,7 +1,10 @@
 import { z } from 'zod';
 
 export const submitExamSchema = z.object({
-  answers: z.array(z.coerce.number().int()).min(1, 'Thiếu dữ liệu câu trả lời'),
+  answers: z.array(z.object({
+    questionId: z.number().int().positive(),
+    answerId: z.number().int().positive(),
+  })).min(1, 'Thiếu dữ liệu câu trả lời'),
   timeSpent: z.coerce.number().int().min(0).default(0),
 });
 

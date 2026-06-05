@@ -26,7 +26,13 @@ export const getClassDetail = async (classId, studentPage = 1, studentLimit = 15
   return {
     classId: cls.id, className: cls.class_name,
     totalStudents: paged.total,
-    students: paged.items,
+    students: paged.items.map(s => ({
+      id: s.id,
+      username: s.username,
+      fullName: s.full_name,
+      dob: s.dob ? String(s.dob) : null,
+      avgScore: s.avg_score != null ? Number(s.avg_score) : null,
+    })),
     studentPage: paged.page,
     studentPages: paged.pages,
     classAvg,
