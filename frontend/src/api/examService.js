@@ -1,62 +1,32 @@
-import { apiFetch, getToken } from './index';
-import { API_BASE } from '../config';
+import api, { downloadBlob } from './index';
 
-export const fetchExam = (id) => apiFetch(`/api/exams/${id}`);
-export const deleteExam = (id) => apiFetch(`/api/exams/${id}`, { method: 'DELETE' });
+export const fetchExam = (id) => api.get(`/api/exams/${id}`);
+export const deleteExam = (id) => api.delete(`/api/exams/${id}`);
 export const saveExam = (lessonId, examId, payload) => {
   const url = examId ? `/api/lessons/${lessonId}/exams/${examId}` : `/api/lessons/${lessonId}/exams`;
-  return apiFetch(url, { method: examId ? 'PUT' : 'POST', body: JSON.stringify(payload) });
+  return examId ? api.put(url, payload) : api.post(url, payload);
 };
-export const submitExam = (examId, payload) =>
-  apiFetch(`/api/exams/${examId}/submit`, { method: 'POST', body: JSON.stringify(payload) });
-export const getExamResult = (examId) => apiFetch(`/api/exams/${examId}/result`);
-export const getExamStats       = (examId) => apiFetch(`/api/exams/${examId}/stats`);
-export const getClassResults    = (examId) => apiFetch(`/api/exams/${examId}/class-results`);
-export const getAiExamFeedback  = (examId) => apiFetch(`/api/exams/${examId}/ai-feedback`, { method: 'POST' });
-export const getAiStatsAnalysis = (examId) => apiFetch(`/api/exams/${examId}/ai-analysis`, { method: 'POST' });
-export const getStudentSubmission  = (examId, studentId) =>
-  apiFetch(`/api/exams/${examId}/submissions/${studentId}`);
-export const getExamAssignments = (examId) =>
-  apiFetch(`/api/exams/${examId}/assignments`);
-
-export const cloneExam = (examId) =>
-  apiFetch(`/api/exams/${examId}/clone`, { method: 'POST' });
-
-export const saveComment = (examId, studentId, comment) =>
-  apiFetch(`/api/exams/${examId}/submissions/${studentId}/comment`, {
-    method: 'POST',
-    body: JSON.stringify({ comment }),
-  });
+export const submitExam          = (examId, payload)          => api.post(`/api/exams/${examId}/submit`, payload);
+export const getExamResult       = (examId)                   => api.get(`/api/exams/${examId}/result`);
+export const getExamStats        = (examId)                   => api.get(`/api/exams/${examId}/stats`);
+export const getClassResults     = (examId)                   => api.get(`/api/exams/${examId}/class-results`);
+export const getAiExamFeedback   = (examId)                   => api.post(`/api/exams/${examId}/ai-feedback`);
+export const getAiStatsAnalysis  = (examId)                   => api.post(`/api/exams/${examId}/ai-analysis`);
+export const getStudentSubmission = (examId, studentId)       => api.get(`/api/exams/${examId}/submissions/${studentId}`);
+export const getExamAssignments  = (examId)                   => api.get(`/api/exams/${examId}/assignments`);
+export const cloneExam           = (examId)                   => api.post(`/api/exams/${examId}/clone`);
+export const saveComment         = (examId, studentId, comment) =>
+  api.post(`/api/exams/${examId}/submissions/${studentId}/comment`, { comment });
 
 export async function exportExamPdf(examId, { variants = 1, duration = 45 } = {}) {
-  const response = await fetch(
-    `${API_BASE}/api/exams/${examId}/export-pdf?variants=${variants}&duration=${duration}`,
-    { headers: { Authorization: `Bearer ${getToken()}` } },
+  const blob = await api.get(
+    `/api/exams/${examId}/export-pdf?variants=${variants}&duration=${duration}`,
+    { responseType: 'blob' }
   );
-  if (!response.ok) throw new Error('Tạo PDF thất bại');
-  const blob = await response.blob();
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `de-thi-${examId}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, `de-thi-${examId}.pdf`);
 }
 
 export async function exportExam(examId, filename) {
-  const response = await fetch(`${API_BASE}/api/exams/${examId}/export`, {
-    headers: { Authorization: `Bearer ${getToken()}` },
-  });
-  if (!response.ok) throw new Error('Export thất bại');
-  const blob = await response.blob();
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = filename || `ket-qua-${examId}.xlsx`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const blob = await api.get(`/api/exams/${examId}/export`, { responseType: 'blob' });
+  downloadBlob(blob, filename || `ket-qua-${examId}.xlsx`);
 }

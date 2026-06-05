@@ -1,26 +1,49 @@
+import axios from 'axios';
 import { API_BASE } from '../config';
 
-export const getToken = () => localStorage.getItem('auth_token');
-export const setToken = (t) => localStorage.setItem('auth_token', t);
+export const getToken   = () => localStorage.getItem('auth_token');
+export const setToken   = (t) => localStorage.setItem('auth_token', t);
 export const clearToken = () => localStorage.removeItem('auth_token');
 
-export async function apiFetch(path, options = {}) {
+const api = axios.create({ baseURL: API_BASE });
+
+api.interceptors.request.use((config) => {
   const token = getToken();
-  const isFormData = options.body instanceof FormData;
-  const headers = { ...options.headers };
-  if (!isFormData) headers['Content-Type'] = 'application/json';
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
-  const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
-  const json = await response.json();
-
-  if (json.success === false) {
-    const err = new Error(json.message || 'Request failed');
-    err.status = response.status;
+api.interceptors.response.use(
+  (res) => {
+    const json = res.data;
+    if (!json || typeof json !== 'object' || json instanceof Blob) return json;
+    if (json.success === false) {
+      const err = new Error(json.message || 'Request failed');
+      err.status = res.status;
+      err.data = json;
+      throw err;
+    }
+    return json.data !== undefined ? json.data : json;
+  },
+  (error) => {
+    const json = error.response?.data;
+    const msg = (json && typeof json === 'object' && json.message) || error.message || 'Request failed';
+    const err = new Error(msg);
+    err.status = error.response?.status;
     err.data = json;
     throw err;
   }
+);
 
-  // Auto-unwrap: return json.data if present, otherwise return the full response
-  return json.data !== undefined ? json.data : json;
+export function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
+
+export default api;

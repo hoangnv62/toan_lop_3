@@ -1,13 +1,30 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { FiMessageCircle, FiX, FiSend, FiLoader } from 'react-icons/fi';
+import { FiX, FiSend, FiLoader } from 'react-icons/fi';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { streamChat } from '../../api/chatService';
+import { useAuth } from '../../context/AuthContext';
+import chatbotIcon from '../../assets/chatbot.png';
 
-const WELCOME = 'Xin chào! Mình là trợ lý Toán lớp 3. Bạn cần giúp gì không? 😊';
+const mdComponents = {
+  p:      ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+  ul:     ({ children }) => <ul className="list-disc list-inside space-y-0.5 my-1">{children}</ul>,
+  ol:     ({ children }) => <ol className="list-decimal list-inside space-y-0.5 my-1">{children}</ol>,
+  li:     ({ children }) => <li className="leading-snug">{children}</li>,
+  code:   ({ children }) => <code className="bg-black/10 rounded px-1 py-0.5 text-xs font-mono">{children}</code>,
+  pre:    ({ children }) => <pre className="bg-black/10 rounded p-2 text-xs font-mono overflow-x-auto my-1">{children}</pre>,
+};
+
+const WELCOME_STUDENT = 'Xin chào! Mình là trợ lý Toán lớp 3. Bạn cần giúp gì không? 😊';
+const WELCOME_TEACHER = 'Xin chào thầy/cô! Tôi là trợ lý giảng dạy Toán lớp 3. Tôi có thể hỗ trợ soạn bài, ra đề thi hoặc gợi ý phương pháp giảng dạy. Thầy/cô cần giúp gì?';
 
 export default function ChatBot() {
+  const { user } = useAuth();
+  const welcome = user?.role === 'teacher' ? WELCOME_TEACHER : WELCOME_STUDENT;
   const [open, setOpen]       = useState(false);
-  const [messages, setMessages] = useState([{ role: 'assistant', content: WELCOME }]);
+  const [messages, setMessages] = useState([{ role: 'assistant', content: welcome }]);
   const [input, setInput]     = useState('');
   const [loading, setLoading] = useState(false);
   const bottomRef             = useRef(null);
@@ -36,7 +53,8 @@ export default function ChatBot() {
 
     try {
       await streamChat(
-        history.slice(1), // bỏ WELCOME message (index 0) trước khi gửi API
+        history.slice(1),
+        user?.role,
         (token) => {
           setMessages(prev => {
             const updated = [...prev];
@@ -70,18 +88,18 @@ export default function ChatBot() {
       style={{ width: 52, height: 52 }}
       title="Hỏi đáp Toán"
     >
-      {open ? <FiX size={22} /> : <FiMessageCircle size={22} />}
+      {open ? <FiX size={22} /> : <img src={chatbotIcon} alt="chat" className="w-9 h-9 object-contain" />}
     </button>
   );
 
   const panel = open && (
-    <div className="fixed bottom-20 right-6 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden"
-      style={{ height: 460 }}>
+    <div className="fixed bottom-20 right-6 z-50 w-96 sm:w-[440px] bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden"
+      style={{ height: 660 }}>
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 bg-indigo-600 shrink-0">
         <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
-          <FiMessageCircle size={16} className="text-white" />
+          <img src={chatbotIcon} alt="chat" className="w-7 h-7 object-contain" />
         </div>
         <div>
           <p className="text-sm font-semibold text-white">Trợ lý Toán</p>
@@ -99,12 +117,16 @@ export default function ChatBot() {
           if (m.content === '' && i === messages.length - 1) return null; // placeholder ẩn khi chưa có token
           return (
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+              <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                 m.role === 'user'
-                  ? 'bg-indigo-600 text-white rounded-br-sm'
+                  ? 'bg-indigo-600 text-white rounded-br-sm whitespace-pre-wrap'
                   : 'bg-slate-100 text-slate-700 rounded-bl-sm'
               }`}>
-                {m.content}
+                {m.role === 'user' ? m.content : (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+                    {m.content}
+                  </ReactMarkdown>
+                )}
               </div>
             </div>
           );
