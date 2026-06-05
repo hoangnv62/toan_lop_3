@@ -3,12 +3,21 @@ import { env } from '../config/env.js';
 
 const client = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: env.OPENROUTER_API_KEY,
+  apiKey: env.OPENAI_API_KEY,
   timeout: 60000,
   maxRetries: 1,
 });
 
 const DEFAULT_MODEL = 'openai/gpt-oss-120b:free';
+
+export const streamChat = async (messages, model = DEFAULT_MODEL) => {
+  return client.chat.completions.create({
+    model,
+    messages,
+    temperature: 0.7,
+    stream: true,
+  });
+};
 
 export const generateJSON = async (prompt, model = DEFAULT_MODEL) => {
   const response = await client.chat.completions.create({

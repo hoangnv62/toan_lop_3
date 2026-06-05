@@ -15,6 +15,7 @@ import questionRouter from './src/routes/question.route.js';
 import questionBankRouter from './src/routes/question-bank.route.js';
 import relativeRouter from './src/routes/relative.route.js';
 import studentRouter from './src/routes/student.route.js';
+import chatRouter from './src/routes/chat.route.js';
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use('/api/questions', questionRouter);
 app.use('/api/question-bank', questionBankRouter);
 app.use('/api', relativeRouter);
 app.use('/api/students', studentRouter);
+app.use('/api/chat', chatRouter);
 
 app.use(errorHandler);
 

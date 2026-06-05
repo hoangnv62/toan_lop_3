@@ -15,6 +15,7 @@ import RelativesCard from './RelativesCard';
 import AnnouncementsCard from './AnnouncementsCard';
 import RelativeFormModal from './RelativeFormModal';
 import RelativeDeleteModal from './RelativeDeleteModal';
+import ChatBot from '../../../components/shared/ChatBot';
 
 function getWeekRange(offset = 0) {
   const now = new Date();
@@ -230,6 +231,7 @@ export default function StudentHome() {
         />
       </div>
 
+      <ChatBot />
       {pwModal && <ChangePasswordModal onClose={() => setPwModal(false)} />}
       {profileModal && <ProfileModal onClose={() => setProfileModal(false)} />}
 
