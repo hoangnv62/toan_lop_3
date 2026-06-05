@@ -3,6 +3,7 @@ import * as userRepo from '../repositories/user.repository.js';
 import {generateToken} from './jwt.service.js';
 import {NotFoundError, ConflictError, UnauthorizedError} from '../utils/error.utils.js';
 import {Authority} from "../constants/authority.js";
+import { formatDate } from '../utils/date.utils.js';
 
 const verifyPassword = async (stored, provided) => {
     if (!stored) return false;
@@ -39,7 +40,7 @@ export const changePassword = async (userId, currentPw, newPw) => {
 export const getProfile = async (userId) => {
     const profile = await userRepo.getProfile(userId);
     if (!profile) throw new NotFoundError('Người dùng không tồn tại');
-    return profile;
+    return { ...profile, dob: formatDate(profile.dob) };
 };
 
 export const updateProfile = async (userId, fullName, dob, email, phone) => {

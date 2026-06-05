@@ -45,6 +45,22 @@ export const updateExamAssignment = (classId, examId, timeLimitMin, deadline, op
 export const unassignExam    = (classId, examId)           =>
   apiFetch(`/api/classes/${classId}/exams/${examId}`, { method: 'DELETE' });
 
+export async function downloadSampleStudentsExcel() {
+  const response = await fetch(`${API_BASE}/api/classes/students/sample-excel`, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  });
+  if (!response.ok) throw new Error('Tải file mẫu thất bại');
+  const blob = await response.blob();
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'mau_import_hocsinh.xlsx';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export async function exportStudents(classId, className) {
   const response = await fetch(`${API_BASE}/api/classes/${classId}/students/export`, {
     headers: { Authorization: `Bearer ${getToken()}` },

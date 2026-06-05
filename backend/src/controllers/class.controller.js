@@ -1,5 +1,6 @@
 import XLSX from 'xlsx';
 import * as svc from '../services/class.service.js';
+import { formatDate } from '../utils/date.utils.js';
 
 export const getTeacherClasses = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -75,7 +76,7 @@ export const exportStudents = async (req, res) => {
   const wsData = [['STT', 'Họ và tên', 'Username', 'Ngày sinh', 'Điểm TB', 'Số bài đã làm']];
   students.forEach((s, i) => {
     wsData.push([i + 1, s.full_name, s.username,
-      s.dob ? String(s.dob).split('T')[0] : '',
+      formatDate(s.dob) ?? '',
       parseFloat(s.avg_score || 0), parseInt(s.total_exams || 0)]);
   });
   const wb = XLSX.utils.book_new();

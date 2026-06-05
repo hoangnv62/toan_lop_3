@@ -8,12 +8,6 @@ import LessonFormModal from './LessonFormModal';
 import DeleteLessonModal from './DeleteLessonModal';
 import Pagination from '../../../components/Pagination';
 
-function formatDate(str) {
-  if (!str) return '--';
-  const d = new Date(str);
-  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
-}
-
 export default function ManageLesson() {
   const [lessons, setLessons]         = useState([]);
   const [total, setTotal]             = useState(0);
@@ -156,7 +150,7 @@ export default function ManageLesson() {
                 <div className="min-w-0">
                   <p className="font-semibold text-slate-900 truncate">{l.title}</p>
                   <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-xs text-slate-400">{formatDate(l.createdAt)}</span>
+                    <span className="text-xs text-slate-400">{l.createdAt || '--'}</span>
                     <span className="badge-indigo">{l.examCount ?? 0} bài tập</span>
                   </div>
                 </div>

@@ -14,12 +14,6 @@ import { toast } from 'react-toastify';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
-function formatDate(str) {
-  if (!str) return '--';
-  const d = new Date(str);
-  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-}
-
 export default function StudentResultsModal({ student, onClose }) {
   const [results, setResults]           = useState(null);
   const [progress, setProgress]         = useState([]);
@@ -93,7 +87,7 @@ export default function StudentResultsModal({ student, onClose }) {
                 <FiClock size={11} /> {Math.floor(detail.timeSpent / 60)}p{detail.timeSpent % 60}s
               </span>
             )}
-            {detail.submittedAt && <span>Nộp: {formatDate(detail.submittedAt)}</span>}
+            {detail.submittedAt && <span>Nộp: {detail.submittedAt}</span>}
           </div>
 
           {/* Questions */}

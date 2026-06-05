@@ -1,4 +1,5 @@
 import { query, queryOne, insert, transaction } from '../config/database.js';
+import { formatDate } from '../utils/date.utils.js';
 
 export const findByTeacher = async (teacherId, q = '', page = 1, limit = 10, lessonId = undefined) => {
   const offset = (page - 1) * limit;
@@ -37,7 +38,7 @@ export const findByTeacher = async (teacherId, q = '', page = 1, limit = 10, les
       content: row.content,
       explanation: row.explanation,
       lessonId: row.lesson_id ?? null,
-      createdAt: row.created_at ? String(row.created_at) : null,
+      createdAt: formatDate(row.created_at),
       answers: answerRows.map(a => ({
         id: a.id,
         content: a.content,

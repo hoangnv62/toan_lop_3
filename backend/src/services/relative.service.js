@@ -1,5 +1,6 @@
 import * as relativeRepo from '../repositories/relative.repository.js';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/error.utils.js';
+import { formatDate } from '../utils/date.utils.js';
 
 const MAX_RELATIVES = 5;
 
@@ -8,7 +9,7 @@ export const getRelatives = async (studentId) => {
   return rels.map(r => ({
     id: r.id, name: r.name, phone: r.phone,
     relationship: r.relationship,
-    created_at: r.created_at ? String(r.created_at) : null,
+    created_at: formatDate(r.created_at),
   }));
 };
 

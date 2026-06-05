@@ -3,6 +3,7 @@ import { FiX, FiLoader, FiUser, FiMail, FiPhone, FiCalendar, FiAtSign } from 're
 import { getProfile, updateProfile } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
+import { parseDateToInput } from '../../utils/date';
 
 function Field({ label, icon: Icon, children }) {
   return (
@@ -33,7 +34,7 @@ export default function ProfileModal({ onClose }) {
         const d = res || {};
         setUsername(d.username || '');
         setFullName(d.fullName || '');
-        setDob(d.dob || '');
+        setDob(parseDateToInput(d.dob));
         setEmail(d.email || '');
         setPhone(d.phone || '');
       })

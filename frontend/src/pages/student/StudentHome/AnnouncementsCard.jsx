@@ -14,7 +14,7 @@ export default function AnnouncementsCard({ announcements }) {
           <div key={a.id} className="p-3 rounded-xl bg-indigo-50/60 border border-indigo-100">
             <p className="text-sm font-semibold text-slate-900">{a.title}</p>
             <p className="text-sm text-slate-600 mt-0.5 leading-relaxed">{a.content}</p>
-            <p className="text-xs text-slate-400 mt-1">{new Date(a.createdAt).toLocaleDateString('vi-VN')}</p>
+            <p className="text-xs text-slate-400 mt-1">{a.createdAt}</p>
           </div>
         ))}
       </div>

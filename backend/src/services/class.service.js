@@ -1,6 +1,7 @@
 import * as classRepo from '../repositories/class.repository.js';
 import * as examRepo from '../repositories/exam.repository.js';
 import { NotFoundError, ConflictError } from '../utils/error.utils.js';
+import { formatDate, formatDateTime } from '../utils/date.utils.js';
 
 export const getTeacherClasses = async (teacherId, page = 1, limit = 12) => {
   const result = await classRepo.findByTeacherWithStats(teacherId, page, limit);
@@ -30,7 +31,7 @@ export const getClassDetail = async (classId, studentPage = 1, studentLimit = 15
       id: s.id,
       username: s.username,
       fullName: s.full_name,
-      dob: s.dob ? String(s.dob) : null,
+      dob: formatDate(s.dob),
       avgScore: s.avg_score != null ? Number(s.avg_score) : null,
     })),
     studentPage: paged.page,
@@ -61,9 +62,9 @@ export const getClassExams = async (classId, teacherId) => {
   const rows = await classRepo.findClassExamsByClass(classId);
   return rows.map(r => ({
     ...r,
-    deadline: r.deadline ? String(r.deadline) : null,
-    assigned_at: r.assigned_at ? String(r.assigned_at) : null,
-    open_time: r.open_time ? String(r.open_time) : null,
+    deadline: formatDateTime(r.deadline),
+    assigned_at: formatDateTime(r.assigned_at),
+    open_time: formatDateTime(r.open_time),
     time_limit: r.time_limit != null ? parseInt(r.time_limit) : null,
   }));
 };
@@ -112,7 +113,7 @@ export const getAnnouncements = async (classId) => {
   const rows = await classRepo.findAnnouncementsByClass(classId);
   return rows.map(a => ({
     id: a.id, title: a.title, content: a.content,
-    created_at: a.created_at ? String(a.created_at) : null,
+    created_at: formatDate(a.created_at),
   }));
 };
 

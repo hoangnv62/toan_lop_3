@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
-import { uploadStudents } from '../../../api/classService';
+import { uploadStudents, downloadSampleStudentsExcel } from '../../../api/classService';
 import { toast } from 'react-toastify';
-import { FiUpload } from 'react-icons/fi';
+import { FiUpload, FiDownload } from 'react-icons/fi';
 
 export default function ImportCard({ classId, onUploaded }) {
   const [file, setFile] = useState(null);
@@ -26,9 +26,15 @@ export default function ImportCard({ classId, onUploaded }) {
         <FiUpload size={15} className="text-indigo-600" />
         <h3 className="text-sm font-semibold text-slate-900">Import từ Excel</h3>
       </div>
-      <p className="text-xs text-slate-400 mb-3">
+      <p className="text-xs text-slate-400 mb-1">
         File cần có cột <code className="bg-slate-100 px-1 rounded text-slate-600">username</code>
       </p>
+      <button
+        className="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1 mb-3"
+        onClick={async () => { try { await downloadSampleStudentsExcel(); } catch { toast.error('Tải file mẫu thất bại'); } }}
+      >
+        <FiDownload size={12} /> Tải file mẫu
+      </button>
       <div className="space-y-2">
         <input
           ref={fileRef}

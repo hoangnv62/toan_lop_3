@@ -1,5 +1,6 @@
 import XLSX from 'xlsx';
 import * as svc from '../services/exam.service.js';
+import { formatDateTime } from '../utils/date.utils.js';
 
 export const getExam = async (req, res) => {
   const studentId = req.user.role === 'student' ? req.user.user_id : null;
@@ -57,7 +58,7 @@ export const exportExamResults = async (req, res) => {
     wsData.push([i + 1, row.full_name, row.username,
       parseFloat(row.score || 0), parseInt(row.correct_count || 0),
       parseInt(row.total_questions || 0), parseInt(row.time_spent || 0),
-      row.submitted_at ? String(row.submitted_at) : '']);
+      formatDateTime(row.submitted_at) ?? '']);
   });
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -81,6 +82,20 @@ export const exportExamPdf = async (req, res) => {
 
 export const getExamStats = async (req, res) => {
   res.json({ success: true, data: await svc.getStats(parseInt(req.params.id)) });
+};
+
+export const getClassResults = async (req, res) => {
+  const { examName, rows } = await svc.exportResults(parseInt(req.params.id));
+  const data = rows.map(r => ({
+    fullName: r.full_name,
+    username: r.username,
+    score: parseFloat(r.score || 0),
+    correctCount: parseInt(r.correct_count || 0),
+    totalQuestions: parseInt(r.total_questions || 0),
+    timeSpent: parseInt(r.time_spent || 0),
+    submittedAt: formatDateTime(r.submitted_at),
+  }));
+  res.json({ success: true, data: { examName, results: data } });
 };
 
 export const aiExamFeedback = async (req, res) => {

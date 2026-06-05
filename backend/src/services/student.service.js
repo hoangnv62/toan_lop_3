@@ -3,13 +3,14 @@ import * as userRepo from '../repositories/user.repository.js';
 import * as classRepo from '../repositories/class.repository.js';
 import * as studentRepo from '../repositories/student.repository.js';
 import { NotFoundError, ConflictError } from '../utils/error.utils.js';
+import { formatDate, formatDateTime } from '../utils/date.utils.js';
 
 export const searchStudents = async (q, classId = null) => {
   const students = await userRepo.searchStudents(q);
   return students.map(s => ({
     ...s,
     already_in_class: classId != null && s.class_id === classId,
-    dob: s.dob ? String(s.dob).split('T')[0] : null,
+    dob: formatDate(s.dob),
   }));
 };
 
@@ -53,6 +54,17 @@ export const uploadStudents = async (classId, teacherId, fileBuffer) => {
   return { count: successCount, errors };
 };
 
+export const generateSampleExcel = () => {
+  const rows = [
+    { username: 'hocsinh01' },
+    { username: 'hocsinh02' },
+  ];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+  return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+};
+
 export const removeFromClass = async (classId, teacherId, studentId) => {
   if (!await classRepo.findByIdAndTeacher(classId, teacherId)) throw new NotFoundError('Lớp không tồn tại');
   const student = await userRepo.findById(studentId);
@@ -68,7 +80,7 @@ export const getStudentResults = async (studentId) => {
     studentName: student.full_name,
     results: results.map(r => ({
       ...r,
-      submittedAt: r.submittedAt ? String(r.submittedAt) : null,
+      submittedAt: formatDateTime(r.submittedAt),
       score: r.score != null ? parseFloat(r.score) : null,
     })),
   };
@@ -78,7 +90,7 @@ export const getStudentProgress = async (studentId) => {
   const rows = await studentRepo.getProgress(studentId);
   return rows.map(r => ({
     ...r,
-    submittedAt: r.submittedAt ? String(r.submittedAt) : null,
+    submittedAt: formatDateTime(r.submittedAt),
     score: parseFloat(r.score || 0),
   }));
 };
@@ -101,7 +113,7 @@ export const getStudentDashboard = async (studentId, showAll, dateFrom = null, d
   const announcements = await studentRepo.getAnnouncementsForStudent(studentId);
   const announcementsFormatted = announcements.map(a => ({
     ...a,
-    created_at: a.created_at ? String(a.created_at) : null,
+    created_at: formatDate(a.created_at),
   }));
 
   const exams = [];
@@ -115,8 +127,8 @@ export const getStudentDashboard = async (studentId, showAll, dateFrom = null, d
     exams.push({
       examId: r.exam_id, examName: r.exam_name, lessonTitle: r.lesson_name,
       done, score,
-      deadline: r.deadline ? String(r.deadline) : null,
-      openTime: r.open_time ? String(r.open_time) : null,
+      deadline: formatDateTime(r.deadline),
+      openTime: formatDateTime(r.open_time),
     });
     if (done && score != null) {
       scores.push({ examName: r.exam_name, score, _created_at: r.exam_created_at });

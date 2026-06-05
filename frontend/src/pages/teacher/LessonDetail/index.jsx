@@ -10,12 +10,6 @@ import AssignExamModal from './AssignExamModal';
 import ExamStatsModal from './ExamStatsModal';
 import ExportPdfModal from './ExportPdfModal';
 
-function formatDate(str) {
-  if (!str) return '--';
-  const d = new Date(str);
-  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
-}
-
 export default function LessonDetail() {
   const { lessonId } = useParams();
   const [lesson, setLesson]           = useState(null);
@@ -110,7 +104,7 @@ export default function LessonDetail() {
                 </div>
                 <div>
                   <p className="font-semibold text-slate-900">{exam.name}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{formatDate(exam.dateCreated)}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{exam.dateCreated || '--'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">

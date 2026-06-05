@@ -3,10 +3,10 @@ import { FiX, FiLoader, FiSend, FiClock, FiEdit2 } from 'react-icons/fi';
 import { getExamAssignments } from '../../../api/examService';
 import { assignExam, unassignExam, updateExamAssignment } from '../../../api/classService';
 import { toast } from 'react-toastify';
+import { parseDateTimeToLocal } from '../../../utils/date';
 
-function toDatetimeLocal(isoStr) {
-  if (!isoStr) return '';
-  return new Date(isoStr).toISOString().slice(0, 16);
+function toDatetimeLocal(str) {
+  return parseDateTimeToLocal(str);
 }
 
 export default function AssignExamModal({ exam, onClose }) {

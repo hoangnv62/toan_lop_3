@@ -14,6 +14,7 @@ router.post('/:id/clone', asyncHandler(ctrl.cloneExam));
 router.post('/:id/submit', validateSubmitExam, asyncHandler(ctrl.submitExam));
 router.get('/:id/result', asyncHandler(ctrl.getExamResult));
 router.get('/:id/stats', asyncHandler(ctrl.getExamStats));
+router.get('/:id/class-results', asyncHandler(ctrl.getClassResults));
 router.get('/:id/export', asyncHandler(ctrl.exportExamResults));
 router.get('/:id/export-pdf', asyncHandler(ctrl.exportExamPdf));
 router.get('/:id/submissions/:studentId', asyncHandler(ctrl.getStudentSubmission));

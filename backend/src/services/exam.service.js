@@ -3,6 +3,7 @@ import * as classRepo from '../repositories/class.repository.js';
 import { NotFoundError, ConflictError, ForbiddenError } from '../utils/error.utils.js';
 import { generateJSON } from '../utils/ai.js';
 import { buildExamPdf } from './pdf.service.js';
+import { formatDate, formatDateTime } from '../utils/date.utils.js';
 
 export const getExam = async (examId, studentId = null) => {
   const exam = await examRepo.findWithQuestions(examId);
@@ -15,7 +16,7 @@ export const getExam = async (examId, studentId = null) => {
   return {
     name: exam.name,
     description: exam.description,
-    dateCreated: exam.date_created ? String(exam.date_created) : null,
+    dateCreated: formatDate(exam.date_created),
     timeLimit,
     questions: exam.questions.map(q => ({
       questionId: q.id,
@@ -35,9 +36,9 @@ export const getAssignments = async (examId, teacherId) => {
   return rows.map(r => ({
     ...r,
     assigned: Boolean(r.assigned),
-    deadline: r.deadline ? String(r.deadline) : null,
-    assigned_at: r.assigned_at ? String(r.assigned_at) : null,
-    open_time: r.open_time ? String(r.open_time) : null,
+    deadline: formatDateTime(r.deadline),
+    assigned_at: formatDateTime(r.assigned_at),
+    open_time: formatDateTime(r.open_time),
     time_limit: r.time_limit != null ? parseInt(r.time_limit) : null,
   }));
 };

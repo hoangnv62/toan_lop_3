@@ -1,5 +1,12 @@
 import * as svc from '../services/student.service.js';
 
+export const downloadSampleStudents = async (req, res) => {
+  const buffer = svc.generateSampleExcel();
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="mau_import_hocsinh.xlsx"');
+  res.send(buffer);
+};
+
 export const searchStudents = async (req, res) => {
   const q = (req.query.q || '').trim();
   const classId = req.query.classId ? parseInt(req.query.classId) : null;

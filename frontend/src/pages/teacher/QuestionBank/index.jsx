@@ -103,12 +103,6 @@ export default function QuestionBank() {
     return lessons.find(l => l.id === lessonId)?.title ?? null;
   }
 
-  function formatDate(str) {
-    if (!str) return '--';
-    const d = new Date(str);
-    return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
-  }
-
   const importLessonLabel = selectedLesson && selectedLesson !== 0
     ? `Import vào: ${getLessonName(selectedLesson) ?? 'chủ đề đã chọn'}`
     : 'Import (chưa phân loại)';
@@ -202,7 +196,7 @@ export default function QuestionBank() {
                       {lessonName
                         ? <span className="badge-green text-xs">{lessonName}</span>
                         : <span className="badge-gray text-xs">Chưa phân loại</span>}
-                      <span className="text-xs text-slate-400">{formatDate(q.createdAt)}</span>
+                      <span className="text-xs text-slate-400">{q.createdAt || '--'}</span>
                       {q.explanation && (
                         <span className="text-xs text-slate-400 truncate max-w-[200px]" title={q.explanation}>
                           Giải thích: {q.explanation}

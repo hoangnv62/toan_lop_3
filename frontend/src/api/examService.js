@@ -11,6 +11,7 @@ export const submitExam = (examId, payload) =>
   apiFetch(`/api/exams/${examId}/submit`, { method: 'POST', body: JSON.stringify(payload) });
 export const getExamResult = (examId) => apiFetch(`/api/exams/${examId}/result`);
 export const getExamStats       = (examId) => apiFetch(`/api/exams/${examId}/stats`);
+export const getClassResults    = (examId) => apiFetch(`/api/exams/${examId}/class-results`);
 export const getAiExamFeedback  = (examId) => apiFetch(`/api/exams/${examId}/ai-feedback`, { method: 'POST' });
 export const getAiStatsAnalysis = (examId) => apiFetch(`/api/exams/${examId}/ai-analysis`, { method: 'POST' });
 export const getStudentSubmission  = (examId, studentId) =>

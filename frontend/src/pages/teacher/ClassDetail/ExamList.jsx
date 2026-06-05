@@ -1,26 +1,29 @@
 import { useState, useEffect } from 'react';
-import { FiFileText, FiClock, FiDownload, FiLoader, FiX, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import { FiFileText, FiClock, FiDownload, FiLoader, FiX, FiCheckCircle, FiAlertCircle, FiUsers } from 'react-icons/fi';
 import Pagination from '../../../components/Pagination';
+import { parseDateTime } from '../../../utils/date';
+import ClassResultsModal from '../../../components/shared/ClassResultsModal';
+import { FaChartBar } from "react-icons/fa";
 
 const LIMIT = 10;
 
 function deadlineInfo(deadlineStr) {
   if (!deadlineStr) return null;
   const now      = new Date();
-  const deadline = new Date(deadlineStr);
+  const deadline = parseDateTime(deadlineStr);
+  if (!deadline) return null;
   const diffMs   = deadline - now;
   const diffH    = diffMs / 36e5;
-  const d = deadline;
-  const label = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 
-  if (diffMs < 0)   return { label, cls: 'text-red-500',   bg: 'bg-red-50',   icon: <FiAlertCircle size={11} />, note: 'Đã hết hạn' };
-  if (diffH < 24)   return { label, cls: 'text-amber-600', bg: 'bg-amber-50', icon: <FiClock size={11} />,       note: 'Sắp hết hạn' };
-  if (diffH < 72)   return { label, cls: 'text-amber-500', bg: 'bg-amber-50', icon: <FiClock size={11} />,       note: null };
-  return               { label, cls: 'text-slate-400',   bg: 'bg-slate-50',  icon: <FiClock size={11} />,       note: null };
+  if (diffMs < 0)   return { label: deadlineStr, cls: 'text-red-500',   bg: 'bg-red-50',   icon: <FiAlertCircle size={11} />, note: 'Đã hết hạn' };
+  if (diffH < 24)   return { label: deadlineStr, cls: 'text-amber-600', bg: 'bg-amber-50', icon: <FiClock size={11} />,       note: 'Sắp hết hạn' };
+  if (diffH < 72)   return { label: deadlineStr, cls: 'text-amber-500', bg: 'bg-amber-50', icon: <FiClock size={11} />,       note: null };
+  return               { label: deadlineStr, cls: 'text-slate-400',   bg: 'bg-slate-50',  icon: <FiClock size={11} />,       note: null };
 }
 
 export default function ExamList({ exams, exportingId, onExport, onUnassign }) {
-  const [page, setPage] = useState(1);
+  const [page, setPage]           = useState(1);
+  const [classModal, setClassModal] = useState(null);
 
   const pages        = Math.max(1, Math.ceil(exams.length / LIMIT));
   const paged        = exams.slice((page - 1) * LIMIT, page * LIMIT);
@@ -31,6 +34,9 @@ export default function ExamList({ exams, exportingId, onExport, onUnassign }) {
 
   return (
     <div className="card">
+      {classModal && (
+        <ClassResultsModal exam={classModal} onClose={() => setClassModal(null)} />
+      )}
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -84,6 +90,12 @@ export default function ExamList({ exams, exportingId, onExport, onUnassign }) {
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <button
+                        title="Xem kết quả cả lớp"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                        onClick={() => setClassModal(ae)}>
+                        <FaChartBar size={14} />
+                      </button>
+                      <button
                         title="Xuất Excel"
                         className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                         disabled={exportingId === ae.examId}
@@ -93,7 +105,7 @@ export default function ExamList({ exams, exportingId, onExport, onUnassign }) {
                           : <FiDownload size={14} />}
                       </button>
                       <button
-                        title="Thu hồi  bài tập"
+                        title="Thu hồi bài tập"
                         className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                         onClick={() => onUnassign(ae.examId)}>
                         <FiX size={14} />

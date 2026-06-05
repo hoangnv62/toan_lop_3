@@ -29,6 +29,7 @@ router.delete('/:id/exams/:examId', asyncHandler(ctrl.unassignExam));
 
 router.get('/:id/students', asyncHandler(ctrl.getStudentsWithScores));
 router.get('/:id/students/export', asyncHandler(ctrl.exportStudents));
+router.get('/students/sample-excel', asyncHandler(studentCtrl.downloadSampleStudents));
 router.post('/:classId/students', validateAddStudent, asyncHandler(studentCtrl.addToClass));
 router.post('/:classId/students/upload', upload.single('file'), asyncHandler(studentCtrl.uploadStudents));
 router.delete('/:classId/students/:studentId', asyncHandler(studentCtrl.removeFromClass));

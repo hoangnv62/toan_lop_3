@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { FiClock } from 'react-icons/fi';
+import { parseDateTime } from '../../../utils/date';
 
 export default function ExamList({ exams, viewAll = false }) {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export default function ExamList({ exams, viewAll = false }) {
       ) : (
         <div className="space-y-2">
           {exams.map(exam => {
-            const isPastDeadline = exam.deadline && new Date(exam.deadline) < new Date();
+            const isPastDeadline = exam.deadline && parseDateTime(exam.deadline) < new Date();
             return (
               <div key={exam.examId}
                 className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
@@ -25,7 +26,7 @@ export default function ExamList({ exams, viewAll = false }) {
                     <p className={`text-xs mt-0.5 flex items-center gap-1 ${isPastDeadline ? 'text-red-500' : 'text-amber-600'}`}>
                       <FiClock size={10} />
                       {isPastDeadline ? 'Hết hạn: ' : 'Hạn: '}
-                      {new Date(exam.deadline).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
+                      {exam.deadline}
                     </p>
                   )}
                 </div>
