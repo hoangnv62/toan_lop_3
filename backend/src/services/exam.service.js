@@ -1,5 +1,6 @@
 import * as examRepo from '../repositories/exam.repository.js';
 import * as classRepo from '../repositories/class.repository.js';
+import * as lessonRepo from '../repositories/lesson.repository.js';
 import {NotFoundError, ConflictError, ForbiddenError} from '../utils/error.utils.js';
 import {generateJSON} from '../utils/llm.utils.js';
 import {buildExamPdf} from './pdf.service.js';
@@ -45,6 +46,18 @@ export const getAssignments = async (examId, teacherId) => {
 
 export const createExam = async (lessonId, name, description, questions) => {
     return examRepo.createExam(lessonId, name, description, questions);
+};
+
+export const createExamForTeacher = async (teacherId, lessonId, name, description, questions) => {
+    const lesson = await lessonRepo.findById(lessonId);
+    if (!lesson || lesson.teacher_id !== teacherId) throw new ForbiddenError('Bài học không thuộc quyền quản lý của bạn');
+    return examRepo.createExam(lessonId, name, description, questions);
+};
+
+export const getStatsForTeacher = async (examId, teacherId) => {
+    const exam = await examRepo.findByIdWithTeacher(examId, teacherId);
+    if (!exam) throw new NotFoundError('Đề thi không tồn tại hoặc không thuộc quyền quản lý của bạn');
+    return getStats(examId);
 };
 
 export const updateExam = async (examId, lessonId, name, description, questions) => {

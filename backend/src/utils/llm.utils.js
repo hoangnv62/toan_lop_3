@@ -19,6 +19,16 @@ export const streamChat = async (messages, model = DEFAULT_MODEL) => {
   });
 };
 
+export const chatCompletion = async (messages, tools = null, model = DEFAULT_MODEL) => {
+  const params = { model, messages, temperature: 0.3 };
+  if (tools?.length) {
+    params.tools = tools;
+    params.tool_choice = 'auto';
+  }
+  const response = await client.chat.completions.create(params);
+  return response.choices[0].message;
+};
+
 export const generateJSON = async (prompt, model = DEFAULT_MODEL) => {
   const response = await client.chat.completions.create({
     model,

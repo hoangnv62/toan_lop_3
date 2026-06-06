@@ -3,6 +3,14 @@ import { query, queryOne, insert, transaction } from '../config/database.js';
 export const findById = (examId) =>
   queryOne('SELECT * FROM exams WHERE id = :id', { id: examId });
 
+export const findByIdWithTeacher = (examId, teacherId) =>
+  queryOne(
+    `SELECT e.* FROM exams e
+     JOIN lessons l ON e.lesson_id = l.id
+     WHERE e.id = :examId AND l.teacher_id = :teacherId`,
+    { examId, teacherId }
+  );
+
 export const findWithQuestions = async (examId) => {
   const exam = await queryOne('SELECT * FROM exams WHERE id = :id', { id: examId });
   if (!exam) return null;

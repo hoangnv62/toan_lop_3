@@ -1,7 +1,7 @@
 import XLSX from 'xlsx';
 import * as qbRepo from '../repositories/question-bank.repository.js';
 import { importFromExcel as parseExcel } from './question.service.js';
-import { NotFoundError, ForbiddenError } from '../utils/error.utils.js';
+import { NotFoundError, ForbiddenError, BadRequestError } from '../utils/error.utils.js';
 
 export const listQuestions = async (teacherId, q = '', page = 1, limit = 10, lessonId = undefined) => {
   return qbRepo.findByTeacher(teacherId, q, page, limit, lessonId);
@@ -34,6 +34,16 @@ export const generateSampleExcel = () => {
   const ws = XLSX.utils.json_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+};
+
+export const saveBatch = async (teacherId, questions, lessonId = null) => {
+  if (!questions?.length) throw new BadRequestError('Không có câu hỏi nào để lưu');
+  const questionsData = questions.map(q => ({
+    questionContent: q.content,
+    explanation: q.explanation || null,
+    answers: q.answers.map(a => ({ content: a.content, isCorrected: a.isCorrect })),
+  }));
+  return qbRepo.bulkCreate(teacherId, questionsData, lessonId ?? null);
 };
 
 export const importQuestionsFromExcel = async (teacherId, fileBuffer, lessonId = null) => {

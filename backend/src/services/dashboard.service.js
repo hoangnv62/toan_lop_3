@@ -1,5 +1,6 @@
 import {query, queryOne} from '../config/database.js';
 import {generateJSON} from '../utils/llm.utils.js';
+import { ForbiddenError } from '../utils/error.utils.js';
 
 export const getTeacherDashboard = async (teacherId) => {
     const summary = await queryOne(
@@ -81,6 +82,67 @@ export const getTeacherDashboard = async (teacherId) => {
         topStudents: scoreRows.slice(0, 5),
         classAvgScores,
     };
+};
+
+export const getStatsByTeacher = async (teacherId, classId = null) => {
+  if (classId) {
+    const cls = await queryOne(
+      'SELECT id FROM classes WHERE id = :classId AND teacher_id = :tid',
+      { classId, tid: teacherId }
+    );
+    if (!cls) throw new ForbiddenError('Lớp không thuộc quyền quản lý của bạn');
+  }
+
+  const classFilter = classId ? 'AND u.class_id = :classId' : '';
+  const params = { tid: teacherId, classId: classId ?? null };
+
+  const scoreRows = await query(
+    `SELECT sa.student_id, u.full_name,
+       ROUND(SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END)*10.0/NULLIF(COUNT(DISTINCT q.id),0), 1) AS avgScore
+     FROM student_answers sa
+     JOIN answers a ON sa.answer_id=a.id
+     JOIN questions q ON a.question_id=q.id
+     JOIN exams e ON sa.exam_id=e.id
+     JOIN lessons l ON e.lesson_id=l.id
+     JOIN users u ON u.id=sa.student_id
+     WHERE l.teacher_id=:tid ${classFilter}
+     GROUP BY sa.student_id`,
+    params
+  );
+
+  const totalRow = await queryOne(
+    `SELECT COUNT(*) AS total FROM users u
+     JOIN classes c ON u.class_id=c.id
+     WHERE c.teacher_id=:tid AND u.role='student' ${classId ? 'AND c.id=:classId' : ''}`,
+    params
+  );
+
+  const total = Number(totalRow?.total || 0);
+  const submitted = scoreRows.length;
+  const avgScore = submitted > 0
+    ? Math.round(scoreRows.reduce((s, r) => s + parseFloat(r.avgScore || 0), 0) / submitted * 10) / 10
+    : 0;
+
+  const dist = { '0-4': 0, '4-6': 0, '6-8': 0, '8-10': 0 };
+  for (const r of scoreRows) {
+    const v = parseFloat(r.avgScore || 0);
+    if (v < 4) dist['0-4']++;
+    else if (v < 6) dist['4-6']++;
+    else if (v < 8) dist['6-8']++;
+    else dist['8-10']++;
+  }
+
+  return {
+    totalStudents: total,
+    studentsSubmitted: submitted,
+    completionRate: total > 0 ? `${Math.round(submitted / total * 100)}%` : '0%',
+    avgScore,
+    scoreDistribution: dist,
+    studentsNeedAttention: scoreRows
+      .filter(r => parseFloat(r.avgScore) < 5)
+      .map(r => ({ name: r.full_name, avgScore: parseFloat(r.avgScore) }))
+      .slice(0, 5),
+  };
 };
 
 export const getAiAdvice = async (avg, totalStudents, dist) => {

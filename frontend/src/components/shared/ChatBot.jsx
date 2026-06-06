@@ -23,10 +23,11 @@ const WELCOME_TEACHER = 'Xin chào thầy/cô! Tôi là trợ lý giảng dạy 
 export default function ChatBot() {
   const { user } = useAuth();
   const welcome = user?.role === 'teacher' ? WELCOME_TEACHER : WELCOME_STUDENT;
-  const [open, setOpen]       = useState(false);
+  const [open, setOpen]         = useState(false);
   const [messages, setMessages] = useState([{ role: 'assistant', content: welcome }]);
-  const [input, setInput]     = useState('');
-  const [loading, setLoading] = useState(false);
+  const [input, setInput]       = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [toolLabel, setToolLabel] = useState(null);
   const bottomRef             = useRef(null);
   const inputRef              = useRef(null);
 
@@ -54,7 +55,6 @@ export default function ChatBot() {
     try {
       await streamChat(
         history.slice(1),
-        user?.role,
         (token) => {
           setMessages(prev => {
             const updated = [...prev];
@@ -65,7 +65,9 @@ export default function ChatBot() {
             return updated;
           });
         },
-        () => setLoading(false),
+        () => { setLoading(false); setToolLabel(null); },
+        (data) => setToolLabel(data.label),
+        () => setToolLabel(null),
       );
     } catch {
       setMessages(prev => {
@@ -132,13 +134,22 @@ export default function ChatBot() {
           );
         })}
         {loading && messages[messages.length - 1]?.content === '' && (
-          <div className="flex justify-start">
-            <div className="bg-slate-100 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          toolLabel ? (
+            <div className="flex justify-start">
+              <div className="bg-indigo-50 border border-indigo-100 rounded-2xl rounded-bl-sm px-4 py-2.5 flex items-center gap-2 text-sm text-indigo-600">
+                <FiLoader size={13} className="animate-spin shrink-0" />
+                <span>{toolLabel}</span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex justify-start">
+              <div className="bg-slate-100 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          )
         )}
         <div ref={bottomRef} />
       </div>
