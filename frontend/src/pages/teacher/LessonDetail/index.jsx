@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import TeacherLayout from '../../../components/TeacherLayout';
+import TeacherLayout from '../../../layouts/TeacherLayout';
 import { fetchLesson } from '../../../api/lessonService';
 import { fetchExam, deleteExam, cloneExam } from '../../../api/examService';
 import { toast } from 'react-toastify';

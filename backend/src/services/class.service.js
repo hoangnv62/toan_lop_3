@@ -1,7 +1,9 @@
 import * as classRepo from '../repositories/class.repository.js';
 import * as examRepo from '../repositories/exam.repository.js';
+import * as relativeRepo from '../repositories/relative.repository.js';
 import { NotFoundError, ConflictError } from '../utils/error.utils.js';
 import { formatDate, formatDateTime } from '../utils/date.utils.js';
+import { sendAnnouncementEmail } from '../utils/email.utils.js';
 
 export const getTeacherClasses = async (teacherId, page = 1, limit = 12) => {
   const result = await classRepo.findByTeacherWithStats(teacherId, page, limit);
@@ -119,7 +121,28 @@ export const getAnnouncements = async (classId) => {
 
 export const createAnnouncement = async (classId, teacherId, title, content) => {
   if (!await classRepo.findByIdAndTeacher(classId, teacherId)) throw new NotFoundError('Lớp không tồn tại');
-  return classRepo.createAnnouncement(classId, teacherId, title, content);
+  const id = await classRepo.createAnnouncement(classId, teacherId, title, content);
+
+  // Fire-and-forget — không await, không block response
+  (async () => {
+    try {
+      const [classInfo, recipients] = await Promise.all([
+        classRepo.getClassInfo(classId),
+        relativeRepo.getEmailsByClassId(classId),
+      ]);
+      for (const r of recipients) {
+        await sendAnnouncementEmail(
+          r.email, r.relative_name, r.student_name,
+          classInfo.class_name, classInfo.teacher_name,
+          title, content
+        );
+      }
+    } catch (err) {
+      console.error('[Email] Lỗi gửi email thông báo:', err.message);
+    }
+  })();
+
+  return id;
 };
 
 export const deleteAnnouncement = async (annId, teacherId) => {

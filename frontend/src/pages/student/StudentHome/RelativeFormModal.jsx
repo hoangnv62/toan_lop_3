@@ -6,6 +6,7 @@ const RELATIONSHIPS = ['Bố', 'Mẹ', 'Ông', 'Bà', 'Anh', 'Chị', 'Chú', 'B
 export default function RelativeFormModal({ initial, onClose, onSubmit, loading }) {
   const [name, setName]             = useState(initial?.name || '');
   const [phone, setPhone]           = useState(initial?.phone || '');
+  const [email, setEmail]           = useState(initial?.email || '');
   const [relationship, setRelationship] = useState(initial?.relationship || '');
 
   return (
@@ -33,6 +34,13 @@ export default function RelativeFormModal({ initial, onClose, onSubmit, loading 
               onChange={e => setPhone(e.target.value)} />
           </div>
           <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Email <span className="text-slate-400 font-normal text-xs">(tuỳ chọn — nhận thông báo lớp)</span>
+            </label>
+            <input className="input" type="email" placeholder="email@gmail.com" value={email}
+              onChange={e => setEmail(e.target.value)} />
+          </div>
+          <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Quan hệ</label>
             <select className="input" value={relationship} onChange={e => setRelationship(e.target.value)}>
               <option value="">-- Chọn quan hệ --</option>
@@ -43,7 +51,7 @@ export default function RelativeFormModal({ initial, onClose, onSubmit, loading 
         <div className="flex gap-3">
           <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
           <button className="btn-primary flex-1" disabled={loading}
-            onClick={() => onSubmit({ name, phone, relationship })}>
+            onClick={() => onSubmit({ name, phone, email: email.trim() || null, relationship })}>
             {loading ? 'Đang lưu...' : (initial ? 'Cập nhật' : 'Thêm')}
           </button>
         </div>

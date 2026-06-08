@@ -4,7 +4,7 @@ import { UnauthorizedError } from '../utils/error.utils.js';
 
 export const generateToken = (userId, role, name) => {
   return jwt.sign(
-    { user_id: userId, role, name },
+    { id: userId, role, name },
     env.SECRET_KEY,
     { expiresIn: env.JWT_EXPIRES_IN }
   );

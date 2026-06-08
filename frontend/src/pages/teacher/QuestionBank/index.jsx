@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import TeacherLayout from '../../../components/TeacherLayout';
+import TeacherLayout from '../../../layouts/TeacherLayout';
+import { useDebounce } from '../../../hooks/useDebounce';
 import { getQuestionBank, deleteBankQuestion, importQuestionBankFromExcel, downloadSampleQuestionBank } from '../../../api/questionBankService';
 import { fetchLessons } from '../../../api/lessonService';
 import { toast } from 'react-toastify';
@@ -22,8 +23,8 @@ export default function QuestionBank() {
   const [lessons, setLessons]               = useState([]);
   const [selectedLesson, setSelectedLesson] = useState(null);
   const fileInputRef = useRef();
-  const debounceRef  = useRef();
-  const isMountedRef = useRef(false);
+  const isInitialMount = useRef(true);
+  const debouncedQuery = useDebounce(query, 400);
 
   useEffect(() => {
     fetchLessons('', 1, 100)
@@ -31,18 +32,13 @@ export default function QuestionBank() {
       .catch(() => {});
   }, []);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(query, page, selectedLesson); }, [page]);
+  useEffect(() => { load(debouncedQuery, page, selectedLesson); }, [page]); // eslint-disable-line
 
   useEffect(() => {
-    if (!isMountedRef.current) { isMountedRef.current = true; return; }
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setPage(1);
-      load(query, 1, selectedLesson);
-    }, 400);
-    return () => clearTimeout(debounceRef.current);
-  }, [query]);
+    if (isInitialMount.current) { isInitialMount.current = false; return; }
+    setPage(1);
+    load(debouncedQuery, 1, selectedLesson);
+  }, [debouncedQuery]); // eslint-disable-line
 
   function handleLessonChange(val) {
     setSelectedLesson(val);
@@ -71,7 +67,7 @@ export default function QuestionBank() {
       toast.success('Đã xóa câu hỏi');
       const newPage = questions.length === 1 && page > 1 ? page - 1 : page;
       setPage(newPage);
-      if (newPage === page) load(query, page, selectedLesson);
+      if (newPage === page) load(debouncedQuery, page, selectedLesson);
     } catch (err) {
       toast.error(err.message || 'Xóa thất bại');
     } finally { setDeleting(null); }
@@ -89,7 +85,7 @@ export default function QuestionBank() {
       if (imported > 0) {
         toast.success(`Đã import ${imported} câu hỏi`);
         setPage(1);
-        load(query, 1, selectedLesson);
+        load(debouncedQuery, 1, selectedLesson);
       }
       if (errors?.length) errors.forEach(err => toast.error(err, { autoClose: 6000 }));
       if (imported === 0 && !errors?.length) toast.warning('File không có câu hỏi hợp lệ');

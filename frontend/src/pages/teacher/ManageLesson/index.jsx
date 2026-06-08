@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import TeacherLayout from '../../../components/TeacherLayout';
+import TeacherLayout from '../../../layouts/TeacherLayout';
+import { useDebounce } from '../../../hooks/useDebounce';
 import { fetchLessons, createLesson, updateLesson } from '../../../api/lessonService';
 import { toast } from 'react-toastify';
 import { FiSearch, FiPlus, FiEdit2, FiTrash2, FiArrowRight, FiBook, FiLoader } from 'react-icons/fi';
@@ -20,19 +21,17 @@ export default function ManageLesson() {
   const [editLesson, setEditLesson]   = useState(null);
   const [editLoading, setEditLoading] = useState(false);
   const [deleteLesson_, setDeleteLesson] = useState(null);
-  const debounceRef = useRef();
   const navigate = useNavigate();
+  const debouncedQuery = useDebounce(query, 500);
+  const isInitialMount = useRef(true);
 
-  useEffect(() => { load(query, page); }, [page]);
+  useEffect(() => { load(debouncedQuery, page); }, [page]); // eslint-disable-line
 
   useEffect(() => {
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setPage(1);
-      load(query, 1);
-    }, 1000);
-    return () => clearTimeout(debounceRef.current);
-  }, [query]);
+    if (isInitialMount.current) { isInitialMount.current = false; return; }
+    setPage(1);
+    load(debouncedQuery, 1);
+  }, [debouncedQuery]); // eslint-disable-line
 
   async function load(q, p) {
     setLoading(true);

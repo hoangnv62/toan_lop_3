@@ -19,6 +19,9 @@ import { handler as createExamHandler } from './create-exam/handler.js';
 import { definition as examStatsDef } from './get-exam-stats/definition.js';
 import { handler as examStatsHandler } from './get-exam-stats/handler.js';
 
+import { definition as assignExamDef } from './assign-exam/definition.js';
+import { handler as assignExamHandler } from './assign-exam/handler.js';
+
 export const TEACHER_TOOLS = [
   searchDef,
   saveDef,
@@ -27,6 +30,7 @@ export const TEACHER_TOOLS = [
   classesDef,
   createExamDef,
   examStatsDef,
+  assignExamDef,
 ];
 
 export const TOOL_LABELS = {
@@ -37,6 +41,7 @@ export const TOOL_LABELS = {
   get_classes:            'Đang lấy danh sách lớp học...',
   create_exam:            'Đang tạo đề thi...',
   get_exam_stats:         'Đang lấy thống kê đề thi...',
+  assign_exam_to_class:   'Đang giao bài tập cho lớp...',
 };
 
 export const toolRegistry = {
@@ -47,4 +52,5 @@ export const toolRegistry = {
   get_classes:            classesHandler,
   create_exam:            createExamHandler,
   get_exam_stats:         examStatsHandler,
+  assign_exam_to_class:   assignExamHandler,
 };

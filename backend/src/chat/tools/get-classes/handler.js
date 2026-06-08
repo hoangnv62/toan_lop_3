@@ -1,7 +1,7 @@
 import * as classService from '../../../services/class.service.js';
 
 export const handler = async (_args, user) => {
-  const result = await classService.getTeacherClasses(user.user_id, 1, 50);
+  const result = await classService.getTeacherClasses(user.id, 1, 50);
 
   const classes = result.items.map(r => ({
     classId:       r.classId,
@@ -16,6 +16,6 @@ export const handler = async (_args, user) => {
     message: classes.length
       ? `Có ${classes.length} lớp học.`
       : 'Chưa có lớp học nào.',
-    metadata: { tool: 'get_classes', userId: user.user_id },
+    metadata: { tool: 'get_classes', userId: user.id },
   };
 };

@@ -106,7 +106,7 @@ Sơ đồ kiến trúc:
 
 **Giải pháp (phải):**
 - Hệ thống số hóa toàn bộ quy trình dạy–học–kiểm tra
-- AI (Gemini 2.5 Pro) tự động sinh câu hỏi trắc nghiệm
+- AI (OpenRouter) tự động sinh câu hỏi trắc nghiệm
 - Dashboard thống kê trực quan cho giáo viên
 
 **Đối tượng:** Giáo viên · Học sinh lớp 3
@@ -130,9 +130,9 @@ Sơ đồ kiến trúc:
 
 **Ghi chú kỹ thuật (bên phải):**
 - Auth: JWT stateless · HS256 · 24h expiry
-- CORS: Whitelist localhost 5173 / 8080 / 5500
-- DB Pool: 5 connections · pool_recycle 3600s
-- AI: JSON response mode · fallback cứng khi lỗi
+- CORS: Whitelist localhost 5173 / 5000
+- DB Pool: 10 connections · mariadb npm package
+- AI: Tool calling 7 tools · fallback cứng khi lỗi
 
 ---
 
@@ -144,7 +144,7 @@ Sơ đồ kiến trúc:
 
 **Sơ đồ triển khai:**
 
-> 📷 **[ CHÈN ẢNH: Deployment diagram — Frontend · Backend · MySQL · Gemini API ]**
+> 📷 **[ CHÈN ẢNH: Deployment diagram — Frontend · Backend · MariaDB · OpenRouter API ]**
 > Căn giữa · Chiều rộng ~85% slide · Nền trắng hoặc trong suốt
 
 **Điểm nhấn (box dưới sơ đồ):**
@@ -162,33 +162,33 @@ Sơ đồ kiến trúc:
 
 **Card 1 — Backend**
 ```
-Python 3.12
-Flask + Blueprint
-MySQL 8
-JWT (stateless auth)
-openpyxl (Excel)
+Node.js (LTS) + Express.js 5
+MariaDB / MySQL — Raw SQL
+JWT HS256 (24h) + bcryptjs
+xlsx / SheetJS (Excel)
+pdfkit (PDF) · Zod (Validation)
 ```
 
 **Card 2 — Frontend**
 ```
-React 19
-Vite + Tailwind CSS
-React Router v6
-Recharts (biểu đồ)
-react-to-pdf
+React 19 + Vite
+Tailwind CSS 3
+React Router v7
+chart.js + react-chartjs-2
+react-icons/fi · react-toastify
 ```
 
 **Card 3 — AI & Tools**
 ```
-Google Gemini 2.5 Pro
-google-genai SDK
-JSON response mode
-Prompt Engineering
+OpenRouter AI
+openai SDK (→ openrouter.ai)
+Model: gpt-oss-120b:free
+Tool Calling (7 tools)
 Fallback Strategy
 ```
 
 **Điểm nhấn (dưới 3 card):**
-> Toàn bộ stack là **open-source** (trừ Gemini API) — không tốn chi phí license.
+> Toàn bộ stack là **open-source** (trừ OpenRouter API) — không tốn chi phí license.
 
 ---
 
@@ -307,7 +307,7 @@ content | explanation
 
 **Bố cục:** Sequence diagram chiếm toàn slide.
 
-> 📷 **[ CHÈN ẢNH: Sequence Diagram tổng quát — GV · HS · React · Flask · MySQL · Gemini ]**
+> 📷 **[ CHÈN ẢNH: Sequence Diagram tổng quát — GV · HS · React · Express · MariaDB · OpenRouter ]**
 > Căn giữa · Chiều rộng ~95% slide · Nền trắng hoặc trong suốt
 
 ---
@@ -324,26 +324,28 @@ content | explanation
 
 **Card 1 — Mô hình**
 ```
-Google Gemini 2.5 Pro
-models/gemini-2.5-pro
-JSON Response Mode
+OpenRouter AI
+openai SDK → openrouter.ai/api/v1
+Model: gpt-oss-120b:free
 ```
 
-**Card 2 — Hai tính năng AI**
+**Card 2 — Tính năng AI**
 ```
-① Sinh câu hỏi trắc nghiệm
-   Input : chủ đề + số câu
-   Output: MCQ 4 đáp án + giải thích
+① AI Chatbot (Teacher) — 7 tool calls
+   search_question_bank · get_classes
+   get_lessons · create_exam
+   save_questions_to_bank
+   get_student_stats · get_exam_stats
 
-② Lời khuyên giảng dạy
+② Lời khuyên giảng dạy (Dashboard)
    Input : phân phối điểm lớp
-   Output: 3 gợi ý bằng tiếng Việt
+   Output: gợi ý bằng tiếng Việt
 ```
 
 **Card 3 — Giá trị mang lại**
 ```
-Tiết kiệm ~80% thời gian soạn đề
-Câu hỏi chuẩn chương trình lớp 3
+Tiết kiệm thời gian soạn đề & tra cứu
+Chatbot hiểu ngữ cảnh vai trò giáo viên
 Giáo viên vẫn review trước khi lưu
 Fallback tự động khi AI không phản hồi
 ```
@@ -361,13 +363,13 @@ Fallback tự động khi AI không phản hồi
 
 **Sơ đồ tích hợp:**
 
-> 📷 **[ CHÈN ẢNH: AI Integration — React → Flask → Gemini API → MySQL ]**
+> 📷 **[ CHÈN ẢNH: AI Integration — React → Express → OpenRouter API → MariaDB ]**
 > Căn giữa · Chiều rộng ~85% slide · Nền trắng hoặc trong suốt
 
 **Điểm kỹ thuật quan trọng (dưới sơ đồ):**
+- Chatbot sử dụng **tool calling** — AI quyết định gọi tool nào dựa trên tin nhắn giáo viên
 - Câu hỏi **không lưu DB** ngay khi AI sinh — chỉ lưu sau khi giáo viên xác nhận
-- `clean_json_string()` xử lý trường hợp Gemini trả về kèm markdown fence
-- Fallback: nếu AI lỗi → trả về câu hỏi mẫu cứng để UX không bị gián đoạn
+- Fallback: nếu AI lỗi → trả về phản hồi mẫu cứng để UX không bị gián đoạn
 
 ---
 
@@ -377,7 +379,7 @@ Fallback tự động khi AI không phản hồi
 
 **Bố cục:** Sequence diagram chiếm toàn slide.
 
-> 📷 **[ CHÈN ẢNH: Sequence Diagram — Luồng AI sinh câu hỏi từ GV đến lưu DB ]**
+> 📷 **[ CHÈN ẢNH: Sequence Diagram — Luồng AI Chatbot tool calling từ GV đến lưu DB ]**
 > Căn giữa · Chiều rộng ~95% slide · Nền trắng hoặc trong suốt
 
 ---
@@ -461,13 +463,13 @@ Fallback tự động khi AI không phản hồi
 
 **Checklist (trái):**
 - ✅ Hệ thống E-learning đầy đủ 2 vai trò (Teacher / Student)
-- ✅ Kiến trúc 3 tầng: React SPA · Flask REST API · MySQL
-- ✅ Tích hợp AI Gemini 2.5 Pro sinh câu hỏi tự động
-- ✅ JWT stateless · PBKDF2 password hashing
+- ✅ Kiến trúc 3 tầng: React SPA · Express REST API · MariaDB
+- ✅ AI Chatbot giáo viên với 7 tool calls (OpenRouter)
+- ✅ JWT stateless · bcryptjs password hashing
 - ✅ Quản lý lớp, bài học, đề thi, phân công, chấm điểm
-- ✅ Biểu đồ theo dõi tiến độ học sinh (Recharts)
-- ✅ Import/Export Excel (openpyxl)
-- ✅ Responsive UI với Tailwind CSS
+- ✅ Biểu đồ theo dõi tiến độ học sinh (chart.js)
+- ✅ Import/Export Excel (SheetJS) · Export PDF (pdfkit)
+- ✅ Responsive UI với Tailwind CSS 3
 
 **Số liệu minh họa (phải):**
 
@@ -475,10 +477,10 @@ Fallback tự động khi AI không phản hồi
 |---|---|
 | Bảng trong Database | 15 bảng |
 | API endpoints | ~35 endpoints |
-| Blueprint modules | 9 modules |
+| Route modules (Express) | 9 modules |
 | Frontend pages | 9 pages chính |
-| Thời gian AI sinh 10 câu | ~3–5 giây |
-| Connection Pool | 5 kết nối |
+| AI tools (Teacher Chatbot) | 7 tools |
+| Connection Pool | 10 kết nối |
 
 ---
 
@@ -498,7 +500,7 @@ Fallback tự động khi AI không phản hồi
 - Ứng dụng di động (React Native)
 - Phân tích học tập nâng cao bằng ML
 - Multi-tenant (nhiều trường dùng chung)
-- AI Chatbot hỗ trợ học sinh ôn tập
+- AI Chatbot mở rộng cho học sinh ôn tập
 
 **Q&A (phần dưới — toàn chiều ngang, nền gradient):**
 ```

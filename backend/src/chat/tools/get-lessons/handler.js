@@ -12,7 +12,7 @@ export const handler = async (args, user) => {
   }
 
   const { query = '' } = parsed.data;
-  const result = await lessonService.getLessons(user.user_id, query, 1, 50);
+  const result = await lessonService.getLessons(user.id, query, 1, 50);
 
   const lessons = result.items.map(r => ({
     id: r.id,
@@ -27,6 +27,6 @@ export const handler = async (args, user) => {
     message: lessons.length
       ? `Tìm thấy ${lessons.length} bài học${query ? ` khớp "${query}"` : ''}.`
       : 'Không có bài học nào.',
-    metadata: { tool: 'get_lessons', userId: user.user_id },
+    metadata: { tool: 'get_lessons', userId: user.id },
   };
 };

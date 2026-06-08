@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { FiX, FiSend, FiLoader } from 'react-icons/fi';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { streamChat } from '../../api/chatService';
+import { streamChat, getChatHistory } from '../../api/chatService';
 import { useAuth } from '../../context/AuthContext';
 import chatbotIcon from '../../assets/chatbot.png';
 
@@ -32,6 +32,14 @@ export default function ChatBot() {
   const inputRef              = useRef(null);
 
   useEffect(() => {
+    getChatHistory().then(data => {
+      if (data.messages?.length > 0) {
+        setMessages([{ role: 'assistant', content: welcome }, ...data.messages]);
+      }
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (open) {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
       inputRef.current?.focus();
@@ -54,7 +62,7 @@ export default function ChatBot() {
 
     try {
       await streamChat(
-        history.slice(1),
+        [userMsg],
         (token) => {
           setMessages(prev => {
             const updated = [...prev];

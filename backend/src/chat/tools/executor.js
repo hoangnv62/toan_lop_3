@@ -9,10 +9,10 @@ export const executeTool = async (name, args, user) => {
   const start = Date.now();
   try {
     const result = await handler(args, user);
-    console.log(`[tool] ${name} userId=${user.user_id} duration=${Date.now() - start}ms success=true`);
+    console.log(`[tool] ${name} userId=${user.id} duration=${Date.now() - start}ms success=true`);
     return result;
   } catch (err) {
-    console.error(`[tool] ${name} userId=${user.user_id} duration=${Date.now() - start}ms success=false error=${err.message}`);
+    console.error(`[tool] ${name} userId=${user.id} duration=${Date.now() - start}ms success=false error=${err.message}`);
     return { success: false, data: null, message: err.message || 'Tool thực thi thất bại', metadata: {} };
   }
 };

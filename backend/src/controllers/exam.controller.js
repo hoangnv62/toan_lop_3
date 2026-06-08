@@ -1,53 +1,54 @@
 import XLSX from 'xlsx';
 import * as svc from '../services/exam.service.js';
 import { formatDateTime } from '../utils/date.utils.js';
+import { success, successMsg } from '../utils/response.js';
 
 export const getExam = async (req, res) => {
-  const studentId = req.user.role === 'student' ? req.user.user_id : null;
-  res.json({ success: true, data: await svc.getExam(parseInt(req.params.id), studentId) });
+  const studentId = req.user.role === 'student' ? req.user.id : null;
+  success(res, await svc.getExam(parseInt(req.params.id), studentId));
 };
 
 export const getExamAssignments = async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ success: false, message: 'Không có quyền' });
-  res.json({ success: true, data: await svc.getAssignments(parseInt(req.params.id), req.user.user_id) });
+  success(res, await svc.getAssignments(parseInt(req.params.id), req.user.id));
 };
 
 export const createExam = async (req, res) => {
   const { name, description, questions = [] } = req.body || {};
   const examId = await svc.createExam(parseInt(req.params.lessonId), name, description, questions);
-  res.json({ success: true, message: 'Tạo bài kiểm tra thành công', examId });
+  success(res, { examId }, 'Tạo bài kiểm tra thành công');
 };
 
 export const updateExam = async (req, res) => {
   const { name, description, questions = [] } = req.body || {};
   await svc.updateExam(parseInt(req.params.examId), parseInt(req.params.lessonId), name, description, questions);
-  res.json({ success: true, message: 'Cập nhật bài kiểm tra thành công' });
+  successMsg(res, 'Cập nhật bài kiểm tra thành công');
 };
 
 export const deleteExam = async (req, res) => {
   await svc.deleteExam(parseInt(req.params.id));
-  res.json({ success: true, message: 'Đã xóa bài tập' });
+  successMsg(res, 'Đã xóa bài tập');
 };
 
 export const cloneExam = async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ success: false, message: 'Không có quyền' });
   const examId = await svc.cloneExam(parseInt(req.params.id));
-  res.json({ success: true, message: 'Đã sao chép bài tập', examId });
+  success(res, { examId }, 'Đã sao chép bài tập');
 };
 
 export const submitExam = async (req, res) => {
   const { answers, timeSpent } = req.body;
-  const result = await svc.submitExam(parseInt(req.params.id), req.user.user_id, answers, timeSpent);
-  res.json({ success: true, data: result });
+  const result = await svc.submitExam(parseInt(req.params.id), req.user.id, answers, timeSpent);
+  success(res, result);
 };
 
 export const getExamResult = async (req, res) => {
-  res.json({ success: true, data: await svc.getResult(parseInt(req.params.id), req.user.user_id) });
+  success(res, await svc.getResult(parseInt(req.params.id), req.user.id));
 };
 
 export const getStudentSubmission = async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ success: false, message: 'Không có quyền truy cập' });
-  res.json({ success: true, data: await svc.getResult(parseInt(req.params.id), parseInt(req.params.studentId)) });
+  success(res, await svc.getResult(parseInt(req.params.id), parseInt(req.params.studentId)));
 };
 
 export const exportExamResults = async (req, res) => {
@@ -81,7 +82,7 @@ export const exportExamPdf = async (req, res) => {
 };
 
 export const getExamStats = async (req, res) => {
-  res.json({ success: true, data: await svc.getStats(parseInt(req.params.id)) });
+  success(res, await svc.getStats(parseInt(req.params.id)));
 };
 
 export const getClassResults = async (req, res) => {
@@ -95,24 +96,24 @@ export const getClassResults = async (req, res) => {
     timeSpent: parseInt(r.time_spent || 0),
     submittedAt: formatDateTime(r.submitted_at),
   }));
-  res.json({ success: true, data: { examName, results: data } });
+  success(res, { examName, results: data });
 };
 
 export const aiExamFeedback = async (req, res) => {
   if (req.user.role !== 'student') return res.status(403).json({ success: false, message: 'Không có quyền' });
-  const feedback = await svc.generateAiFeedback(parseInt(req.params.id), req.user.user_id);
-  res.json({ success: true, data: { feedback } });
+  const feedback = await svc.generateAiFeedback(parseInt(req.params.id), req.user.id);
+  success(res, { feedback });
 };
 
 export const aiStatsAnalysis = async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ success: false, message: 'Không có quyền' });
   const insights = await svc.analyzeExamStats(parseInt(req.params.id));
-  res.json({ success: true, data: { insights } });
+  success(res, { insights });
 };
 
 export const saveComment = async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ success: false, message: 'Không có quyền' });
   const { comment } = req.body;
-  await svc.saveComment(parseInt(req.params.id), parseInt(req.params.studentId), req.user.user_id, comment.trim());
-  res.json({ success: true, message: 'Đã lưu nhận xét' });
+  await svc.saveComment(parseInt(req.params.id), parseInt(req.params.studentId), req.user.id, comment.trim());
+  successMsg(res, 'Đã lưu nhận xét');
 };

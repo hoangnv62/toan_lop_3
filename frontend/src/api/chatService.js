@@ -1,5 +1,7 @@
 import api from './index';
 
+export const getChatHistory = () => api.get('/api/chat/history');
+
 export async function streamChat(messages, onToken, onDone, onToolStart, onToolDone) {
   let processed = 0;
   let done = false;

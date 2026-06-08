@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import TeacherLayout from '../../../components/TeacherLayout';
+import TeacherLayout from '../../../layouts/TeacherLayout';
 import ErrorBoundary from '../../../components/ErrorBoundary';
 import { getClassDetail, updateClass, getClassExams, unassignExam, exportStudents } from '../../../api/classService';
 import { exportExam } from '../../../api/examService';

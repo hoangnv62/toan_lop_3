@@ -37,12 +37,12 @@ export const handler = async (args, user) => {
     }
   }
 
-  const count = await qbService.saveBatch(user.user_id, questions, lesson_id);
+  const count = await qbService.saveBatch(user.id, questions, lesson_id);
 
   return {
     success: true,
     data: { saved: count },
     message: `Đã lưu ${count} câu hỏi vào ngân hàng thành công.`,
-    metadata: { tool: 'save_questions_to_bank', userId: user.user_id },
+    metadata: { tool: 'save_questions_to_bank', userId: user.id },
   };
 };

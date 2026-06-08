@@ -46,13 +46,13 @@ export const handler = async (args, user) => {
   }));
 
   const examId = await examService.createExamForTeacher(
-    user.user_id, lesson_id, name, description || '', questionsData
+    user.id, lesson_id, name, description || '', questionsData
   );
 
   return {
     success: true,
     data: { examId, name, questionsCount: questions.length },
-    message: `Đã tạo đề thi "${name}" với ${questions.length} câu hỏi. ID đề thi: ${examId}.`,
-    metadata: { tool: 'create_exam', userId: user.user_id },
+    message: `Đã tạo đề thi "${name}" với ${questions.length} câu hỏi thành công.`,
+    metadata: { tool: 'create_exam', userId: user.id },
   };
 };

@@ -1,78 +1,79 @@
 import XLSX from 'xlsx';
 import * as svc from '../services/class.service.js';
 import { formatDate } from '../utils/date.utils.js';
+import { success, created, successMsg } from '../utils/response.js';
 
 export const getTeacherClasses = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 12;
-  res.json({ success: true, data: await svc.getTeacherClasses(req.user.user_id, page, limit) });
+  success(res, await svc.getTeacherClasses(req.user.id, page, limit));
 };
 
 export const getClassDetail = async (req, res) => {
   const studentPage = parseInt(req.query.studentPage) || 1;
   const studentLimit = parseInt(req.query.studentLimit) || 15;
-  res.json({ success: true, data: await svc.getClassDetail(parseInt(req.params.id), studentPage, studentLimit) });
+  success(res, await svc.getClassDetail(parseInt(req.params.id), studentPage, studentLimit));
 };
 
 export const addClass = async (req, res) => {
   const { className } = req.body;
-  await svc.addClass(req.user.user_id, className.trim());
-  res.json({ success: true, message: `Tạo lớp "${className.trim()}" thành công` });
+  await svc.addClass(req.user.id, className.trim());
+  successMsg(res, `Tạo lớp "${className.trim()}" thành công`);
 };
 
 export const updateClass = async (req, res) => {
   const { className } = req.body;
-  await svc.updateClass(parseInt(req.params.id), req.user.user_id, className.trim());
-  res.json({ success: true, message: 'Cập nhật thành công' });
+  await svc.updateClass(parseInt(req.params.id), req.user.id, className.trim());
+  successMsg(res, 'Cập nhật thành công');
 };
 
 export const deleteClass = async (req, res) => {
-  await svc.deleteClass(parseInt(req.params.id), req.user.user_id);
-  res.json({ success: true, message: 'Đã xóa lớp' });
+  await svc.deleteClass(parseInt(req.params.id), req.user.id);
+  successMsg(res, 'Đã xóa lớp');
 };
 
 export const getClassExams = async (req, res) => {
-  res.json({ success: true, data: await svc.getClassExams(parseInt(req.params.id), req.user.user_id) });
+  success(res, await svc.getClassExams(parseInt(req.params.id), req.user.id));
 };
 
 export const assignExam = async (req, res) => {
   const { examId, timeLimit, deadline, openTime } = req.body;
-  await svc.assignExam(parseInt(req.params.id), req.user.user_id, examId, deadline, openTime, timeLimit);
-  res.json({ success: true, message: 'Đã giao bài cho lớp' });
+  await svc.assignExam(parseInt(req.params.id), req.user.id, examId, deadline, openTime, timeLimit);
+  successMsg(res, 'Đã giao bài cho lớp');
 };
 
 export const updateExamAssignment = async (req, res) => {
   const { timeLimit, deadline, openTime } = req.body;
-  await svc.updateAssignment(parseInt(req.params.id), req.user.user_id, parseInt(req.params.examId), deadline, openTime, timeLimit);
-  res.json({ success: true, message: 'Đã cập nhật hạn nộp' });
+  await svc.updateAssignment(parseInt(req.params.id), req.user.id, parseInt(req.params.examId), deadline, openTime, timeLimit);
+  successMsg(res, 'Đã cập nhật hạn nộp');
 };
 
 export const unassignExam = async (req, res) => {
-  await svc.unassignExam(parseInt(req.params.id), req.user.user_id, parseInt(req.params.examId));
-  res.json({ success: true, message: 'Đã thu hồi bài tập' });
+  await svc.unassignExam(parseInt(req.params.id), req.user.id, parseInt(req.params.examId));
+  successMsg(res, 'Đã thu hồi bài tập');
 };
 
 export const getStudentsWithScores = async (req, res) => {
-  res.json({ success: true, data: await svc.getStudentsWithScores(parseInt(req.params.id)) });
+  success(res, await svc.getStudentsWithScores(parseInt(req.params.id)));
 };
 
 export const getAnnouncements = async (req, res) => {
-  res.json({ success: true, data: await svc.getAnnouncements(parseInt(req.params.id)) });
+  success(res, await svc.getAnnouncements(parseInt(req.params.id)));
 };
 
 export const createAnnouncement = async (req, res) => {
   const { title, content } = req.body;
-  const id = await svc.createAnnouncement(parseInt(req.params.id), req.user.user_id, title.trim(), content.trim());
-  res.status(201).json({ success: true, id });
+  const id = await svc.createAnnouncement(parseInt(req.params.id), req.user.id, title.trim(), content.trim());
+  created(res, { id });
 };
 
 export const deleteAnnouncement = async (req, res) => {
-  await svc.deleteAnnouncement(parseInt(req.params.annId), req.user.user_id);
-  res.json({ success: true, message: 'Đã xóa thông báo' });
+  await svc.deleteAnnouncement(parseInt(req.params.annId), req.user.id);
+  successMsg(res, 'Đã xóa thông báo');
 };
 
 export const exportStudents = async (req, res) => {
-  const { className, students } = await svc.getStudentsForExport(parseInt(req.params.id), req.user.user_id);
+  const { className, students } = await svc.getStudentsForExport(parseInt(req.params.id), req.user.id);
   const wsData = [['STT', 'Họ và tên', 'Username', 'Ngày sinh', 'Điểm TB', 'Số bài đã làm']];
   students.forEach((s, i) => {
     wsData.push([i + 1, s.full_name, s.username,

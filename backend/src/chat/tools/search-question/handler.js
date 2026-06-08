@@ -14,12 +14,12 @@ export const handler = async (args, user) => {
   }
 
   const { topic, lesson_id, limit } = parsed.data;
-  const result = await qbService.listQuestions(user.user_id, topic || '', 1, limit, lesson_id);
+  const result = await qbService.listQuestions(user.id, topic || '', 1, limit, lesson_id);
 
   return {
     success: true,
     data: result,
     message: `Tìm thấy ${result.total} câu hỏi${topic ? ` về "${topic}"` : ''}.`,
-    metadata: { tool: 'search_question_bank', userId: user.user_id },
+    metadata: { tool: 'search_question_bank', userId: user.id },
   };
 };

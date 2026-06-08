@@ -1,4 +1,5 @@
 import * as svc from '../services/question-bank.service.js';
+import { success, created, successMsg } from '../utils/response.js';
 
 export const listQuestions = async (req, res) => {
   const q = req.query.q || '';
@@ -6,24 +7,24 @@ export const listQuestions = async (req, res) => {
   const limit = parseInt(req.query.limit) || 10;
   const lessonRaw = req.query.lessonId;
   const lessonId = lessonRaw !== undefined ? parseInt(lessonRaw) : undefined;
-  res.json({ success: true, data: await svc.listQuestions(req.user.user_id, q, page, limit, lessonId) });
+  success(res, await svc.listQuestions(req.user.id, q, page, limit, lessonId));
 };
 
 export const createQuestion = async (req, res) => {
   const { content, explanation = null, answers = [], lessonId = null} = req.body;
-  const id = await svc.createQuestion(req.user.user_id, content.trim(), explanation || null, answers, lessonId || null);
-  res.status(201).json({ success: true, id });
+  const id = await svc.createQuestion(req.user.id, content.trim(), explanation || null, answers, lessonId || null);
+  created(res, { id });
 };
 
 export const updateQuestion = async (req, res) => {
   const { content, explanation = null, answers = [], lessonId = null } = req.body;
-  await svc.updateQuestion(parseInt(req.params.id), req.user.user_id, content.trim(), explanation || null, answers, lessonId || null);
-  res.json({ success: true, message: 'Đã cập nhật câu hỏi' });
+  await svc.updateQuestion(parseInt(req.params.id), req.user.id, content.trim(), explanation || null, answers, lessonId || null);
+  successMsg(res, 'Đã cập nhật câu hỏi');
 };
 
 export const deleteQuestion = async (req, res) => {
-  await svc.deleteQuestion(parseInt(req.params.id), req.user.user_id);
-  res.json({ success: true, message: 'Đã xóa câu hỏi' });
+  await svc.deleteQuestion(parseInt(req.params.id), req.user.id);
+  successMsg(res, 'Đã xóa câu hỏi');
 };
 
 export const downloadSample = async (req, res) => {
@@ -37,6 +38,6 @@ export const importQuestions = async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'Không tìm thấy file' });
   const lessonRaw = req.body?.lessonId;
   const lessonId = lessonRaw ? parseInt(lessonRaw) : null;
-  const result = await svc.importQuestionsFromExcel(req.user.user_id, req.file.buffer, lessonId);
-  res.json({ success: true, data: result });
+  const result = await svc.importQuestionsFromExcel(req.user.id, req.file.buffer, lessonId);
+  success(res, result);
 };

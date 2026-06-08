@@ -194,3 +194,12 @@ export const createAnnouncement = (classId, teacherId, title, content) =>
 
 export const deleteAnnouncement = (annId) =>
   query('DELETE FROM announcements WHERE id = :id', { id: annId });
+
+export const getClassInfo = (classId) =>
+  queryOne(
+    `SELECT c.class_name, u.full_name AS teacher_name
+     FROM classes c
+     JOIN users u ON u.id = c.teacher_id
+     WHERE c.id = :classId`,
+    { classId }
+  );

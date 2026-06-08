@@ -26,7 +26,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-60 min-h-screen bg-white border-r border-slate-100 flex flex-col shrink-0 shadow-[1px_0_20px_-4px_rgba(79,70,229,0.08)]">
+    <aside className="w-60 h-screen sticky top-0 bg-white border-r border-slate-100 flex flex-col shrink-0 shadow-[1px_0_20px_-4px_rgba(79,70,229,0.08)] overflow-y-auto">
       {/* Brand */}
       <div className="px-4 py-5 border-b border-slate-100">
         <div className="flex items-center gap-3">

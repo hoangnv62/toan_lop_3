@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import TeacherLayout from '../../components/TeacherLayout';
+import TeacherLayout from '../../layouts/TeacherLayout';
 import { fetchClasses, createClass, deleteClass } from '../../api/classService';
 import { toast } from 'react-toastify';
 import { FiPlus, FiTrash2, FiArrowRight, FiUsers } from 'react-icons/fi';

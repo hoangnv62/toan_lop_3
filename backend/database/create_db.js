@@ -63,6 +63,7 @@ async function main() {
         student_id   INT NOT NULL,
         name         VARCHAR(100) NOT NULL,
         phone        VARCHAR(20)  NOT NULL,
+        email        VARCHAR(100) NULL,
         relationship VARCHAR(50),
         created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
@@ -178,6 +179,25 @@ async function main() {
         content     TEXT NOT NULL,
         is_correct  TINYINT(1) DEFAULT 0,
         FOREIGN KEY (question_id) REFERENCES question_bank(id) ON DELETE CASCADE
+      )`);
+
+    await conn.query(`
+      CREATE TABLE chat_sessions (
+        id         INT AUTO_INCREMENT PRIMARY KEY,
+        user_id    INT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        expires_at DATETIME NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )`);
+
+    await conn.query(`
+      CREATE TABLE chat_messages (
+        id         INT AUTO_INCREMENT PRIMARY KEY,
+        session_id INT NOT NULL,
+        role       ENUM('user','assistant') NOT NULL,
+        content    TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
       )`);
 
     const pw = await bcrypt.hash('123', 10);
