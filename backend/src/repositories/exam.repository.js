@@ -18,11 +18,20 @@ export const findWithQuestions = async (examId) => {
     'SELECT id, content, explanation FROM questions WHERE exam_id = :examId ORDER BY id',
     { examId }
   );
+  const answerRows = await query(
+    `SELECT id, content, is_correct, question_id FROM answers
+     WHERE question_id IN (SELECT id FROM questions WHERE exam_id = :examId)
+     ORDER BY question_id, id`,
+    { examId }
+  );
+  const answersByQuestion = {};
+  for (const a of answerRows) {
+    const qid = Number(a.question_id);
+    if (!answersByQuestion[qid]) answersByQuestion[qid] = [];
+    answersByQuestion[qid].push({ id: a.id, content: a.content, is_correct: a.is_correct });
+  }
   for (const q of questions) {
-    q.answers = await query(
-      'SELECT id, content, is_correct FROM answers WHERE question_id = :qid ORDER BY id',
-      { qid: q.id }
-    );
+    q.answers = answersByQuestion[Number(q.id)] || [];
   }
   exam.questions = questions;
   return exam;
@@ -63,8 +72,27 @@ export const updateExam = async (examId, name, description, questionsData) => {
       'SELECT id FROM questions WHERE exam_id = :examId',
       { examId }
     );
-    const existingQIds = new Set(existingQs.map(r => r.id));
+    const existingQIdList = existingQs.map(r => Number(r.id));
+    const existingQIds = new Set(existingQIdList);
     const clientQIds = new Set();
+
+    const existingAsByQuestion = {};
+    if (existingQIdList.length) {
+      const qParams = {};
+      existingQIdList.forEach((id, i) => { qParams[`qid${i}`] = id; });
+      const qPlaceholders = existingQIdList.map((_, i) => `:qid${i}`).join(',');
+      const allExistingAs = await conn.query(
+        `SELECT id, question_id FROM answers WHERE question_id IN (${qPlaceholders})`,
+        qParams
+      );
+      for (const a of allExistingAs) {
+        const qid = Number(a.question_id);
+        if (!existingAsByQuestion[qid]) existingAsByQuestion[qid] = new Set();
+        existingAsByQuestion[qid].add(Number(a.id));
+      }
+    }
+
+    const staleAIds = [];
 
     for (const qd of questionsData) {
       let qId = qd.questionId;
@@ -80,10 +108,9 @@ export const updateExam = async (examId, name, description, questionsData) => {
         );
         qId = qResult.insertId;
       }
-      clientQIds.add(qId);
+      clientQIds.add(Number(qId));
 
-      const existingAs = await conn.query('SELECT id FROM answers WHERE question_id = :qId', { qId });
-      const existingAIds = new Set(existingAs.map(r => r.id));
+      const existingAIds = existingAsByQuestion[Number(qId)] || new Set();
       const clientAIds = new Set();
 
       for (const ad of (qd.answers || [])) {
@@ -100,20 +127,27 @@ export const updateExam = async (examId, name, description, questionsData) => {
           );
           aId = aResult.insertId;
         }
-        clientAIds.add(aId);
+        clientAIds.add(Number(aId));
       }
 
       for (const staleA of existingAIds) {
-        if (!clientAIds.has(staleA)) {
-          await conn.query('DELETE FROM answers WHERE id = :id', { id: staleA });
-        }
+        if (!clientAIds.has(staleA)) staleAIds.push(staleA);
       }
     }
 
-    for (const staleQ of existingQIds) {
-      if (!clientQIds.has(staleQ)) {
-        await conn.query('DELETE FROM questions WHERE id = :id', { id: staleQ });
-      }
+    if (staleAIds.length) {
+      const aParams = {};
+      staleAIds.forEach((id, i) => { aParams[`aid${i}`] = id; });
+      const aPlaceholders = staleAIds.map((_, i) => `:aid${i}`).join(',');
+      await conn.query(`DELETE FROM answers WHERE id IN (${aPlaceholders})`, aParams);
+    }
+
+    const staleQIds = [...existingQIds].filter(id => !clientQIds.has(id));
+    if (staleQIds.length) {
+      const sqParams = {};
+      staleQIds.forEach((id, i) => { sqParams[`sqid${i}`] = id; });
+      const sqPlaceholders = staleQIds.map((_, i) => `:sqid${i}`).join(',');
+      await conn.query(`DELETE FROM questions WHERE id IN (${sqPlaceholders})`, sqParams);
     }
   });
 };
@@ -131,14 +165,31 @@ export const cloneExam = async (examId) => {
     );
     const newExamId = newExamResult.insertId;
 
-    const questions = await conn.query('SELECT * FROM questions WHERE exam_id = :id', { id: examId });
+    const questions = await conn.query('SELECT * FROM questions WHERE exam_id = :id ORDER BY id', { id: examId });
+    if (!questions.length) return newExamId;
+
+    const qIds = questions.map(q => Number(q.id));
+    const cloneParams = {};
+    qIds.forEach((id, i) => { cloneParams[`cqid${i}`] = id; });
+    const clonePlaceholders = qIds.map((_, i) => `:cqid${i}`).join(',');
+    const allAnswers = await conn.query(
+      `SELECT question_id, content, is_correct FROM answers WHERE question_id IN (${clonePlaceholders}) ORDER BY id`,
+      cloneParams
+    );
+    const answersByQId = {};
+    for (const a of allAnswers) {
+      const qid = Number(a.question_id);
+      if (!answersByQId[qid]) answersByQId[qid] = [];
+      answersByQId[qid].push(a);
+    }
+
     for (const q of questions) {
       const newQResult = await conn.query(
         'INSERT INTO questions (exam_id, content, explanation) VALUES (:examId, :content, :explanation)',
         { examId: newExamId, content: q.content, explanation: q.explanation }
       );
       const newQId = newQResult.insertId;
-      const answers = await conn.query('SELECT * FROM answers WHERE question_id = :id', { id: q.id });
+      const answers = answersByQId[Number(q.id)] || [];
       for (const a of answers) {
         await conn.query(
           'INSERT INTO answers (question_id, content, is_correct) VALUES (:qId, :content, :isCorrect)',
@@ -302,11 +353,10 @@ export const submitExam = async (studentId, examId, answersData, timeSpent) => {
 
     let scoreCount = 0;
     for (const item of answersData) {
-      const answerId = item.answerId;
-      if (correctSet.has(answerId)) scoreCount++;
+      if (correctSet.has(Number(item.answerId))) scoreCount++;
       await conn.query(
         'INSERT INTO student_answers (student_id, exam_id, answer_id, time_spent) VALUES (:sid, :eid, :aid, :ts)',
-        { sid: studentId, eid: examId, aid: answerId, ts: timeSpent }
+        { sid: studentId, eid: examId, aid: item.answerId, ts: timeSpent }
       );
     }
     return {

@@ -23,21 +23,22 @@ const WELCOME_TEACHER = 'Xin chào thầy/cô! Tôi là trợ lý giảng dạy 
 export default function ChatBot() {
   const { user } = useAuth();
   const welcome = user?.role === 'teacher' ? WELCOME_TEACHER : WELCOME_STUDENT;
-  const [open, setOpen]         = useState(false);
-  const [messages, setMessages] = useState([{ role: 'assistant', content: welcome }]);
-  const [input, setInput]       = useState('');
-  const [loading, setLoading]   = useState(false);
+  const [open, setOpen]           = useState(false);
+  const [messages, setMessages]   = useState([{ role: 'assistant', content: welcome }]);
+  const [input, setInput]         = useState('');
+  const [loading, setLoading]     = useState(false);
   const [toolLabel, setToolLabel] = useState(null);
-  const bottomRef             = useRef(null);
-  const inputRef              = useRef(null);
+  const bottomRef                 = useRef(null);
+  const inputRef                  = useRef(null);
 
   useEffect(() => {
+    if (!user) return;
     getChatHistory().then(data => {
       if (data.messages?.length > 0) {
         setMessages([{ role: 'assistant', content: welcome }, ...data.messages]);
       }
     }).catch(() => {});
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (open) {
@@ -45,6 +46,8 @@ export default function ChatBot() {
       inputRef.current?.focus();
     }
   }, [open, messages]);
+
+  if (!user) return null;
 
   async function handleSend() {
     const text = input.trim();
@@ -103,8 +106,8 @@ export default function ChatBot() {
   );
 
   const panel = open && (
-    <div className="fixed bottom-20 right-6 z-50 w-96 sm:w-[440px] bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden"
-      style={{ height: 660 }}>
+    <div className="fixed bottom-20 right-6 z-50 w-[400px] sm:w-[520px] bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden"
+      style={{ height: 740 }}>
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 bg-indigo-600 shrink-0">

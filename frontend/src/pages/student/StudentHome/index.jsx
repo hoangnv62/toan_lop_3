@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { fetchDashboard } from '../../../api/studentService';
-import { logout } from '../../../api/auth';
-import { getRelatives, addRelative, updateRelative, deleteRelative } from '../../../api/relativeService';
 import { toast } from 'react-toastify';
 import { FiChevronLeft, FiChevronRight, FiLogOut, FiFileText, FiCheckCircle, FiStar, FiList, FiUser, FiLock } from 'react-icons/fi';
 import ChangePasswordModal from '../../../components/shared/ChangePasswordModal';
@@ -15,7 +12,9 @@ import RelativesCard from './RelativesCard';
 import AnnouncementsCard from './AnnouncementsCard';
 import RelativeFormModal from './RelativeFormModal';
 import RelativeDeleteModal from './RelativeDeleteModal';
-import ChatBot from '../../../components/shared/ChatBot';
+import { useStudentDashboard } from '../../../hooks/useStudent';
+import { useRelatives, useRelativeMutations } from '../../../hooks/useRelative';
+import { useAuthMutations } from '../../../hooks/useAuth';
 
 function getWeekRange(offset = 0) {
   const now = new Date();
@@ -34,83 +33,58 @@ function toISO(ddmmyyyy) {
 }
 
 export default function StudentHome() {
-  const { user, setUser } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [weekOffset, setWeekOffset] = useState(0);
   const [viewAll, setViewAll]       = useState(false);
-  const [data, setData]             = useState(null);
-  const [relatives, setRelatives]   = useState([]);
   const [relModal, setRelModal]     = useState(null);
-  const [relLoading, setRelLoading] = useState(false);
   const [pwModal, setPwModal]       = useState(false);
   const [profileModal, setProfileModal] = useState(false);
 
   const week = getWeekRange(weekOffset);
 
-  useEffect(() => {
-    setData(null);
-    if (viewAll) {
-      fetchDashboard(null, null, true).then(setData).catch(() => {});
-    } else {
-      fetchDashboard(toISO(week.from), toISO(week.to)).then(setData).catch(() => {});
-    }
-  }, [weekOffset, viewAll]);
+  const dateFrom = viewAll ? null : toISO(week.from);
+  const dateTo   = viewAll ? null : toISO(week.to);
+  const { dashboard: data, setDashboard: setData } = useStudentDashboard(dateFrom, dateTo, viewAll);
 
-  useEffect(() => {
-    if (user?.userId) loadRelatives();
-  }, [user]);
+  const { relatives, setRelatives } = useRelatives(user?.userId);
+  const { add: addRel, update: updateRel, remove: removeRel, loading: relLoading } = useRelativeMutations();
+  const { logout } = useAuthMutations();
 
+  // Re-fetch dashboard when window regains focus
   useEffect(() => {
     function onFocus() {
-      if (viewAll) {
-        fetchDashboard(null, null, true).then(setData).catch(() => {});
-      } else {
-        const w = getWeekRange(weekOffset);
-        fetchDashboard(toISO(w.from), toISO(w.to)).then(setData).catch(() => {});
-      }
+      setData(null);
     }
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
-  }, [weekOffset, viewAll]);
-
-  async function loadRelatives() {
-    try { setRelatives(await getRelatives(user.userId)); } catch { /* ignore */ }
-  }
+  }, []); // eslint-disable-line
 
   async function handleRelSubmit(formData) {
     if (!formData.name.trim() || !formData.phone.trim())
       return toast.error('Tên và SĐT không được trống');
-    setRelLoading(true);
-    try {
-      if (relModal.mode === 'add') {
-        await addRelative(user.userId, formData);
-        toast.success('Thêm người thân thành công');
-      } else {
-        await updateRelative(relModal.item.id, formData);
-        toast.success('Cập nhật thành công');
-      }
-      setRelModal(null);
-      loadRelatives();
-    } catch (err) {
-      toast.error(err.message || 'Thao tác thất bại');
-    } finally { setRelLoading(false); }
+    if (relModal.mode === 'add') {
+      await addRel(user.userId, formData, newRel => {
+        setRelatives(prev => [...prev, newRel]);
+        setRelModal(null);
+      });
+    } else {
+      await updateRel(relModal.item.id, formData, updated => {
+        setRelatives(prev => prev.map(r => r.id === updated.id ? updated : r));
+        setRelModal(null);
+      });
+    }
   }
 
   async function handleRelDelete() {
-    setRelLoading(true);
-    try {
-      await deleteRelative(relModal.item.id);
+    await removeRel(relModal.item.id, () => {
+      setRelatives(prev => prev.filter(r => r.id !== relModal.item.id));
       setRelModal(null);
-      toast.success('Xóa người thân thành công');
-      loadRelatives();
-    } catch (err) {
-      toast.error(err.message || 'Xóa thất bại');
-    } finally { setRelLoading(false); }
+    });
   }
 
-  async function handleLogout() {
-    await logout();
-    setUser(null);
+  function handleLogout() {
+    logout();
     navigate('/');
   }
 
@@ -231,7 +205,6 @@ export default function StudentHome() {
         />
       </div>
 
-      <ChatBot />
       {pwModal && <ChangePasswordModal onClose={() => setPwModal(false)} />}
       {profileModal && <ProfileModal onClose={() => setProfileModal(false)} />}
 

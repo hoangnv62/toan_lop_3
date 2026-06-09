@@ -1,5 +1,4 @@
 import Sidebar from '../components/Sidebar';
-import ChatBot from '../components/shared/ChatBot';
 
 export default function TeacherLayout({ children }) {
   return (
@@ -8,7 +7,6 @@ export default function TeacherLayout({ children }) {
       <main className="flex-1 min-w-0 p-6 lg:p-8 overflow-auto">
         {children}
       </main>
-      <ChatBot />
     </div>
   );
 }

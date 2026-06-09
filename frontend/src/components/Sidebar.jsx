@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { logout } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import { FiBarChart2, FiUsers, FiBook, FiLogOut, FiLock, FiDatabase, FiUser } from 'react-icons/fi';
 import ChangePasswordModal from './shared/ChangePasswordModal';
 import ProfileModal from './shared/ProfileModal';
+import { useAuthMutations } from '../hooks/useAuth';
 
 const links = [
   { to: '/dashboard',     label: 'Báo cáo & Phân tích', icon: FiBarChart2 },
@@ -14,14 +14,14 @@ const links = [
 ];
 
 export default function Sidebar() {
-  const { user, setUser } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [pwModal, setPwModal]           = useState(false);
   const [profileModal, setProfileModal] = useState(false);
+  const { logout } = useAuthMutations();
 
-  async function handleLogout() {
-    await logout();
-    setUser(null);
+  function handleLogout() {
+    logout();
     navigate('/');
   }
 

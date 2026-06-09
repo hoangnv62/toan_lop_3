@@ -1,26 +1,19 @@
 import { useState } from 'react';
 import { FiX, FiLoader, FiLock } from 'react-icons/fi';
-import { changePassword } from '../../api/auth';
 import { toast } from 'react-toastify';
+import { useAuthMutations } from '../../hooks/useAuth';
 
 export default function ChangePasswordModal({ onClose }) {
   const [currentPw, setCurrentPw] = useState('');
   const [newPw, setNewPw]         = useState('');
   const [confirmPw, setConfirmPw] = useState('');
-  const [loading, setLoading]     = useState(false);
+  const { changePassword, loading } = useAuthMutations();
 
   async function handleSave() {
     if (!currentPw || !newPw || !confirmPw) return toast.error('Vui lòng điền đầy đủ thông tin');
     if (newPw !== confirmPw) return toast.error('Mật khẩu mới không khớp');
     if (newPw.length < 6) return toast.error('Mật khẩu mới phải có ít nhất 6 ký tự');
-    setLoading(true);
-    try {
-      await changePassword(currentPw, newPw);
-      toast.success('Đổi mật khẩu thành công');
-      onClose();
-    } catch (err) {
-      toast.error(err.message || 'Đổi mật khẩu thất bại');
-    } finally { setLoading(false); }
+    await changePassword(currentPw, newPw, onClose);
   }
 
   return (

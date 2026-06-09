@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TeacherLayout from '../../../layouts/TeacherLayout';
 import { useDebounce } from '../../../hooks/useDebounce';
-import { fetchLessons, createLesson, updateLesson } from '../../../api/lessonService';
+import { fetchLessons } from '../../../api/lessonService';
+import { useLessonMutations } from '../../../hooks/useLesson';
 import { toast } from 'react-toastify';
 import { FiSearch, FiPlus, FiEdit2, FiTrash2, FiArrowRight, FiBook, FiLoader } from 'react-icons/fi';
 import LessonFormModal from './LessonFormModal';
@@ -17,13 +18,12 @@ export default function ManageLesson() {
   const [query, setQuery]             = useState('');
   const [loading, setLoading]         = useState(true);
   const [showAdd, setShowAdd]         = useState(false);
-  const [addLoading, setAddLoading]   = useState(false);
   const [editLesson, setEditLesson]   = useState(null);
-  const [editLoading, setEditLoading] = useState(false);
   const [deleteLesson_, setDeleteLesson] = useState(null);
   const navigate = useNavigate();
   const debouncedQuery = useDebounce(query, 500);
   const isInitialMount = useRef(true);
+  const { create, update, loading: mutationLoading } = useLessonMutations();
 
   useEffect(() => { load(debouncedQuery, page); }, [page]); // eslint-disable-line
 
@@ -47,30 +47,20 @@ export default function ManageLesson() {
   async function handleCreate(title) {
     const t = title.trim();
     if (!t) return toast.error('Tiêu đề không được trống');
-    setAddLoading(true);
-    try {
-      await createLesson(t);
-      toast.success('Tạo bài học thành công');
+    await create(t, () => {
       setShowAdd(false);
       setPage(1);
       load(query, 1);
-    } catch (err) {
-      toast.error(err.message || 'Tạo thất bại');
-    } finally { setAddLoading(false); }
+    });
   }
 
   async function handleEdit(title) {
     const t = title.trim();
     if (!t) return toast.error('Tiêu đề không được trống');
-    setEditLoading(true);
-    try {
-      await updateLesson(editLesson.id, t);
-      toast.success('Cập nhật thành công');
+    await update(editLesson.id, t, () => {
       setEditLesson(null);
       load(query, page);
-    } catch (err) {
-      toast.error(err.message || 'Cập nhật thất bại');
-    } finally { setEditLoading(false); }
+    });
   }
 
   return (
@@ -80,7 +70,7 @@ export default function ManageLesson() {
           title="Thêm bài học mới"
           onClose={() => setShowAdd(false)}
           onSubmit={handleCreate}
-          loading={addLoading}
+          loading={mutationLoading}
         />
       )}
       {editLesson && (
@@ -89,7 +79,7 @@ export default function ManageLesson() {
           initialValue={editLesson.title}
           onClose={() => setEditLesson(null)}
           onSubmit={handleEdit}
-          loading={editLoading}
+          loading={mutationLoading}
         />
       )}
       {deleteLesson_ && (

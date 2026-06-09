@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { removeStudent } from '../../../api/classService';
-import { toast } from 'react-toastify';
 import { FiUsers, FiDownload, FiLoader, FiEye, FiUserX } from 'react-icons/fi';
 import Pagination from '../../../components/Pagination';
+import { useClassStudentMutations } from '../../../hooks/useClass';
 
 function scoreStyle(score) {
   if (score == null) return { avatar: 'bg-slate-100 text-slate-500', pill: 'bg-slate-100 text-slate-400' };
@@ -40,17 +39,12 @@ export default function StudentRoster({
   onViewExams, onViewRelatives, onRemoved,
 }) {
   const [confirm, setConfirm] = useState(null);
+  const { remove } = useClassStudentMutations();
 
   async function handleConfirmRemove() {
-    const { studentId, fullName } = confirm;
+    const { studentId } = confirm;
     setConfirm(null);
-    try {
-      await removeStudent(classId, studentId);
-      toast.success(`Đã gỡ ${fullName} khỏi lớp`);
-      onRemoved();
-    } catch (err) {
-      toast.error(err.message || 'Gỡ thất bại');
-    }
+    await remove(classId, studentId, onRemoved);
   }
 
   return (

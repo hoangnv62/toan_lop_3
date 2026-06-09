@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FiX, FiLoader, FiSend, FiClock, FiEdit2 } from 'react-icons/fi';
 import { getExamAssignments } from '../../../api/examService';
-import { assignExam, unassignExam, updateExamAssignment } from '../../../api/classService';
+import { useClassExamMutations } from '../../../hooks/useClass';
 import { toast } from 'react-toastify';
 import { parseDateTimeToLocal } from '../../../utils/date';
 
@@ -20,6 +20,7 @@ export default function AssignExamModal({ exam, onClose }) {
   const [editDeadline, setEditDeadline]   = useState('');
   const [editOpenTime, setEditOpenTime]   = useState('');
   const [actionId, setActionId]       = useState(null);
+  const { assign, update: updateAssignment, unassign } = useClassExamMutations();
 
   useEffect(() => { load(); }, []);
 
@@ -51,15 +52,12 @@ export default function AssignExamModal({ exam, onClose }) {
       return toast.error('Vui lòng điền đầy đủ thời gian làm bài, thời gian mở đề và hạn nộp bài');
     }
     setActionId(classId);
-    try {
-      await assignExam(classId, exam.id, timeLimit, deadline, openTime);
-      toast.success('Đã giao bài cho lớp');
+    await assign(classId, exam.id, timeLimit, deadline, openTime, () => {
       setPendingId(null);
       setTimeLimit(''); setDeadline(''); setOpenTime('');
       load();
-    } catch (err) {
-      toast.error(err.message || 'Giao bài thất bại');
-    } finally { setActionId(null); }
+    });
+    setActionId(null);
   }
 
   async function handleUpdate(classId) {
@@ -67,26 +65,20 @@ export default function AssignExamModal({ exam, onClose }) {
       return toast.error('Vui lòng điền đầy đủ thời gian làm bài, thời gian mở đề và hạn nộp bài');
     }
     setActionId(classId);
-    try {
-      await updateExamAssignment(classId, exam.id, editTimeLimit, editDeadline, editOpenTime);
-      toast.success('Đã cập nhật lịch giao bài');
+    await updateAssignment(classId, exam.id, editTimeLimit, editDeadline, editOpenTime, () => {
       cancelEdit();
       load();
-    } catch (err) {
-      toast.error(err.message || 'Cập nhật thất bại');
-    } finally { setActionId(null); }
+    });
+    setActionId(null);
   }
 
   async function handleUnassign(classId) {
     setActionId(classId);
-    try {
-      await unassignExam(classId, exam.id);
-      toast.success('Đã thu hồi bài tập');
+    await unassign(classId, exam.id, () => {
       cancelEdit();
       load();
-    } catch (err) {
-      toast.error(err.message || 'Thu hồi thất bại');
-    } finally { setActionId(null); }
+    });
+    setActionId(null);
   }
 
   return (

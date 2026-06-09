@@ -1,20 +1,11 @@
-import { useState } from 'react';
 import { FiTrash2 } from 'react-icons/fi';
-import { deleteLesson } from '../../../api/lessonService';
-import { toast } from 'react-toastify';
+import { useLessonMutations } from '../../../hooks/useLesson';
 
 export default function DeleteLessonModal({ lesson, onClose, onDeleted }) {
-  const [loading, setLoading] = useState(false);
+  const { remove, loading } = useLessonMutations();
 
   async function handleDelete() {
-    setLoading(true);
-    try {
-      await deleteLesson(lesson.id);
-      toast.success('Đã xóa bài học');
-      onDeleted();
-    } catch (err) {
-      toast.error(err.message || 'Xóa thất bại');
-    } finally { setLoading(false); }
+    await remove(lesson.id, onDeleted);
   }
 
   return (

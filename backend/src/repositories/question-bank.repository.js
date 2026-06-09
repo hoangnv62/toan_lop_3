@@ -27,25 +27,37 @@ export const findByTeacher = async (teacherId, q = '', page = 1, limit = 10, les
      ORDER BY created_at DESC LIMIT :limit OFFSET :offset`,
     params
   );
-  const items = [];
-  for (const row of rows) {
-    const answerRows = await query(
-      'SELECT id, content, is_correct FROM question_bank_answers WHERE question_id = :qid ORDER BY id',
-      { qid: row.id }
-    );
-    items.push({
-      id: row.id,
-      content: row.content,
-      explanation: row.explanation,
-      lessonId: row.lesson_id ?? null,
-      createdAt: formatDate(row.created_at),
-      answers: answerRows.map(a => ({
-        id: a.id,
-        content: a.content,
-        isCorrect: a.is_correct === 1 || a.is_correct === true,
-      })),
-    });
+
+  if (!rows.length) {
+    return { items: [], total, page, pages: Math.max(1, Math.ceil(total / limit)) };
   }
+
+  const qIds = rows.map(r => Number(r.id));
+  const allAnswerRows = await query(
+    `SELECT id, content, is_correct, question_id FROM question_bank_answers
+     WHERE question_id IN (${qIds.map(() => '?').join(',')}) ORDER BY id`,
+    qIds
+  );
+  const answersByQId = {};
+  for (const a of allAnswerRows) {
+    const qid = Number(a.question_id);
+    if (!answersByQId[qid]) answersByQId[qid] = [];
+    answersByQId[qid].push(a);
+  }
+
+  const items = rows.map(row => ({
+    id: row.id,
+    content: row.content,
+    explanation: row.explanation,
+    lessonId: row.lesson_id ?? null,
+    createdAt: formatDate(row.created_at),
+    answers: (answersByQId[Number(row.id)] || []).map(a => ({
+      id: a.id,
+      content: a.content,
+      isCorrect: a.is_correct === 1 || a.is_correct === true,
+    })),
+  }));
+
   return { items, total, page, pages: Math.max(1, Math.ceil(total / limit)) };
 };
 

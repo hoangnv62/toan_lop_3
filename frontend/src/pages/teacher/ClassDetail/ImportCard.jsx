@@ -1,23 +1,21 @@
 import { useRef, useState } from 'react';
-import { uploadStudents, downloadSampleStudentsExcel } from '../../../api/classService';
+import { downloadSampleStudentsExcel } from '../../../api/classService';
 import { toast } from 'react-toastify';
 import { FiUpload, FiDownload } from 'react-icons/fi';
+import { useClassStudentMutations } from '../../../hooks/useClass';
 
 export default function ImportCard({ classId, onUploaded }) {
   const [file, setFile] = useState(null);
   const fileRef         = useRef();
+  const { upload } = useClassStudentMutations();
 
   async function handleUpload() {
     if (!file) return toast.error('Chưa chọn file');
-    try {
-      const res = await uploadStudents(classId, file);
-      toast.success(res.message || 'Upload thành công');
+    await upload(classId, file, () => {
       setFile(null);
       if (fileRef.current) fileRef.current.value = '';
       onUploaded();
-    } catch (err) {
-      toast.error(err.message || 'Upload thất bại');
-    }
+    });
   }
 
   return (

@@ -30,7 +30,7 @@ export const runTeacherAgent = async (messages, user, { onToken, onToolStart, on
   if (!assistantMsg.tool_calls?.length) {
     const stream = await streamChat(history);
     for await (const chunk of stream) {
-      const token = chunk.choices[0]?.delta?.content;
+      const token = chunk?.choices[0]?.delta?.content;
       if (token) onToken(token);
     }
     return;

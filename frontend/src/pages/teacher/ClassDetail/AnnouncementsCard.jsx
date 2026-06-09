@@ -1,37 +1,29 @@
 import { useState } from 'react';
-import { createAnnouncement, deleteAnnouncement } from '../../../api/announcementService';
 import { toast } from 'react-toastify';
 import { FiBell, FiTrash2, FiSave, FiLoader, FiX } from 'react-icons/fi';
+import { useAnnouncementMutations } from '../../../hooks/useAnnouncement';
 
 export default function AnnouncementsCard({ classId, announcements, onChanged }) {
-  const [annForm, setAnnForm]     = useState({ open: false, title: '', content: '' });
-  const [annSaving, setAnnSaving] = useState(false);
+  const [annForm, setAnnForm]       = useState({ open: false, title: '', content: '' });
   const [confirmAnn, setConfirmAnn] = useState(null);
+  const { create, remove, loading: annSaving } = useAnnouncementMutations(classId);
 
   async function handleCreate() {
     if (!annForm.title.trim()) return toast.error('Tiêu đề không được trống');
     if (!annForm.content.trim()) return toast.error('Nội dung không được trống');
-    setAnnSaving(true);
-    try {
-      await createAnnouncement(classId, { title: annForm.title.trim(), content: annForm.content.trim() });
-      toast.success('Đã tạo thông báo');
-      setAnnForm({ open: false, title: '', content: '' });
-      onChanged();
-    } catch (err) {
-      toast.error(err.message || 'Tạo thông báo thất bại');
-    } finally { setAnnSaving(false); }
+    await create(
+      { title: annForm.title.trim(), content: annForm.content.trim() },
+      () => {
+        setAnnForm({ open: false, title: '', content: '' });
+        onChanged();
+      },
+    );
   }
 
   async function handleDelete() {
     const id = confirmAnn.id;
     setConfirmAnn(null);
-    try {
-      await deleteAnnouncement(id);
-      toast.success('Đã xóa thông báo');
-      onChanged();
-    } catch (err) {
-      toast.error(err.message || 'Xóa thất bại');
-    }
+    await remove(id, onChanged);
   }
 
   return (

@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { registerTeacher, registerStudent } from '../api/auth';
 import { toast } from 'react-toastify';
+import { useAuthMutations } from '../hooks/useAuth';
 
 function Field({ label, required, children }) {
   return (
@@ -26,24 +25,19 @@ export default function Register() {
   const [sDob, setSdob]           = useState('');
   const [sPass, setSPass]         = useState('');
   const [sConfirm, setSConfirm]   = useState('');
-  const [loading, setLoading]     = useState(false);
-  const { setUser } = useAuth();
-  const navigate    = useNavigate();
+  const { register, loading } = useAuthMutations();
+  const navigate = useNavigate();
 
   async function handleTeacherRegister() {
     if (!tUsername || !tFullName || !tPass || !tConfirm)
       return toast.error('Vui lòng điền đầy đủ thông tin!');
     if (tPass !== tConfirm)
       return toast.error('Mật khẩu xác nhận không khớp!');
-    setLoading(true);
-    try {
-      const data = await registerTeacher(tUsername, tPass, tFullName);
-      setUser(data.user || { role: 'teacher' });
-      toast.success('Đăng ký thành công!');
-      navigate('/dashboard');
-    } catch (err) {
-      toast.error(err.message || 'Đăng ký thất bại');
-    } finally { setLoading(false); }
+    await register(
+      { username: tUsername, password: tPass, fullName: tFullName },
+      'teacher',
+      () => navigate('/dashboard'),
+    );
   }
 
   async function handleStudentRegister() {
@@ -51,17 +45,11 @@ export default function Register() {
       return toast.error('Vui lòng điền đầy đủ thông tin bắt buộc!');
     if (sPass !== sConfirm)
       return toast.error('Mật khẩu xác nhận không khớp!');
-    setLoading(true);
-    try {
-      const data = await registerStudent({
-        username: sUsername, password: sPass, fullName: sFullName, dob: sDob,
-      });
-      setUser(data.user || { role: 'student' });
-      toast.success('Đăng ký thành công!');
-      navigate('/student');
-    } catch (err) {
-      toast.error(err.message || 'Đăng ký thất bại');
-    } finally { setLoading(false); }
+    await register(
+      { username: sUsername, password: sPass, fullName: sFullName, dob: sDob },
+      'student',
+      () => navigate('/student'),
+    );
   }
 
   return (

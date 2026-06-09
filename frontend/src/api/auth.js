@@ -1,25 +1,13 @@
 import api, { setToken, clearToken } from './index';
 
-export const loginTeacher = async (username, password) => {
-  const data = await api.post('/api/auth/login/teacher', { username, password });
+export const login = async (username, password, role) => {
+  const data = await api.post(`/api/auth/login/${role}`, { username, password });
   if (data.token) setToken(data.token);
   return data;
 };
 
-export const loginStudent = async (username, password) => {
-  const data = await api.post('/api/auth/login/student', { username, password });
-  if (data.token) setToken(data.token);
-  return data;
-};
-
-export const registerTeacher = async (username, password, fullName) => {
-  const data = await api.post('/api/auth/register/teacher', { username, password, fullName });
-  if (data.token) setToken(data.token);
-  return data;
-};
-
-export const registerStudent = async ({ username, password, fullName, dob }) => {
-  const data = await api.post('/api/auth/register/student', { username, password, fullName, dob: dob || null });
+export const register = async ({ username, password, fullName, dob }, role) => {
+  const data = await api.post(`/api/auth/register/${role}`, { username, password, fullName, dob: dob || null });
   if (data.token) setToken(data.token);
   return data;
 };

@@ -1,42 +1,36 @@
 import { useEffect, useRef, useState } from 'react';
-import { searchStudents, assignStudent } from '../../../api/classService';
 import { toast } from 'react-toastify';
 import { FiSearch, FiLoader, FiUserPlus } from 'react-icons/fi';
+import { useClassStudentMutations } from '../../../hooks/useClass';
 
 export default function AddStudentCard({ classId, onAssigned }) {
   const [query, setQuery]                 = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [searching, setSearching]         = useState(false);
   const debounceRef                       = useRef();
+  const { search, assign, loading } = useClassStudentMutations();
 
   useEffect(() => {
     clearTimeout(debounceRef.current);
     if (!query.trim()) { setSearchResults([]); return; }
     debounceRef.current = setTimeout(() => runSearch(query.trim()), 1000);
     return () => clearTimeout(debounceRef.current);
-  }, [query]);
+  }, [query]); // eslint-disable-line
 
   async function runSearch(q) {
-    setSearching(true);
-    try {
-      const data = await searchStudents(q, classId);
+    const data = await search(q, classId);
+    if (data) {
       setSearchResults(data);
       if (data.length === 0) toast.info('Không tìm thấy học sinh nào');
-    } catch (err) {
-      toast.error(err.message || 'Lỗi tìm kiếm');
-    } finally { setSearching(false); }
+    }
   }
 
   async function handleAssign(username, fullName) {
-    try {
-      await assignStudent(classId, username);
-      toast.success(`Đã thêm ${fullName} vào lớp`);
+    // The hook's assign already shows a success toast; use callback for side-effects
+    await assign(classId, username, () => {
       setSearchResults([]);
       setQuery('');
       onAssigned();
-    } catch (err) {
-      toast.error(err.message || 'Thêm thất bại');
-    }
+    });
   }
 
   return (
@@ -53,7 +47,7 @@ export default function AddStudentCard({ classId, onAssigned }) {
           value={query}
           onChange={e => setQuery(e.target.value)}
         />
-        {searching && (
+        {loading && (
           <FiLoader size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 animate-spin" />
         )}
       </div>

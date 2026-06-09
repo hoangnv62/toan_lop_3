@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import ChatBot from './components/shared/ChatBot';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -59,6 +60,7 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <ChatBot />
     </BrowserRouter>
   );
 }

@@ -1,32 +1,28 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { loginTeacher, loginStudent } from '../api/auth';
 import { toast } from 'react-toastify';
 import { FiLoader } from 'react-icons/fi';
+import { useAuthMutations } from '../hooks/useAuth';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading]   = useState(false);
-  const { setUser } = useAuth();
-  const navigate    = useNavigate();
+  const { login, loading } = useAuthMutations();
+  const navigate = useNavigate();
 
   async function handleLogin() {
     if (!username.trim() || !password) return toast.error('Vui lòng nhập đầy đủ thông tin');
-    setLoading(true);
     try {
       let data;
       try {
-        data = await loginTeacher(username.trim(), password);
+        data = await login(username.trim(), password, 'teacher');
       } catch {
-        data = await loginStudent(username.trim(), password);
+        data = await login(username.trim(), password, 'student');
       }
-      setUser(data.user);
       navigate(data.user?.role === 'teacher' ? '/dashboard' : '/student');
     } catch {
-      toast.error('Sai tài khoản hoặc mật khẩu');
-    } finally { setLoading(false); }
+      // outer catch: both teacher and student login failed; hook already showed toast
+    }
   }
 
   return (

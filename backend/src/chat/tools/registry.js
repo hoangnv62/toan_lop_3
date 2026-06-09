@@ -22,6 +22,21 @@ import { handler as examStatsHandler } from './get-exam-stats/handler.js';
 import { definition as assignExamDef } from './assign-exam/definition.js';
 import { handler as assignExamHandler } from './assign-exam/handler.js';
 
+import { definition as deleteExamDef } from './delete-exam/definition.js';
+import { handler as deleteExamHandler } from './delete-exam/handler.js';
+
+import { definition as unassignExamDef } from './unassign-exam/definition.js';
+import { handler as unassignExamHandler } from './unassign-exam/handler.js';
+
+import { definition as createAnnouncementDef } from './create-announcement/definition.js';
+import { handler as createAnnouncementHandler } from './create-announcement/handler.js';
+
+import { definition as studentProgressDef } from './get-student-progress/definition.js';
+import { handler as studentProgressHandler } from './get-student-progress/handler.js';
+
+import { definition as updateExamDef } from './update-exam/definition.js';
+import { handler as updateExamHandler } from './update-exam/handler.js';
+
 export const TEACHER_TOOLS = [
   searchDef,
   saveDef,
@@ -31,6 +46,11 @@ export const TEACHER_TOOLS = [
   createExamDef,
   examStatsDef,
   assignExamDef,
+  deleteExamDef,
+  unassignExamDef,
+  createAnnouncementDef,
+  studentProgressDef,
+  updateExamDef,
 ];
 
 export const TOOL_LABELS = {
@@ -42,6 +62,11 @@ export const TOOL_LABELS = {
   create_exam:            'Đang tạo đề thi...',
   get_exam_stats:         'Đang lấy thống kê đề thi...',
   assign_exam_to_class:   'Đang giao bài tập cho lớp...',
+  delete_exam:            'Đang xóa đề thi...',
+  unassign_exam:          'Đang hủy giao đề thi...',
+  create_announcement:    'Đang gửi thông báo...',
+  get_student_progress:   'Đang lấy tiến độ học sinh...',
+  update_exam:            'Đang cập nhật đề thi...',
 };
 
 export const toolRegistry = {
@@ -53,4 +78,9 @@ export const toolRegistry = {
   create_exam:            createExamHandler,
   get_exam_stats:         examStatsHandler,
   assign_exam_to_class:   assignExamHandler,
+  delete_exam:            deleteExamHandler,
+  unassign_exam:          unassignExamHandler,
+  create_announcement:    createAnnouncementHandler,
+  get_student_progress:   studentProgressHandler,
+  update_exam:            updateExamHandler,
 };

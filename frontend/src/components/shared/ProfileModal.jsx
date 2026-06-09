@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { FiX, FiLoader, FiUser, FiMail, FiPhone, FiCalendar, FiAtSign } from 'react-icons/fi';
-import { getProfile, updateProfile } from '../../api/auth';
+import { getProfile } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import { parseDateToInput } from '../../utils/date';
+import { useAuthMutations } from '../../hooks/useAuth';
 
 function Field({ label, icon: Icon, children }) {
   return (
@@ -19,6 +20,7 @@ function Field({ label, icon: Icon, children }) {
 
 export default function ProfileModal({ onClose }) {
   const { user, setUser } = useAuth();
+  const { updateProfile, loading } = useAuthMutations();
 
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
@@ -26,7 +28,6 @@ export default function ProfileModal({ onClose }) {
   const [email, setEmail]       = useState('');
   const [phone, setPhone]       = useState('');
   const [fetching, setFetching] = useState(true);
-  const [loading, setLoading]   = useState(false);
 
   useEffect(() => {
     getProfile()
@@ -44,15 +45,13 @@ export default function ProfileModal({ onClose }) {
 
   async function handleSave() {
     if (!fullName.trim()) return toast.error('Họ và tên không được trống');
-    setLoading(true);
-    try {
-      await updateProfile({ fullName: fullName.trim(), dob, email, phone });
-      setUser({ ...user, name: fullName.trim() });
-      toast.success('Cập nhật hồ sơ thành công');
-      onClose();
-    } catch (err) {
-      toast.error(err.message || 'Cập nhật thất bại');
-    } finally { setLoading(false); }
+    await updateProfile(
+      { fullName: fullName.trim(), dob, email, phone },
+      () => {
+        setUser({ ...user, name: fullName.trim() });
+        onClose();
+      },
+    );
   }
 
   const initials = fullName.trim().split(' ').pop()?.charAt(0).toUpperCase() || '?';

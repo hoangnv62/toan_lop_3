@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS, CategoryScale, LinearScale,
@@ -9,27 +9,18 @@ import {
   FiClock, FiSave, FiTrendingUp, FiEye,
 } from 'react-icons/fi';
 import { getStudentSubmission, saveComment } from '../../../api/examService';
-import { getStudentResults, getStudentProgress } from '../../../api/studentService';
+import { useStudentResults, useStudentProgress } from '../../../hooks/useStudent';
 import { toast } from 'react-toastify';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
 export default function StudentResultsModal({ student, onClose }) {
-  const [results, setResults]           = useState(null);
-  const [progress, setProgress]         = useState([]);
-  const [detail, setDetail]             = useState(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
-  const [comment, setComment]           = useState('');
-  const [savingComment, setSavingComment] = useState(false);
-
-  useEffect(() => {
-    getStudentResults(student.id)
-      .then(data => setResults(data))
-      .catch(() => setResults({ studentName: student.fullName, results: [] }));
-    getStudentProgress(student.id)
-      .then(rows => setProgress(rows))
-      .catch(() => {});
-  }, [student.id]);
+  const { results, loading: resultsLoading } = useStudentResults(student.id);
+  const { progress }                         = useStudentProgress(student.id);
+  const [detail, setDetail]                  = useState(null);
+  const [loadingDetail, setLoadingDetail]    = useState(false);
+  const [comment, setComment]                = useState('');
+  const [savingComment, setSavingComment]    = useState(false);
 
   async function viewDetail(examId, examName) {
     setLoadingDetail(true);
@@ -207,11 +198,11 @@ export default function StudentResultsModal({ student, onClose }) {
           </div>
         )}
 
-        {results === null ? (
+        {resultsLoading ? (
           <div className="flex justify-center py-10">
             <FiLoader size={20} className="animate-spin text-slate-300" />
           </div>
-        ) : results.results.length === 0 ? (
+        ) : !results?.results?.length ? (
           <p className="text-sm text-slate-400 text-center py-10">Học sinh chưa làm bài nào.</p>
         ) : (
           <div className="space-y-2 max-h-64 overflow-y-auto">

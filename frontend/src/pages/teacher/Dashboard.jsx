@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend } from 'chart.js';
 import TeacherLayout from '../../layouts/TeacherLayout';
-import { fetchTeacherDashboard, getAIAdvice } from '../../api/studentService';
-import { toast } from 'react-toastify';
+import { useTeacherDashboard, useAIAdviceMutation } from '../../hooks/useStudent';
 import { FiUsers, FiLayers, FiBook, FiFileText, FiRefreshCw, FiZap, FiAward, FiTrendingUp } from 'react-icons/fi';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
@@ -49,35 +48,19 @@ function SectionTitle({ icon: Icon, title, iconColor = 'text-indigo-500' }) {
 const RANK_MEDAL = ['🥇', '🥈', '🥉'];
 
 export default function Dashboard() {
-  const [data, setData]           = useState(null);
-  const [advice, setAdvice]       = useState([]);
-  const [loadingAI, setLoadingAI] = useState(false);
+  const [advice, setAdvice] = useState([]);
+  const { dashboard: data } = useTeacherDashboard();
+  const { fetchAdvice: getAIAdvice, loading: loadingAI } = useAIAdviceMutation();
 
-  useEffect(() => { loadDashboard(); }, []);
-
-  async function loadDashboard() {
-    try {
-      const d = await fetchTeacherDashboard();
-      setData(d);
-    } catch (err) {
-      toast.error(err.message || 'Không tải được dashboard');
-    }
-  }
-
-  async function fetchAdvice(d) {
+  function fetchAdvice(d) {
     if (!d) return;
-    setLoadingAI(true);
     const dist = d.scoreDistribution;
     const totalStudents = (d.passRate?.pass ?? 0) + (d.passRate?.fail ?? 0);
     const avg = ((dist['0-4'] ?? 0) * 2 + (dist['4-6'] ?? 0) * 5 + (dist['6-8'] ?? 0) * 7 + (dist['8-10'] ?? 0) * 9)
       / Math.max(totalStudents, 1);
-    try {
-      const res = await getAIAdvice({ avg: +avg.toFixed(2), totalStudents, dist });
-      setAdvice(res || []);
-    } catch {
-      toast.error('Không lấy được lời khuyên AI');
-    }
-    setLoadingAI(false);
+    getAIAdvice({ avg: +avg.toFixed(2), totalStudents, dist }, result => {
+      setAdvice(result || []);
+    });
   }
 
   const summary        = data?.summary ?? {};
