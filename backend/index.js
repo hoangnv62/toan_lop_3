@@ -2,6 +2,7 @@ import 'dotenv/config';
 import cors from 'cors';
 import express from 'express';
 import { env } from './src/config/env.js';
+import { initializeDatabase } from './database/init-db.js';
 import { errorHandler } from './src/middleware/error-handler.middleware.js';
 import { camelCaseResponse } from './src/middleware/camelcase-response.middleware.js';
 
@@ -61,6 +62,17 @@ app.use('/api/chat', chatRouter);
 
 app.use(errorHandler);
 
-app.listen(env.PORT, () => {
-  console.log(`Server is running at http://localhost:${env.PORT}`);
-});
+async function start() {
+  try {
+    await initializeDatabase();
+  } catch (err) {
+    console.error('Không thể khởi tạo database:', err);
+    process.exit(1);
+  }
+
+  app.listen(env.PORT, () => {
+    console.log(`Server is running at http://localhost:${env.PORT}`);
+  });
+}
+
+start();

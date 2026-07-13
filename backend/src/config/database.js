@@ -12,6 +12,12 @@ const pool = mariadb.createPool({
   insertIdAsNumber: true,
   bigIntAsNumber: true,
   dateStrings: false,
+  // MySQL 8 `caching_sha2_password` refuses to send the password over an
+  // unencrypted channel without the server's RSA public key. Enabling TLS is
+  // the secure fix (password travels encrypted); allowPublicKeyRetrieval is the
+  // fallback for servers without TLS.
+  ssl: env.DB_SSL ? { rejectUnauthorized: false } : undefined,
+  allowPublicKeyRetrieval: env.DB_ALLOW_PUBLIC_KEY_RETRIEVAL,
 });
 
 export const query = (sql, params) => pool.query(sql, params);
