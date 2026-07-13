@@ -17,7 +17,7 @@ export async function initializeDatabase() {
     user: env.DB_USER,
     password: env.DB_PASSWORD,
     ssl: env.DB_SSL ? { rejectUnauthorized: false } : undefined,
-    allowPublicKeyRetrieval: env.DB_ALLOW_PUBLIC_KEY_RETRIEVAL,
+    allowPublicKeyRetrieval: true,
   });
 
   try {

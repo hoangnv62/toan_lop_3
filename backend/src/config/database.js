@@ -13,11 +13,11 @@ const pool = mariadb.createPool({
   bigIntAsNumber: true,
   dateStrings: false,
   // MySQL 8 `caching_sha2_password` refuses to send the password over an
-  // unencrypted channel without the server's RSA public key. Enabling TLS is
-  // the secure fix (password travels encrypted); allowPublicKeyRetrieval is the
-  // fallback for servers without TLS.
+  // unencrypted channel without the server's RSA public key. We allow public
+  // key retrieval so auth works against Railway MySQL over plain TCP; set
+  // DB_SSL=true additionally if the server exposes TLS.
   ssl: env.DB_SSL ? { rejectUnauthorized: false } : undefined,
-  allowPublicKeyRetrieval: env.DB_ALLOW_PUBLIC_KEY_RETRIEVAL,
+  allowPublicKeyRetrieval: true,
 });
 
 export const query = (sql, params) => pool.query(sql, params);

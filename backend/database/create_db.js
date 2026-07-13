@@ -19,7 +19,7 @@ async function main() {
       user: env.DB_USER,
       password: env.DB_PASSWORD,
       ssl: env.DB_SSL ? { rejectUnauthorized: false } : undefined,
-      allowPublicKeyRetrieval: env.DB_ALLOW_PUBLIC_KEY_RETRIEVAL,
+      allowPublicKeyRetrieval: true,
     });
 
     await conn.query(`DROP DATABASE IF EXISTS \`${env.DB_NAME}\``);

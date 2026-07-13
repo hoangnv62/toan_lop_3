@@ -11,7 +11,6 @@ export const env = {
   // (vd Railway cấp sẵn "railway") tiêm vào, luôn dùng math_learning.
   DB_NAME: 'math_learning',
   DB_SSL: process.env.DB_SSL === 'true',
-  DB_ALLOW_PUBLIC_KEY_RETRIEVAL: process.env.DB_ALLOW_PUBLIC_KEY_RETRIEVAL === 'true',
   SECRET_KEY: process.env.SECRET_KEY || 'math_secret_key',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
