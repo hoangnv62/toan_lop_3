@@ -19,12 +19,27 @@ import chatRouter from './src/routes/chat.route.js';
 
 const app = express();
 
+const staticOrigins = [
+  'http://localhost:5500', 'http://127.0.0.1:5500',
+  'http://localhost:8080', 'http://127.0.0.1:8080',
+  'http://localhost:5173', 'http://127.0.0.1:5173',
+  'https://toan-lop-3-8e8h.vercel.app',
+  ...env.ALLOWED_ORIGINS,
+];
+
+// Vercel sinh một URL riêng cho mỗi lần deploy: <project>-<hash>-<scope>.vercel.app,
+// nên cho phép mọi subdomain của project frontend thay vì liệt kê từng URL.
+const vercelPreviewPattern = /^https:\/\/toan-lop-3-8e8h[\w-]*\.vercel\.app$/;
+
 app.use(cors({
-  origin: [
-    'http://localhost:5500', 'http://127.0.0.1:5500',
-    'http://localhost:8080', 'http://127.0.0.1:8080',
-    'http://localhost:5173', 'http://127.0.0.1:5173','https://toan-lop-3-8e8h.vercel.app', 
-  ],
+  origin(origin, callback) {
+    // Không có Origin: request từ curl, mobile app hoặc server-to-server
+    if (!origin) return callback(null, true);
+    if (staticOrigins.includes(origin) || vercelPreviewPattern.test(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 

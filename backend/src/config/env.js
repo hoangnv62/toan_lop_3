@@ -11,4 +11,8 @@ export const env = {
   SECRET_KEY: process.env.SECRET_KEY || 'math_secret_key',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+  ALLOWED_ORIGINS: (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 };
