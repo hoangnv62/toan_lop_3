@@ -20,8 +20,8 @@ export const register = async (username, password, fullName, role, dob = null) =
     return {token, user};
 };
 
-export const login = async (username, password, role) => {
-    const user = await userRepo.findByUsernameAndRole(username, role);
+export const login = async (username, password) => {
+    const user = await userRepo.findByUsername(username);
     if (!user || !(await verifyPassword(user.password, password))) {
         throw new UnauthorizedError('Sai tài khoản hoặc mật khẩu');
     }

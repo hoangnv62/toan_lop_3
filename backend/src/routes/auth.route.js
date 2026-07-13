@@ -14,8 +14,7 @@ const router = Router();
 
 router.post('/register/teacher', validateRegisterTeacher, asyncHandler(ctrl.registerTeacher));
 router.post('/register/student', validateRegisterStudent, asyncHandler(ctrl.registerStudent));
-router.post('/login/teacher', validateLogin, asyncHandler(ctrl.loginTeacher));
-router.post('/login/student', validateLogin, asyncHandler(ctrl.loginStudent));
+router.post('/login', validateLogin, asyncHandler(ctrl.login));
 router.post('/logout', ctrl.logout);
 router.get('/me', authenticate, asyncHandler(ctrl.me));
 router.get('/profile', authenticate, asyncHandler(ctrl.getProfile));

@@ -1,7 +1,7 @@
 import api, { setToken, clearToken } from './index';
 
-export const login = async (username, password, role) => {
-  const data = await api.post(`/api/auth/login/${role}`, { username, password });
+export const login = async (username, password) => {
+  const data = await api.post('/api/auth/login', { username, password });
   if (data.token) setToken(data.token);
   return data;
 };

@@ -8,11 +8,11 @@ export const useAuthMutations = () => {
   const [loading, setLoading] = useState(false);
   const { setUser } = useAuth();
 
-  const login = async (username, password, role) => {
+  const login = async (username, password) => {
     try {
       setLoading(true);
       const data = await toastPromise(
-        loginApi(username, password, role),
+        loginApi(username, password),
         {
           loading: 'Đang đăng nhập...',
           success: 'Đăng nhập thành công',

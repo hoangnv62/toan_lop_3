@@ -13,16 +13,10 @@ export const registerStudent = async (req, res) => {
   res.status(201).json({ success: true, token, user: { userId: user.id, role: 'student', name: user.full_name } });
 };
 
-export const loginTeacher = async (req, res) => {
+export const login = async (req, res) => {
   const { username, password } = req.body;
-  const { token, user } = await svc.login(username.trim(), password, 'teacher');
-  res.json({ success: true, token, user: { userId: user.id, role: 'teacher', name: user.full_name } });
-};
-
-export const loginStudent = async (req, res) => {
-  const { username, password } = req.body;
-  const { token, user } = await svc.login(username.trim(), password, 'student');
-  res.json({ success: true, token, user: { userId: user.id, role: 'student', name: user.full_name } });
+  const { token, user } = await svc.login(username.trim(), password);
+  res.json({ success: true, token, user: { userId: user.id, role: user.role, name: user.full_name } });
 };
 
 export const logout = (req, res) => successMsg(res, 'Logged out');

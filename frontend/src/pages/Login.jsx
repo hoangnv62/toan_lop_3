@@ -13,15 +13,10 @@ export default function Login() {
   async function handleLogin() {
     if (!username.trim() || !password) return toast.error('Vui lòng nhập đầy đủ thông tin');
     try {
-      let data;
-      try {
-        data = await login(username.trim(), password, 'teacher');
-      } catch {
-        data = await login(username.trim(), password, 'student');
-      }
+      const data = await login(username.trim(), password);
       navigate(data.user?.role === 'teacher' ? '/dashboard' : '/student');
     } catch {
-      // outer catch: both teacher and student login failed; hook already showed toast
+      // hook already showed the error toast
     }
   }
 

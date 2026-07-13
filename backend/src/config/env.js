@@ -14,6 +14,12 @@ export const env = {
   SECRET_KEY: process.env.SECRET_KEY || 'math_secret_key',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+  OPENAI_MODEL: process.env.OPENAI_MODEL || 'openai/gpt-oss-120b:free',
+  // Model dự phòng khi model chính bị 429 (rate-limit). Danh sách phân cách bằng dấu phẩy.
+  OPENAI_FALLBACK_MODELS: (process.env.OPENAI_FALLBACK_MODELS || '')
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean),
   ALLOWED_ORIGINS: (process.env.ALLOWED_ORIGINS || '')
     .split(',')
     .map((origin) => origin.trim())
