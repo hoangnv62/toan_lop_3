@@ -18,6 +18,10 @@ const pool = mariadb.createPool({
   // DB_SSL=true additionally if the server exposes TLS.
   ssl: env.DB_SSL ? { rejectUnauthorized: false } : undefined,
   allowPublicKeyRetrieval: true,
+  // Railway's MySQL 8 enables ONLY_FULL_GROUP_BY by default, which rejects our
+  // GROUP BY queries that select columns unique-per-group but not provably so.
+  // Drop that mode on each new connection so behaviour matches local dev.
+  initSql: "SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))",
 });
 
 export const query = (sql, params) => pool.query(sql, params);
