@@ -3,7 +3,7 @@ import { FiX, FiLoader, FiSend, FiClock, FiEdit2 } from 'react-icons/fi';
 import { getExamAssignments } from '../../../api/examService';
 import { useClassExamMutations } from '../../../hooks/useClass';
 import { toast } from 'react-toastify';
-import { parseDateTimeToLocal } from '../../../utils/date';
+import { parseDateTimeToLocal, parseDateTime } from '../../../utils/date';
 
 function toDatetimeLocal(str) {
   return parseDateTimeToLocal(str);
@@ -149,12 +149,12 @@ export default function AssignExamModal({ exam, onClose }) {
                     )}
                     {cls.openTime && (
                       <p className="text-xs text-slate-500 flex items-center gap-1">
-                        <FiClock size={10} /> Mở: {new Date(cls.openTime).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
+                        <FiClock size={10} /> Mở: {parseDateTime(cls.openTime)?.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) ?? cls.openTime}
                       </p>
                     )}
                     {cls.deadline && (
                       <p className="text-xs text-amber-600 flex items-center gap-1">
-                        <FiClock size={10} /> Hạn: {new Date(cls.deadline).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
+                        <FiClock size={10} /> Hạn: {parseDateTime(cls.deadline)?.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) ?? cls.deadline}
                       </p>
                     )}
                   </div>
