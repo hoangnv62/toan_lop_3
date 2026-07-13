@@ -211,16 +211,16 @@ Fallback Strategy
 
 ## Slide 8 — ERD tổng quan
 
-**Mục tiêu:** Toàn cảnh 15 bảng và quan hệ giữa chúng.
+**Mục tiêu:** Toàn cảnh 16 bảng và quan hệ giữa chúng.
 
 **Bố cục:** ERD chiếm toàn slide, chú thích ngắn phía dưới.
 
 **Sơ đồ ERD:**
 
-> 📷 **[ CHÈN ẢNH: ERD — 15 bảng và quan hệ ]**
+> 📷 **[ CHÈN ẢNH: ERD — 16 bảng và quan hệ ]**
 > Căn giữa · Chiều rộng ~95% slide · Nền trắng hoặc trong suốt
 
-**Chú thích:** 15 bảng · charset utf8mb4 · MySQL 8 · Connection Pool 5 kết nối
+**Chú thích:** 16 bảng · charset utf8mb4 · MariaDB / MySQL · Connection Pool 10 kết nối
 
 ---
 
@@ -400,7 +400,7 @@ Fallback tự động khi AI không phản hồi
 - Thống kê tổng quan: số lớp, số học sinh, số đề thi
 - Biểu đồ điểm trung bình từng lớp
 - Bảng top học sinh xuất sắc
-- Khung **AI lời khuyên** — 3 gợi ý giảng dạy được Gemini phân tích từ phân phối điểm thực tế
+- Khung **AI lời khuyên** — gợi ý giảng dạy được AI (OpenRouter) phân tích từ phân phối điểm thực tế
 
 **Ghi chú:** Nếu không có ảnh thực, vẽ wireframe đơn giản với các vùng được đánh nhãn rõ ràng.
 
@@ -417,7 +417,7 @@ Fallback tự động khi AI không phản hồi
 - Nút "AI sinh câu hỏi" màu indigo nổi bật
 
 **Bước 2** `[Screenshot: Trạng thái loading]`
-- Spinner + text "Đang sinh câu hỏi với Gemini AI..."
+- Spinner + text "Đang sinh câu hỏi với AI (OpenRouter)..."
 
 **Bước 3** `[Screenshot: Danh sách câu hỏi sau khi AI sinh]`
 - Mỗi câu hỏi hiển thị 4 đáp án A/B/C/D
@@ -475,10 +475,10 @@ Fallback tự động khi AI không phản hồi
 
 | Chỉ số | Giá trị |
 |---|---|
-| Bảng trong Database | 15 bảng |
-| API endpoints | ~35 endpoints |
-| Route modules (Express) | 9 modules |
-| Frontend pages | 9 pages chính |
+| Bảng trong Database | 16 bảng |
+| API endpoints | ~40 endpoints |
+| Route modules (Express) | 11 modules |
+| Frontend pages | 11 trang chính |
 | AI tools (Teacher Chatbot) | 7 tools |
 | Connection Pool | 10 kết nối |
 
@@ -520,7 +520,7 @@ Fallback tự động khi AI không phản hồi
 ### Màu sắc nhất quán
 - Giáo viên: **Indigo** `#4F46E5`
 - Học sinh: **Xanh lá** `#10B981`
-- AI / Gemini: **Tím** `#8B5CF6`
+- AI / OpenRouter: **Tím** `#8B5CF6`
 - Cảnh báo / Vấn đề: **Vàng** `#F59E0B`
 
 ### Yêu cầu tối thiểu mỗi slide
