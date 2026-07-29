@@ -22,16 +22,19 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Free OpenRouter models are frequently rate-limited (429) upstream. Retry with
 // exponential backoff before giving up. Any non-429 error is thrown immediately.
-async function createCompletion(baseParams) {
+async function createCompletion(baseParams, signal) {
   let lastError;
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     try {
-       const result = await client.chat.completions.create({ ...baseParams, model: env.OPENAI_MODEL });
-       console.log(result);
-       return result;
+      return await client.chat.completions.create(
+        { ...baseParams, model: env.OPENAI_MODEL },
+        { signal }
+      );
     } catch (err) {
       lastError = err;
+      // Người dùng bấm hủy → dừng ngay, đừng retry.
+      if (signal?.aborted) throw err;
       if (err?.status !== 429) throw err;
       // 0.5s, 1s — leave the loop early on the last attempt.
       if (attempt < MAX_ATTEMPTS - 1) await sleep(500 * 2 ** attempt);
@@ -41,16 +44,16 @@ async function createCompletion(baseParams) {
   throw lastError;
 }
 
-export const streamChat = (messages) =>
-  createCompletion({ messages, temperature: 0.7, stream: true });
+export const streamChat = (messages, signal) =>
+  createCompletion({ messages, temperature: 0.7, stream: true }, signal);
 
-export const chatCompletion = async (messages, tools = null) => {
+export const chatCompletion = async (messages, tools = null, signal) => {
   const params = { messages, temperature: 0.3 };
   if (tools?.length) {
     params.tools = tools;
     params.tool_choice = 'auto';
   }
-  const response = await createCompletion(params);
+  const response = await createCompletion(params, signal);
   return response.choices[0].message;
 };
 

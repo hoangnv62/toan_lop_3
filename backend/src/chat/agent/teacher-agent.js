@@ -16,7 +16,7 @@ const loadPrompt = async () => {
   return _cachedPrompt;
 };
 
-export const runTeacherAgent = async (messages, user, { onToken, onToolStart, onToolDone }) => {
+export const runTeacherAgent = async (messages, user, { onToken, onToolStart, onToolDone, signal }) => {
   const systemPrompt = await loadPrompt();
   const history = [
     { role: 'system', content: systemPrompt },
@@ -24,11 +24,11 @@ export const runTeacherAgent = async (messages, user, { onToken, onToolStart, on
   ];
 
   // First call: detect whether tools are needed
-  let assistantMsg = await chatCompletion(history, TEACHER_TOOLS);
+  let assistantMsg = await chatCompletion(history, TEACHER_TOOLS, signal);
 
   // No tools → re-call as streaming for better UX
   if (!assistantMsg.tool_calls?.length) {
-    const stream = await streamChat(history);
+    const stream = await streamChat(history, signal);
     for await (const chunk of stream) {
       const token = chunk?.choices[0]?.delta?.content;
       if (token) onToken(token);
@@ -44,6 +44,10 @@ export const runTeacherAgent = async (messages, user, { onToken, onToolStart, on
     loops++;
 
     for (const tc of assistantMsg.tool_calls) {
+      // Tool chạy trên DB nên không nhận signal — chặn ở đây để lần hủy có hiệu
+      // lực ngay giữa chuỗi tool thay vì phải đợi hết vòng lặp.
+      if (signal?.aborted) return;
+
       const name = tc.function.name;
       onToolStart({ tool: name, label: TOOL_LABELS[name] || name });
 
@@ -60,7 +64,7 @@ export const runTeacherAgent = async (messages, user, { onToken, onToolStart, on
       });
     }
 
-    assistantMsg = await chatCompletion(history, TEACHER_TOOLS);
+    assistantMsg = await chatCompletion(history, TEACHER_TOOLS, signal);
     history.push(assistantMsg);
   }
 

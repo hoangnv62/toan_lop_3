@@ -19,6 +19,11 @@ export const saveMessage = (sessionId, role, content) =>
     { sessionId, role, content }
   );
 
+// Dùng khi người dùng hủy giữa chừng: câu hỏi đã lưu trước khi gọi model nên
+// phải gỡ ra, nếu không nó vẫn nằm trong ngữ cảnh của lượt hỏi kế tiếp.
+export const deleteMessage = (id) =>
+  query('DELETE FROM chat_messages WHERE id = :id', { id });
+
 export const getSessionMessages = (sessionId) =>
   query(
     'SELECT role, content, created_at FROM chat_messages WHERE session_id = :sessionId ORDER BY created_at ASC',

@@ -2,7 +2,17 @@ import api from './index';
 
 export const getChatHistory = () => api.get('/api/chat/history');
 
-export async function streamChat(messages, onToken, onDone, onToolStart, onToolDone) {
+/**
+ * Gửi câu hỏi và nhận câu trả lời dạng stream (SSE qua XHR).
+ * @param {Array} messages
+ * @param {object} handlers
+ * @param {(token: string) => void} handlers.onToken
+ * @param {() => void} [handlers.onDone]
+ * @param {(data: object) => void} [handlers.onToolStart]
+ * @param {(data: object) => void} [handlers.onToolDone]
+ * @param {AbortSignal} [handlers.signal] - hủy giữa chừng khi người dùng bấm Dừng
+ */
+export async function streamChat(messages, { onToken, onDone, onToolStart, onToolDone, signal }) {
   let processed = 0;
   let done = false;
   let currentEvent = null;
@@ -12,6 +22,7 @@ export async function streamChat(messages, onToken, onDone, onToolStart, onToolD
     { messages },
     {
       responseType: 'text',
+      signal,
       onDownloadProgress: (evt) => {
         const raw = evt.event.target.responseText;
         const newText = raw.slice(processed);

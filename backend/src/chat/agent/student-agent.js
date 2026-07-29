@@ -13,13 +13,13 @@ const loadPrompt = async () => {
   return _cachedPrompt;
 };
 
-export const runStudentAgent = async (messages, { onToken }) => {
+export const runStudentAgent = async (messages, { onToken, signal }) => {
   const systemPrompt = await loadPrompt();
   const history = [
     { role: 'system', content: systemPrompt },
     ...messages.map(m => ({ role: m.role, content: m.content })),
   ];
-  const stream = await streamChat(history);
+  const stream = await streamChat(history, signal);
   for await (const chunk of stream) {
     const token = chunk.choices[0]?.delta?.content;
     if (token) onToken(token);
