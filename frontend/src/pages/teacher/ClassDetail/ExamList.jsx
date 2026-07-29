@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
-import { FiFileText, FiClock, FiDownload, FiLoader, FiX, FiCheckCircle, FiAlertCircle, FiUsers } from 'react-icons/fi';
+import { useState } from 'react';
+import { FiFileText, FiClock, FiDownload, FiLoader, FiX, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import Pagination from '../../../components/Pagination';
 import { parseDateTime } from '../../../utils/date';
 import ClassResultsModal from '../../../components/shared/ClassResultsModal';
 import { FaChartBar } from "react-icons/fa";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 const LIMIT = 10;
 
@@ -26,14 +29,15 @@ export default function ExamList({ exams, exportingId, onExport, onUnassign }) {
   const [classModal, setClassModal] = useState(null);
 
   const pages        = Math.max(1, Math.ceil(exams.length / LIMIT));
-  const paged        = exams.slice((page - 1) * LIMIT, page * LIMIT);
+  // Kẹp lúc render thay vì reset bằng effect: khi giáo viên thu hồi bài tập
+  // và trang hiện tại không còn tồn tại thì tự lùi về trang cuối cùng.
+  const currentPage  = Math.min(page, pages);
+  const paged        = exams.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
   const totalCompleted = exams.reduce((s, e) => s + (e.completedCount ?? 0), 0);
   const totalAssigned  = exams.reduce((s, e) => s + (e.totalStudents ?? 0), 0);
 
-  useEffect(() => { setPage(1); }, [exams.length]);
-
   return (
-    <div className="card">
+    <Card className="p-5 gap-0">
       {classModal && (
         <ClassResultsModal exam={classModal} onClose={() => setClassModal(null)} />
       )}
@@ -42,7 +46,7 @@ export default function ExamList({ exams, exportingId, onExport, onUnassign }) {
         <div className="flex items-center gap-2">
           <FiFileText size={16} className="text-indigo-600" />
           <h3 className="text-sm font-semibold text-slate-900">Bài tập đã giao</h3>
-          <span className="badge-indigo">{exams.length}</span>
+          <Badge variant="info">{exams.length}</Badge>
         </div>
         {exams.length > 0 && totalAssigned > 0 && (
           <span className="text-xs text-slate-400">
@@ -69,7 +73,7 @@ export default function ExamList({ exams, exportingId, onExport, onUnassign }) {
 
             return (
               <div key={ae.examId}
-                className="rounded-xl border border-slate-100 hover:border-indigo-100 hover:shadow-sm transition-all duration-200 overflow-hidden">
+                className="rounded-xl border border-slate-100 hover:border-indigo-100 hover:shadow-xs transition-all duration-200 overflow-hidden">
 
                 {/* Top stripe: completion color */}
                 <div className={`h-1 ${allDone ? 'bg-emerald-400' : pct >= 50 ? 'bg-indigo-400' : 'bg-amber-400'}`} />
@@ -89,27 +93,30 @@ export default function ExamList({ exams, exportingId, onExport, onUnassign }) {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <button
+                      <Button
+                        variant="ghost" size="icon-sm"
                         title="Xem kết quả cả lớp"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                        className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
                         onClick={() => setClassModal(ae)}>
                         <FaChartBar size={14} />
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost" size="icon-sm"
                         title="Xuất Excel"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                        className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
                         disabled={exportingId === ae.examId}
                         onClick={() => onExport(ae.examId, ae.examName)}>
                         {exportingId === ae.examId
                           ? <FiLoader size={14} className="animate-spin" />
                           : <FiDownload size={14} />}
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost" size="icon-sm"
                         title="Thu hồi bài tập"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        className="text-slate-400 hover:text-red-500 hover:bg-red-50"
                         onClick={() => onUnassign(ae.examId)}>
                         <FiX size={14} />
-                      </button>
+                      </Button>
                     </div>
                   </div>
 
@@ -148,7 +155,7 @@ export default function ExamList({ exams, exportingId, onExport, onUnassign }) {
           })}
         </div>
       )}
-      <Pagination page={page} pages={pages} onChange={setPage} />
-    </div>
+      <Pagination page={currentPage} pages={pages} onChange={setPage} />
+    </Card>
   );
 }

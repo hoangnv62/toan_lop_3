@@ -1,12 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { FiClock } from 'react-icons/fi';
 import { parseDateTime } from '../../../utils/date';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 export default function ExamList({ exams, viewAll = false }) {
   const navigate = useNavigate();
 
   return (
-    <div className="card">
+    <Card className="p-5 gap-0">
       <h3 className="text-sm font-semibold text-slate-900 mb-4">Danh sách bài tập</h3>
       {exams.length === 0 ? (
         <p className="text-slate-400 text-sm text-center py-8">
@@ -37,17 +39,13 @@ export default function ExamList({ exams, viewAll = false }) {
                     </span>
                   )}
                   {exam.done ? (
-                    <button className="btn-secondary py-1.5 px-3 text-xs"
-                      onClick={() => navigate(`/exam-result/${exam.examId}`)}>
+                    <Button variant="outline" className="py-1.5 px-3 text-xs" onClick={() => navigate(`/exam-result/${exam.examId}`)}>
                       Xem kết quả
-                    </button>
+                    </Button>
                   ) : (
-                    <button
-                      className="btn-primary py-1.5 px-3 text-xs disabled:opacity-50 disabled:pointer-events-none"
-                      disabled={isPastDeadline}
-                      onClick={() => navigate(`/student/exam/${exam.examId}`)}>
+                    <Button variant="gradient" className="py-1.5 px-3 text-xs disabled:opacity-50 disabled:pointer-events-none" disabled={isPastDeadline} onClick={() => navigate(`/student/exam/${exam.examId}`)}>
                       {isPastDeadline ? 'Hết hạn' : 'Làm bài'}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -55,6 +53,6 @@ export default function ExamList({ exams, viewAll = false }) {
           })}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

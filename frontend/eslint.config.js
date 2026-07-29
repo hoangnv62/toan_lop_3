@@ -18,4 +18,14 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  {
+    // src/components/ui là code do shadcn CLI sinh ra và sẽ bị ghi đè mỗi lần
+    // chạy `shadcn add --overwrite`, nên không áp quy ước lint của dự án:
+    // shadcn import React theo kiểu namespace và export kèm *Variants cạnh component.
+    files: ['src/components/ui/**/*.{js,jsx}'],
+    rules: {
+      'no-unused-vars': ['error', { varsIgnorePattern: '^React$' }],
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

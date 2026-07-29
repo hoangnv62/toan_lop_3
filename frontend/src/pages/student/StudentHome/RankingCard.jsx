@@ -1,10 +1,12 @@
-const rankBadge = ['bg-yellow-400', 'bg-slate-300', 'bg-orange-400'];
+
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';const rankBadge = ['bg-yellow-400', 'bg-slate-300', 'bg-orange-400'];
 
 export default function RankingCard({ ranking, userId }) {
   if (ranking.length === 0) return null;
 
   return (
-    <div className="card">
+    <Card className="p-5 gap-0">
       <h3 className="text-sm font-semibold text-slate-900 mb-4">Bảng xếp hạng lớp</h3>
       <div className="space-y-2">
         {ranking.map((r, i) => (
@@ -21,7 +23,7 @@ export default function RankingCard({ ranking, userId }) {
             </span>
             <span className="flex-1 text-sm font-medium text-slate-800">{r.name}</span>
             {r.studentId === userId && (
-              <span className="badge-indigo text-xs">Bạn</span>
+              <Badge variant="info" className="text-xs">Bạn</Badge>
             )}
             <span className={`text-sm font-bold ${(+r.avg) >= 5 ? 'text-emerald-600' : 'text-red-500'}`}>
               {(+r.avg).toFixed(1)}
@@ -29,6 +31,6 @@ export default function RankingCard({ ranking, userId }) {
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

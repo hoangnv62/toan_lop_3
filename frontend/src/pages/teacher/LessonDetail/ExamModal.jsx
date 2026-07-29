@@ -4,6 +4,17 @@ import { saveExam } from '../../../api/examService';
 import { generateQuestions, importQuestionsFromExcel } from '../../../api/questionService';
 import { toast } from 'react-toastify';
 import QuestionBankPickerModal from './QuestionBankPickerModal';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 
 const ANSWER_LABELS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
@@ -108,22 +119,14 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col">
+    <Dialog open onOpenChange={open => !open && onClose()}>
+      <DialogContent className="sm:max-w-3xl max-h-[92vh] flex flex-col gap-0 p-0">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-          <div>
-            <h3 className="font-semibold text-slate-900">
-              {examId ? 'Chỉnh sửa bài tập' : 'Tạo bài tập mới'}
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">{lesson?.lessonTitle}</p>
-          </div>
-          <button onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
-            <FiX size={18} />
-          </button>
-        </div>
+        <DialogHeader className="px-6 py-4 border-b border-slate-100 shrink-0">
+          <DialogTitle>{examId ? 'Chỉnh sửa bài tập' : 'Tạo bài tập mới'}</DialogTitle>
+          <DialogDescription className="text-xs">{lesson?.lessonTitle}</DialogDescription>
+        </DialogHeader>
 
         {/* Body */}
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
@@ -131,37 +134,42 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
           {/* Info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              <Label className="block text-sm font-medium text-slate-700 mb-1.5">
                 Tên  bài tập <span className="text-red-500">*</span>
-              </label>
-              <input className="input" placeholder="VD: Bài kiểm tra số 1"
-                value={examName} onChange={e => setExamName(e.target.value)} />
+              </Label>
+              <Input placeholder="VD: Bài kiểm tra số 1" value={examName} onChange={e => setExamName(e.target.value)} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              <Label className="block text-sm font-medium text-slate-700 mb-1.5">
                 Mô tả / chủ đề AI
-              </label>
-              <input className="input" placeholder="VD: Phép cộng có nhớ..."
-                value={examDesc} onChange={e => setExamDesc(e.target.value)} />
+              </Label>
+              <Input placeholder="VD: Phép cộng có nhớ..." value={examDesc} onChange={e => setExamDesc(e.target.value)} />
             </div>
           </div>
 
           {/* Toolbar */}
           <div className="flex items-center gap-2 flex-wrap bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
             <span className="text-sm text-slate-600 font-medium">Tạo bằng AI:</span>
-            <select className="input w-24 text-sm py-1.5"
-              value={qCount} onChange={e => setQCount(e.target.value)}>
-              <option value="5">5 câu</option>
-              <option value="10">10 câu</option>
-              <option value="15">15 câu</option>
-            </select>
-            <button className="btn-secondary text-sm py-1.5 gap-1.5"
-              onClick={handleGenerate} disabled={generating}>
+            <Select value={qCount} onValueChange={setQCount}>
+              <SelectTrigger size="sm" className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5 câu</SelectItem>
+                <SelectItem value="10">10 câu</SelectItem>
+                <SelectItem value="15">15 câu</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" className="text-sm py-1.5 gap-1.5" onClick={handleGenerate} disabled={generating}>
               {generating
                 ? <><FiLoader size={13} className="animate-spin" /> Đang tạo...</>
                 : <><FiZap size={13} /> Tạo bằng AI</>}
-            </button>
-            <label className={`btn-secondary text-sm py-1.5 gap-1.5 cursor-pointer ${importing ? 'opacity-60 pointer-events-none' : ''}`}>
+            </Button>
+            <label className={cn(
+              buttonVariants({ variant: 'outline', size: 'sm' }),
+              'gap-1.5 cursor-pointer',
+              importing && 'opacity-60 pointer-events-none'
+            )}>
               {importing
                 ? <><FiLoader size={13} className="animate-spin" /> Đang import...</>
                 : <><FiUpload size={13} /> Import Excel</>}
@@ -172,12 +180,12 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
               />
             </label>
             <div className="flex-1" />
-            <button className="btn-secondary text-sm py-1.5 gap-1.5" onClick={() => setBankModal(true)}>
+            <Button variant="outline" className="text-sm py-1.5 gap-1.5" onClick={() => setBankModal(true)}>
               <FiDatabase size={13} /> Từ ngân hàng
-            </button>
-            <button className="btn-secondary text-sm py-1.5 gap-1.5" onClick={addQ}>
+            </Button>
+            <Button variant="outline" className="text-sm py-1.5 gap-1.5" onClick={addQ}>
               <FiPlus size={13} /> Thêm câu hỏi
-            </button>
+            </Button>
           </div>
 
           {bankModal && (
@@ -208,7 +216,7 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
 
                     {/* Q header */}
                     <div className="flex items-center gap-2 px-4 pt-3 pb-2">
-                      <span className="badge-indigo">Câu {qi + 1}</span>
+                      <Badge variant="info">Câu {qi + 1}</Badge>
                       {!hasCorrect && (
                         <span className="text-xs text-amber-600 font-medium">Chưa chọn đáp án đúng</span>
                       )}
@@ -217,76 +225,73 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
                           <FiCheckCircle size={12} /> Đã chọn đáp án đúng
                         </span>
                       )}
-                      <button
-                        className="ml-auto p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
+                      <Button
+                        variant="ghost" size="icon-xs"
+                        title="Xóa câu hỏi"
+                        className="ml-auto text-slate-400 hover:bg-red-50 hover:text-red-500"
                         onClick={() => removeQ(qi)}>
                         <FiTrash2 size={14} />
-                      </button>
+                      </Button>
                     </div>
 
                     <div className="px-4 pb-4 space-y-3">
-                      <textarea
-                        className="input resize-none text-sm"
-                        rows={2}
-                        placeholder={`Nội dung câu ${qi + 1}...`}
-                        value={q.content}
-                        onChange={e => updateQ(qi, 'content', e.target.value)}
-                      />
+                      <Textarea className="resize-none text-sm" rows={2} placeholder={`Nội dung câu ${qi + 1}...`} value={q.content} onChange={e => updateQ(qi, 'content', e.target.value)} />
 
                       {/* Answers */}
                       <div>
                         <p className="text-xs font-medium text-slate-500 mb-2">
                           Chọn đáp án đúng <span className="text-red-500">*</span>
                         </p>
-                        <div className="space-y-2">
+                        {/* Mỗi dòng có ô nhập text, nên chỉ radio và chữ cái đáp án
+                            là vùng chọn — không cho click cả dòng như trước để
+                            khỏi tranh chấp với việc đặt con trỏ vào ô nhập. */}
+                        <RadioGroup
+                          className="space-y-2 gap-0"
+                          value={String(q.answers.findIndex(x => x.correct))}
+                          onValueChange={v => setCorrect(qi, Number(v))}>
                           {q.answers.map((a, ai) => (
-                            <label key={ai}
-                              className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-pointer transition-all ${
+                            <div key={ai}
+                              className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-all ${
                                 a.correct
                                   ? 'border-emerald-400 bg-emerald-50'
                                   : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                               }`}>
-                              <input type="radio" name={`correct-${qi}`}
-                                checked={a.correct} onChange={() => setCorrect(qi, ai)}
-                                className="accent-emerald-500 shrink-0" />
-                              <span className={`text-xs font-bold w-5 shrink-0 ${a.correct ? 'text-emerald-600' : 'text-slate-400'}`}>
-                                {ANSWER_LABELS[ai] ?? ai + 1}
-                              </span>
-                              <input
-                                className="flex-1 bg-transparent outline-none text-sm text-slate-700 placeholder-gray-400"
-                                placeholder={`Đáp án ${ANSWER_LABELS[ai] ?? ai + 1}...`}
-                                value={a.content}
-                                onChange={e => updateA(qi, ai, e.target.value)}
+                              <RadioGroupItem
+                                value={String(ai)}
+                                id={`q${qi}-a${ai}`}
+                                className="shrink-0 border-emerald-400 text-emerald-500"
                               />
+                              <Label htmlFor={`q${qi}-a${ai}`}
+                                className={`text-xs font-bold w-5 shrink-0 cursor-pointer ${a.correct ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                {ANSWER_LABELS[ai] ?? ai + 1}
+                              </Label>
+                              <Input className="flex-1 bg-transparent outline-hidden text-sm text-slate-700 placeholder-gray-400" placeholder={`Đáp án ${ANSWER_LABELS[ai] ?? ai + 1}...`} value={a.content} onChange={e => updateA(qi, ai, e.target.value)} />
                               {q.answers.length > 2 && (
-                                <button
-                                  className="shrink-0 text-slate-300 hover:text-red-400 transition-colors"
+                                <Button
+                                  variant="ghost" size="icon-xs"
+                                  title="Xóa đáp án"
+                                  className="shrink-0 text-slate-300 hover:text-red-400"
                                   onClick={e => { e.preventDefault(); removeAnswer(qi, ai); }}>
                                   <FiX size={13} />
-                                </button>
+                                </Button>
                               )}
-                            </label>
+                            </div>
                           ))}
-                        </div>
+                        </RadioGroup>
                         {q.answers.length < 6 && (
-                          <button
-                            className="mt-2 text-indigo-600 hover:text-indigo-700 text-xs font-medium flex items-center gap-1"
+                          <Button
+                            variant="link" size="xs"
+                            className="mt-2 h-auto px-0 text-indigo-600 hover:text-indigo-700"
                             onClick={() => addAnswer(qi)}>
                             <FiPlus size={12} /> Thêm đáp án
-                          </button>
+                          </Button>
                         )}
                       </div>
 
                       {/* Explanation */}
                       <div>
                         <p className="text-xs font-medium text-slate-500 mb-1.5">Giải thích đáp án</p>
-                        <textarea
-                          className="input resize-none text-sm"
-                          rows={2}
-                          placeholder="Giải thích tại sao đáp án đúng là..."
-                          value={q.explanation}
-                          onChange={e => updateQ(qi, 'explanation', e.target.value)}
-                        />
+                        <Textarea className="resize-none text-sm" rows={2} placeholder="Giải thích tại sao đáp án đúng là..." value={q.explanation} onChange={e => updateQ(qi, 'explanation', e.target.value)} />
                       </div>
                     </div>
                   </div>
@@ -297,18 +302,18 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl shrink-0">
+        <DialogFooter className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-lg shrink-0 sm:justify-between">
           <span className="text-sm text-slate-400 font-medium">{questions.length} câu hỏi</span>
           <div className="flex gap-3">
-            <button className="btn-secondary" onClick={onClose}>Hủy</button>
-            <button className="btn-primary" onClick={handleSave} disabled={saving}>
+            <Button variant="outline" onClick={onClose}>Hủy</Button>
+            <Button variant="gradient" onClick={handleSave} disabled={saving}>
               {saving
                 ? <><FiLoader size={14} className="animate-spin" /> Đang lưu...</>
                 : <><FiSave size={14} /> Lưu bài tập</>}
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

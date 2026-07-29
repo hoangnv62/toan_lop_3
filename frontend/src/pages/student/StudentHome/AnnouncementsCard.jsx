@@ -1,10 +1,11 @@
 import { FiBell } from 'react-icons/fi';
+import { Card } from '@/components/ui/card';
 
 export default function AnnouncementsCard({ announcements }) {
   if (!announcements?.length) return null;
 
   return (
-    <div className="card">
+    <Card className="p-5 gap-0">
       <div className="flex items-center gap-2 mb-3">
         <FiBell size={15} className="text-indigo-600" />
         <h3 className="text-sm font-semibold text-slate-900">Thông báo từ giáo viên</h3>
@@ -18,6 +19,6 @@ export default function AnnouncementsCard({ announcements }) {
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

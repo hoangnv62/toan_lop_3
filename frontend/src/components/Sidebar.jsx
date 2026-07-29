@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/auth-context';
 import { FiBarChart2, FiUsers, FiBook, FiLogOut, FiLock, FiDatabase, FiUser } from 'react-icons/fi';
 import ChangePasswordModal from './shared/ChangePasswordModal';
 import ProfileModal from './shared/ProfileModal';
 import { useAuthMutations } from '../hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 const links = [
   { to: '/dashboard',     label: 'Báo cáo & Phân tích', icon: FiBarChart2 },
@@ -68,31 +70,32 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-3 pb-4 pt-3 border-t border-slate-100 space-y-1">
+      <div className="px-3 pb-4 pt-3 space-y-1">
+        <Separator className="mb-3" />
         {user?.name && (
           <div className="px-3 py-2 mb-1">
             <p className="text-xs font-semibold text-slate-900 truncate">{user.name}</p>
             <p className="text-xs text-slate-400">Giáo viên</p>
           </div>
         )}
-        <button onClick={() => setProfileModal(true)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
-                     text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 transition-all duration-200">
+        <Button variant="ghost"
+          className="w-full justify-start gap-3 h-auto px-3 py-2.5 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+          onClick={() => setProfileModal(true)}>
           <FiUser size={16} />
           Cập nhật hồ sơ
-        </button>
-        <button onClick={() => setPwModal(true)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
-                     text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 transition-all duration-200">
+        </Button>
+        <Button variant="ghost"
+          className="w-full justify-start gap-3 h-auto px-3 py-2.5 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+          onClick={() => setPwModal(true)}>
           <FiLock size={16} />
           Đổi mật khẩu
-        </button>
-        <button onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
-                     text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all duration-200">
+        </Button>
+        <Button variant="ghost"
+          className="w-full justify-start gap-3 h-auto px-3 py-2.5 text-slate-600 hover:bg-red-50 hover:text-red-600"
+          onClick={handleLogout}>
           <FiLogOut size={16} />
           Đăng xuất
-        </button>
+        </Button>
       </div>
 
       {pwModal && <ChangePasswordModal onClose={() => setPwModal(false)} />}

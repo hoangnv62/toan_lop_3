@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '../../../context/auth-context';
 import { toast } from 'react-toastify';
 import { FiChevronLeft, FiChevronRight, FiLogOut, FiFileText, FiCheckCircle, FiStar, FiList, FiUser, FiLock } from 'react-icons/fi';
 import ChangePasswordModal from '../../../components/shared/ChangePasswordModal';
@@ -15,6 +15,8 @@ import RelativeDeleteModal from './RelativeDeleteModal';
 import { useStudentDashboard } from '../../../hooks/useStudent';
 import { useRelatives, useRelativeMutations } from '../../../hooks/useRelative';
 import { useAuthMutations } from '../../../hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 function getWeekRange(offset = 0) {
   const now = new Date();
@@ -99,8 +101,6 @@ export default function StudentHome() {
     { label: 'Điểm TB', value: progress.avg != null ? (+progress.avg).toFixed(1) : '--', icon: FiStar,        from: 'from-amber-500',   to: 'to-amber-400' },
   ];
 
-  const initials = (user?.name || 'H').trim().split(' ').pop().charAt(0).toUpperCase();
-
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -125,71 +125,59 @@ export default function StudentHome() {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <button onClick={() => setProfileModal(true)}
-              className="btn-ghost text-slate-500 py-1.5 px-2.5 gap-1.5">
+            <Button variant="ghost" onClick={() => setProfileModal(true)} className="text-slate-500 py-1.5 px-2.5 gap-1.5">
               <FiUser size={15} />
-            </button>
-            <button onClick={() => setPwModal(true)}
-              className="btn-ghost text-slate-500 py-1.5 px-2.5 gap-1.5">
+            </Button>
+            <Button variant="ghost" onClick={() => setPwModal(true)} className="text-slate-500 py-1.5 px-2.5 gap-1.5">
               <FiLock size={15} />
-            </button>
-            <button onClick={handleLogout}
-              className="btn-ghost text-slate-500 py-1.5 px-2.5 gap-1.5">
+            </Button>
+            <Button variant="ghost" onClick={handleLogout} className="text-slate-500 py-1.5 px-2.5 gap-1.5">
               <FiLogOut size={15} /> Đăng xuất
-            </button>
+            </Button>
           </div>
         </div>
       </header>
 
       <div className="max-w-3xl mx-auto p-4 space-y-4 pb-8">
         {/* View toggle + Week navigator */}
-        <div className="bg-white rounded-xl border border-slate-100 shadow-soft p-4 space-y-3">
+        <Card className="p-4 gap-3 hover:translate-y-0">
           <div className="flex items-center gap-2">
-            <button
-              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                !viewAll
-                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-btn'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+            <Button
+              variant={!viewAll ? 'gradient' : 'secondary'}
+              className="flex-1 rounded-xl font-semibold"
               onClick={() => setViewAll(false)}>
-              <FiChevronLeft size={14} className="inline mr-1" />Theo tuần
-            </button>
-            <button
-              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                viewAll
-                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-btn'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+              <FiChevronLeft size={14} />Theo tuần
+            </Button>
+            <Button
+              variant={viewAll ? 'gradient' : 'secondary'}
+              className="flex-1 rounded-xl font-semibold"
               onClick={() => setViewAll(true)}>
-              <FiList size={14} className="inline mr-1" />Tất cả
-            </button>
+              <FiList size={14} />Tất cả
+            </Button>
           </div>
           {!viewAll && (
             <div className="flex items-center justify-between gap-2">
-              <button onClick={() => setWeekOffset(o => o - 1)}
-                className="btn-secondary py-1.5 px-3 gap-1">
+              <Button variant="outline" onClick={() => setWeekOffset(o => o - 1)} className="py-1.5 px-3 gap-1">
                 <FiChevronLeft size={15} /> Tuần trước
-              </button>
+              </Button>
               <span className="text-sm font-semibold text-slate-700 text-center">{week.label}</span>
-              <button onClick={() => setWeekOffset(o => o + 1)}
-                className="btn-secondary py-1.5 px-3 gap-1" disabled={weekOffset >= 0}>
+              <Button variant="outline" onClick={() => setWeekOffset(o => o + 1)} className="py-1.5 px-3 gap-1" disabled={weekOffset>= 0}>
                 Tuần sau <FiChevronRight size={15} />
-              </button>
+              </Button>
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
           {stats.map(({ label, value, icon: Icon, from, to }) => (
-            <div key={label}
-              className="bg-white rounded-xl border border-slate-100 shadow-soft hover:shadow-soft-hover hover:-translate-y-0.5 transition-all duration-200 flex flex-col items-center py-4 gap-2">
-              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${from} ${to} flex items-center justify-center shadow-sm`}>
+            <Card key={label} className="items-center py-4 gap-2">
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${from} ${to} flex items-center justify-center shadow-xs`}>
                 <Icon size={18} className="text-white" />
               </div>
               <p className="text-2xl font-extrabold text-slate-900">{value}</p>
               <p className="text-xs text-slate-500 font-medium">{label}</p>
-            </div>
+            </Card>
           ))}
         </div>
 

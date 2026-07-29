@@ -4,10 +4,15 @@ import { useDebounce } from '../../../hooks/useDebounce';
 import { getQuestionBank, deleteBankQuestion, importQuestionBankFromExcel, downloadSampleQuestionBank } from '../../../api/questionBankService';
 import { fetchLessons } from '../../../api/lessonService';
 import { toast } from 'react-toastify';
-import { FiPlus, FiEdit2, FiTrash2, FiLoader, FiDatabase, FiUpload, FiDownload, FiSearch, FiChevronDown } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiLoader, FiDatabase, FiUpload, FiDownload, FiSearch } from 'react-icons/fi';
 import QuestionFormModal from './QuestionFormModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import Pagination from '../../../components/Pagination';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 export default function QuestionBank() {
   const [questions, setQuestions]           = useState([]);
@@ -105,60 +110,47 @@ export default function QuestionBank() {
 
   return (
     <TeacherLayout>
-      <div className="page-header">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="page-title">Ngân hàng câu hỏi</h1>
+          <h1 className="text-xl font-bold text-slate-900">Ngân hàng câu hỏi</h1>
           <p className="text-sm text-slate-500 mt-0.5">{total} câu hỏi</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <div className="relative">
             <FiSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              className="input pl-9 w-48"
-              placeholder="Tìm câu hỏi..."
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-            />
+            <Input className="pl-9 w-48" placeholder="Tìm câu hỏi..." value={query} onChange={e => setQuery(e.target.value)} />
           </div>
 
-          <div className="relative">
-            <select
-              className="input pr-8 appearance-none cursor-pointer w-44"
-              value={selectedLesson ?? ''}
-              onChange={e => {
-                const v = e.target.value;
-                handleLessonChange(v === '' ? null : Number(v));
-              }}
-            >
-              <option value="">Tất cả chủ đề</option>
-              <option value={0}>Chưa phân loại</option>
+          {/* Radix Select không nhận value="" nên dùng sentinel 'all' cho "Tất cả chủ đề" */}
+          <Select
+            value={selectedLesson == null ? 'all' : String(selectedLesson)}
+            onValueChange={v => handleLessonChange(v === 'all' ? null : Number(v))}
+          >
+            <SelectTrigger className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả chủ đề</SelectItem>
+              <SelectItem value="0">Chưa phân loại</SelectItem>
               {lessons.map(l => (
-                <option key={l.id} value={l.id}>{l.title}</option>
+                <SelectItem key={l.id} value={String(l.id)}>{l.title}</SelectItem>
               ))}
-            </select>
-            <FiChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-          </div>
+            </SelectContent>
+          </Select>
 
           <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
-          <button
-            className="btn-ghost whitespace-nowrap"
-            onClick={() => downloadSampleQuestionBank().catch(err => toast.error(err.message))}>
+          <Button variant="ghost" className="whitespace-nowrap" onClick={() => downloadSampleQuestionBank().catch(err => toast.error(err.message))}>
             <FiDownload size={15} /> File mẫu
-          </button>
+          </Button>
           {selectedLesson !== null && (
-            <button
-              className="btn-secondary whitespace-nowrap"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={importing}
-              title={importLessonLabel}
-            >
+            <Button variant="outline" className="whitespace-nowrap" onClick={() => fileInputRef.current?.click()} disabled={importing} title={importLessonLabel}>
               {importing ? <FiLoader size={15} className="animate-spin" /> : <FiUpload size={15} />}
               {importing ? 'Đang import...' : 'Import Excel'}
-            </button>
+            </Button>
           )}
-          <button className="btn-primary whitespace-nowrap" onClick={() => setModal({ initial: null })}>
+          <Button variant="gradient" className="whitespace-nowrap" onClick={() => setModal({ initial: null })}>
             <FiPlus size={16} /> Thêm câu hỏi
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -183,15 +175,15 @@ export default function QuestionBank() {
           {questions.map(q => {
             const lessonName = getLessonName(q.lessonId);
             return (
-              <div key={q.id} className="card">
+              <Card key={q.id} className="p-5 gap-0">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-900 leading-relaxed line-clamp-2">{q.content}</p>
                     <div className="flex items-center gap-3 mt-2 flex-wrap">
-                      <span className="badge-indigo text-xs">{q.answers?.length ?? 0} đáp án</span>
+                      <Badge variant="info" className="text-xs">{q.answers?.length ?? 0} đáp án</Badge>
                       {lessonName
-                        ? <span className="badge-green text-xs">{lessonName}</span>
-                        : <span className="badge-gray text-xs">Chưa phân loại</span>}
+                        ? <Badge variant="success" className="text-xs">{lessonName}</Badge>
+                        : <Badge variant="neutral" className="text-xs">Chưa phân loại</Badge>}
                       <span className="text-xs text-slate-400">{q.createdAt || '--'}</span>
                       {q.explanation && (
                         <span className="text-xs text-slate-400 truncate max-w-[200px]" title={q.explanation}>
@@ -201,19 +193,15 @@ export default function QuestionBank() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button title="Chỉnh sửa" className="btn-ghost p-2" onClick={() => setModal({ initial: q })}>
+                    <Button variant="ghost" title="Chỉnh sửa" className="p-2" onClick={() => setModal({ initial: q })}>
                       <FiEdit2 size={15} />
-                    </button>
-                    <button
-                      title="Xóa"
-                      className="btn-ghost text-red-500 hover:text-red-600 hover:bg-red-50 p-2"
-                      disabled={deleting === q.id}
-                      onClick={() => setConfirmDelete(q)}>
+                    </Button>
+                    <Button variant="ghost" title="Xóa" className="text-red-500 hover:text-red-600 hover:bg-red-50 p-2" disabled={deleting === q.id} onClick={() => setConfirmDelete(q)}>
                       {deleting === q.id ? <FiLoader size={15} className="animate-spin" /> : <FiTrash2 size={15} />}
-                    </button>
+                    </Button>
                   </div>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>

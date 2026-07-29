@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { login as loginApi, register as registerApi, changePassword as changePasswordApi, updateProfile as updateProfileApi } from '../api/auth';
 import { clearToken } from '../api/index';
 import { toastPromise } from '../utils/toast-promise';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/auth-context';
 
 export const useAuthMutations = () => {
   const [loading, setLoading] = useState(false);

@@ -3,6 +3,8 @@ import { downloadSampleStudentsExcel } from '../../../api/classService';
 import { toast } from 'react-toastify';
 import { FiUpload, FiDownload } from 'react-icons/fi';
 import { useClassStudentMutations } from '../../../hooks/useClass';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 export default function ImportCard({ classId, onUploaded }) {
   const [file, setFile] = useState(null);
@@ -19,20 +21,21 @@ export default function ImportCard({ classId, onUploaded }) {
   }
 
   return (
-    <div className="card">
+    <Card className="p-5 gap-0">
       <div className="flex items-center gap-2 mb-3">
         <FiUpload size={15} className="text-indigo-600" />
         <h3 className="text-sm font-semibold text-slate-900">Import từ Excel</h3>
       </div>
       <p className="text-xs text-slate-400 mb-1">
-        File cần có cột <code className="bg-slate-100 px-1 rounded text-slate-600">username</code>
+        File cần có cột <code className="bg-slate-100 px-1 rounded-sm text-slate-600">username</code>
       </p>
-      <button
-        className="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1 mb-3"
+      <Button
+        variant="link" size="xs"
+        className="mb-3 h-auto self-start px-0 text-indigo-600 hover:text-indigo-700"
         onClick={async () => { try { await downloadSampleStudentsExcel(); } catch { toast.error('Tải file mẫu thất bại'); } }}
       >
         <FiDownload size={12} /> Tải file mẫu
-      </button>
+      </Button>
       <div className="space-y-2">
         <input
           ref={fileRef}
@@ -43,10 +46,10 @@ export default function ImportCard({ classId, onUploaded }) {
                      hover:file:bg-slate-200 cursor-pointer"
           onChange={e => setFile(e.target.files[0])}
         />
-        <button className="btn-primary w-full py-1.5 text-sm" onClick={handleUpload}>
+        <Button variant="gradient" className="w-full py-1.5 text-sm" onClick={handleUpload}>
           <FiUpload size={14} /> Upload
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }

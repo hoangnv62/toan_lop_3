@@ -1,9 +1,5 @@
 import { useState } from 'react';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS, CategoryScale, LinearScale,
-  PointElement, LineElement, Tooltip, Legend, Filler,
-} from 'chart.js';
+import { Area, AreaChart, CartesianGrid, ReferenceLine, XAxis, YAxis } from 'recharts';
 import {
   FiX, FiLoader, FiChevronLeft, FiCheckCircle, FiXCircle,
   FiClock, FiSave, FiTrendingUp, FiEye,
@@ -11,8 +7,17 @@ import {
 import { getStudentSubmission, saveComment } from '../../../api/examService';
 import { useStudentResults, useStudentProgress } from '../../../hooks/useStudent';
 import { toast } from 'react-toastify';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
+const progressConfig = {
+  score: { label: 'Điểm', color: 'var(--chart-1)' },
+};
 
 export default function StudentResultsModal({ student, onClose }) {
   const { results, loading: resultsLoading } = useStudentResults(student.id);
@@ -49,26 +54,29 @@ export default function StudentResultsModal({ student, onClose }) {
   if (detail) {
     const passed = detail.score >= 5;
     return (
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <Dialog open onOpenChange={open => !open && onClose()}>
+        {/* Header có nút back + điểm nên tự dựng, tắt nút X mặc định để không chồng lên nhau */}
+        <DialogContent
+          showCloseButton={false}
+          className="sm:max-w-2xl max-h-[90vh] flex flex-col gap-0 p-0">
           {/* Header */}
-          <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 shrink-0">
-            <button
-              onClick={() => setDetail(null)}
-              className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
+          <DialogHeader className="flex-row items-center gap-3 px-6 py-4 border-b border-slate-100 shrink-0 space-y-0">
+            <Button variant="ghost" size="icon-sm" className="text-slate-400 shrink-0"
+              onClick={() => setDetail(null)} aria-label="Quay lại danh sách">
               <FiChevronLeft size={17} />
-            </button>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-slate-900 truncate">{detail.examNameLabel}</h3>
-              <p className="text-xs text-slate-400 mt-0.5">{student.fullName}</p>
+            </Button>
+            <div className="flex-1 min-w-0 text-left">
+              <DialogTitle className="truncate text-base">{detail.examNameLabel}</DialogTitle>
+              <DialogDescription className="text-xs">{student.fullName}</DialogDescription>
             </div>
-            <div className={`px-3 py-1 rounded-lg text-sm font-bold ${passed ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
+            <div className={`px-3 py-1 rounded-lg text-sm font-bold shrink-0 ${passed ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
               {detail.score}/10
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
+            <Button variant="ghost" size="icon-sm" className="text-slate-400 shrink-0"
+              onClick={onClose} aria-label="Đóng">
               <FiX size={17} />
-            </button>
-          </div>
+            </Button>
+          </DialogHeader>
 
           {/* Info bar */}
           <div className="flex items-center gap-4 px-6 py-3 bg-slate-50 border-b border-slate-100 text-xs text-slate-500 shrink-0">
@@ -91,7 +99,7 @@ export default function StudentResultsModal({ student, onClose }) {
                     {q.isCorrect ? <FiCheckCircle size={16} /> : <FiXCircle size={16} />}
                   </span>
                   <p className="text-sm font-medium text-slate-900 leading-relaxed">
-                    <span className="badge-indigo mr-2 text-xs">Câu {qi + 1}</span>
+                    <Badge variant="info" className="mr-2 text-xs">Câu {qi + 1}</Badge>
                     {q.questionContent}
                   </p>
                 </div>
@@ -127,43 +135,29 @@ export default function StudentResultsModal({ student, onClose }) {
               <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">
                 Nhận xét của giáo viên
               </p>
-              <textarea
-                className="input resize-none text-sm w-full"
-                rows={3}
-                placeholder="Nhập nhận xét cho học sinh..."
-                value={comment}
-                onChange={e => setComment(e.target.value)}
-              />
+              <Textarea className="resize-none text-sm w-full" rows={3} placeholder="Nhập nhận xét cho học sinh..." value={comment} onChange={e => setComment(e.target.value)} />
               <div className="flex justify-end mt-2">
-                <button
-                  className="btn-primary py-1.5 px-4 text-sm gap-1.5"
-                  onClick={handleSaveComment}
-                  disabled={savingComment}>
+                <Button variant="gradient" className="py-1.5 px-4 text-sm gap-1.5" onClick={handleSaveComment} disabled={savingComment}>
                   {savingComment
                     ? <><FiLoader size={13} className="animate-spin" /> Đang lưu...</>
                     : <><FiSave size={13} /> Lưu nhận xét</>}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 
   // ── List view ──
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h3 className="font-semibold text-slate-900">Bài làm của học sinh</h3>
-            <p className="text-xs text-slate-400 mt-0.5">{student.fullName}</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
-            <FiX size={17} />
-          </button>
-        </div>
+    <Dialog open onOpenChange={open => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Bài làm của học sinh</DialogTitle>
+          <DialogDescription className="text-xs">{student.fullName}</DialogDescription>
+        </DialogHeader>
 
         {/* Progress chart */}
         {progress.length > 1 && (
@@ -172,29 +166,49 @@ export default function StudentResultsModal({ student, onClose }) {
               <FiTrendingUp size={14} className="text-indigo-600" />
               <p className="text-xs font-semibold text-slate-700">Tiến bộ qua thời gian</p>
             </div>
-            <Line
-              data={{
-                labels: progress.map(p => p.examName),
-                datasets: [{
-                  label: 'Điểm',
-                  data: progress.map(p => p.score),
-                  borderColor: '#4F46E5',
-                  backgroundColor: 'rgba(79,70,229,0.08)',
-                  tension: 0.4,
-                  pointRadius: 4,
-                  pointBackgroundColor: '#4F46E5',
-                  fill: true,
-                }],
-              }}
-              options={{
-                responsive: true,
-                scales: {
-                  y: { min: 0, max: 10, grid: { color: '#F3F4F6' } },
-                  x: { grid: { display: false }, ticks: { maxRotation: 30, font: { size: 10 } } },
-                },
-                plugins: { legend: { display: false } },
-              }}
-            />
+            <ChartContainer config={progressConfig} className="h-44 w-full">
+              <AreaChart
+                data={progress.map(p => ({ examName: p.examName, score: p.score }))}
+                margin={{ top: 8, right: 12, left: -20, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="progressFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--color-score)" stopOpacity={0.18} />
+                    <stop offset="100%" stopColor="var(--color-score)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke="var(--border)" />
+                <XAxis
+                  dataKey="examName"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }}
+                  tickFormatter={v => (v.length > 10 ? `${v.slice(0, 10)}…` : v)}
+                />
+                <YAxis
+                  domain={[0, 10]}
+                  ticks={[0, 5, 10]}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                />
+                <ReferenceLine y={5} stroke="var(--chart-3)" strokeWidth={1.5} />
+                <ChartTooltip
+                  cursor={{ stroke: 'var(--border)', strokeWidth: 1 }}
+                  content={<ChartTooltipContent formatter={v => [`${v}/10 `, 'Điểm']} />}
+                />
+                <Area
+                  dataKey="score"
+                  type="monotone"
+                  stroke="var(--color-score)"
+                  strokeWidth={2}
+                  fill="url(#progressFill)"
+                  dot={{ r: 4, fill: 'var(--color-score)', stroke: 'var(--card)', strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: 'var(--color-score)', stroke: 'var(--card)', strokeWidth: 2 }}
+                />
+              </AreaChart>
+            </ChartContainer>
           </div>
         )}
 
@@ -219,14 +233,11 @@ export default function StudentResultsModal({ student, onClose }) {
                     <span className={`text-sm font-bold ${passed ? 'text-emerald-600' : 'text-red-500'}`}>
                       {r.score}/10
                     </span>
-                    <button
-                      className="btn-secondary py-1 px-2.5 text-xs gap-1"
-                      disabled={loadingDetail}
-                      onClick={() => viewDetail(r.examId, r.examName)}>
+                    <Button variant="outline" className="py-1 px-2.5 text-xs gap-1" disabled={loadingDetail} onClick={() => viewDetail(r.examId, r.examName)}>
                       {loadingDetail
                         ? <FiLoader size={12} className="animate-spin" />
                         : <><FiEye size={12} /> Chi tiết</>}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               );
@@ -234,8 +245,10 @@ export default function StudentResultsModal({ student, onClose }) {
           </div>
         )}
 
-        <button className="btn-secondary w-full mt-5" onClick={onClose}>Đóng</button>
-      </div>
-    </div>
+        <DialogFooter>
+          <Button variant="outline" className="w-full" onClick={onClose}>Đóng</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react';
-import { FiX, FiLoader, FiZap } from 'react-icons/fi';
+import { FiLoader, FiZap } from 'react-icons/fi';
 import { getExamStats, getAiStatsAnalysis } from '../../../api/examService';
 import { toast } from 'react-toastify';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 
 export default function ExamStatsModal({ examId, examName, onClose }) {
   const [stats, setStats]           = useState(null);
@@ -24,10 +32,10 @@ export default function ExamStatsModal({ examId, examName, onClose }) {
     } finally { setAiLoading(false); }
   }
 
-  function rateBadge(rate) {
-    if (rate >= 70) return 'badge-green';
-    if (rate >= 40) return 'badge-yellow';
-    return 'bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-medium';
+  function rateVariant(rate) {
+    if (rate >= 70) return 'success';
+    if (rate >= 40) return 'warning';
+    return 'danger';
   }
 
   function scoreRange(scores, lo, hi) {
@@ -36,18 +44,12 @@ export default function ExamStatsModal({ examId, examName, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-          <div>
-            <h3 className="font-semibold text-slate-900">Thống kê bài tập</h3>
-            <p className="text-xs text-slate-400 mt-0.5 truncate max-w-xs">{examName}</p>
-          </div>
-          <button onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
-            <FiX size={17} />
-          </button>
-        </div>
+    <Dialog open onOpenChange={open => !open && onClose()}>
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col gap-0 p-0">
+        <DialogHeader className="px-6 py-4 border-b border-slate-100 shrink-0">
+          <DialogTitle>Thống kê bài tập</DialogTitle>
+          <DialogDescription className="text-xs truncate">{examName}</DialogDescription>
+        </DialogHeader>
 
         {stats === null ? (
           <div className="flex justify-center py-16">
@@ -106,45 +108,43 @@ export default function ExamStatsModal({ examId, examName, onClose }) {
             {stats.questions && stats.questions.length > 0 && (
               <div>
                 <p className="text-sm font-medium text-slate-700 mb-3">Thống kê từng câu hỏi</p>
-                <div className="overflow-x-auto rounded-xl border border-slate-200">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-50 border-b border-slate-200">
-                      <tr>
-                        <th className="table-head">Câu hỏi</th>
-                        <th className="table-head text-center">Đã trả lời</th>
-                        <th className="table-head text-center">Đúng</th>
-                        <th className="table-head text-center">Tỉ lệ</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                <div className="rounded-xl border border-slate-200">
+                  <Table>
+                    <TableHeader className="bg-slate-50">
+                      <TableRow>
+                        <TableHead>Câu hỏi</TableHead>
+                        <TableHead className="text-center">Đã trả lời</TableHead>
+                        <TableHead className="text-center">Đúng</TableHead>
+                        <TableHead className="text-center">Tỉ lệ</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {stats.questions.map((q, i) => (
-                        <tr key={q.questionId} className="table-row">
-                          <td className="table-cell text-slate-700">
-                            <span className="badge-indigo mr-2 text-xs">Câu {i + 1}</span>
+                        <TableRow key={q.questionId}>
+                          <TableCell className="text-slate-700">
+                            <Badge variant="info" className="mr-2 text-xs">Câu {i + 1}</Badge>
                             {q.content?.length > 60 ? q.content.slice(0, 60) + '...' : q.content}
-                          </td>
-                          <td className="table-cell text-center">{q.totalAnswered ?? 0}</td>
-                          <td className="table-cell text-center">{q.correctCount ?? 0}</td>
-                          <td className="table-cell text-center">
-                            <span className={rateBadge(q.correctRate ?? 0)}>
+                          </TableCell>
+                          <TableCell className="text-center">{q.totalAnswered ?? 0}</TableCell>
+                          <TableCell className="text-center">{q.correctCount ?? 0}</TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant={rateVariant(q.correctRate ?? 0)}>
                               {q.correctRate != null ? Math.round(q.correctRate) : 0}%
-                            </span>
-                          </td>
-                        </tr>
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
             )}
 
             {/* AI analysis */}
             {!insights && !aiLoading && stats.completedStudents > 0 && (
-              <button
-                className="btn-secondary w-full gap-2"
-                onClick={handleAiAnalysis}>
+              <Button variant="outline" className="w-full gap-2" onClick={handleAiAnalysis}>
                 <FiZap size={14} /> Phân tích AI
-              </button>
+              </Button>
             )}
 
             {aiLoading && (
@@ -171,10 +171,10 @@ export default function ExamStatsModal({ examId, examName, onClose }) {
           </div>
         )}
 
-        <div className="px-6 py-4 border-t border-slate-100 shrink-0">
-          <button className="btn-secondary w-full" onClick={onClose}>Đóng</button>
-        </div>
-      </div>
-    </div>
+        <DialogFooter className="px-6 py-4 border-t border-slate-100 shrink-0">
+          <Button variant="outline" className="w-full" onClick={onClose}>Đóng</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

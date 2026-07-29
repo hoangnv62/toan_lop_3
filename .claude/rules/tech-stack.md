@@ -37,16 +37,18 @@
 |-------|-----------|-------|
 | **Framework** | React 19 + Vite | SPA only |
 | **Language** | JavaScript | No TypeScript |
-| **Styling** | Tailwind CSS 3 | Custom classes in `src/index.css` |
-| **Component Library** | None | Custom components with Tailwind |
+| **Styling** | Tailwind CSS 4 | Theme tokens via `@theme` in `src/index.css` — no `tailwind.config.js` |
+| **Component Library** | shadcn/ui (JavaScript, `tsx: false`) | Components live in `src/components/ui/`, owned by the repo — edit them directly |
+| **Component primitives** | `radix-ui` (umbrella package) | Pulled in by shadcn components |
+| **Component utils** | class-variance-authority, clsx, tailwind-merge | `cn()` helper in `src/lib/utils.js` |
 | **Global State** | React Context (AuthContext) | No Zustand/Redux |
 | **Server State / Data Fetching** | axios + useState | No TanStack Query |
 | **Forms** | Controlled components | No React Hook Form |
 | **Validation** | None (client-side) | Backend validates with Zod |
-| **Animation** | None | |
+| **Animation** | tw-animate-css | Required by shadcn Dialog/Select transitions |
 | **Auth (client-side)** | Custom JWT (localStorage) | `src/api/index.js` axios instance |
 | **API Client** | axios | Interceptors in `src/api/index.js` |
-| **Charts** | chart.js + react-chartjs-2 | |
+| **Charts** | recharts (qua `@/components/ui/chart` của shadcn) | Cần `react-is` cài tường minh — npm 6 không tự kéo peer dep |
 | **Icons** | react-icons/fi | Feather icons only |
 | **Notifications** | react-toastify | `toast.success()`, `toast.error()` etc. |
 | **Markdown** | react-markdown + remark-gfm | Used in chatbot responses |
@@ -65,6 +67,7 @@
 | **API base URL (dev)** | `http://localhost:5000` (set in `frontend/src/config.js`) |
 | **Auth token storage** | localStorage (`auth_token` key) |
 | **Shared types** | None — no TypeScript, no shared package |
+| **Path alias** | `@/` → `frontend/src/` (declared in `vite.config.js` + `jsconfig.json`) |
 | **CI/CD** | None set up |
 
 ---
@@ -97,3 +100,11 @@
 | Project start | Raw SQL (not ORM) | Direct control, MariaDB-specific queries |
 | Project start | localStorage for JWT | Simple SPA, acceptable for internal school tool |
 | Recent | OpenRouter AI via openai SDK | Free model access for AI features |
+| 2026-07-28 | Tailwind CSS 3 → 4 | shadcn/ui mặc định nhắm v4; cấu hình chuyển vào `@theme` trong CSS |
+| 2026-07-28 | shadcn/ui thay bộ class tự chế | Bỏ 15 class trong `index.css`; có sẵn a11y (focus trap, ARIA) cho modal |
+| 2026-07-28 | Giữ react-toastify, react-icons/fi | Không đổi sang Sonner/lucide để giảm phạm vi thay đổi |
+| 2026-07-28 | Bổ sung alert, alert-dialog, avatar, scroll-area, skeleton, tooltip, tabs | Quét hết markup thô còn lại: `confirm()` native → AlertDialog, div dựng card → Card, `<button>` → Button |
+| 2026-07-28 | Đáp án bài thi học sinh dùng RadioGroup | Đúng ngữ nghĩa chọn-một, có sẵn điều hướng bàn phím thay vì list `<button>` |
+| 2026-07-29 | chart.js → recharts + shadcn chart | Dùng chung hệ component shadcn; màu series đi qua token `--chart-*` |
+| 2026-07-29 | Phân bố điểm dùng ordinal ramp indigo, không phải 4 hue rời | Khoảng điểm là thang có thứ tự; ramp đã qua `validate_palette.js --ordinal` |
+| 2026-07-29 | Tỉ lệ đạt: pie 2 lát → RadialBar (meter) | Một tỉ lệ duy nhất thì meter đúng hơn pie; con số ở giữa mới là nội dung chính |

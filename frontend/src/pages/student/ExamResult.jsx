@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getExamResult, getAiExamFeedback } from '../../api/examService';
 import { FiArrowLeft, FiCheckCircle, FiXCircle, FiLoader, FiZap } from 'react-icons/fi';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 export default function ExamResult() {
   const { examId } = useParams();
@@ -35,16 +37,15 @@ export default function ExamResult() {
       {/* Nav */}
       <div className="bg-white border-b border-slate-100 px-4 py-3.5 shadow-[0_1px_20px_-4px_rgba(79,70,229,0.08)]">
         <div className="max-w-2xl mx-auto">
-          <button onClick={() => navigate('/student')}
-            className="btn-ghost py-1.5 px-2.5 gap-1.5 text-slate-600">
+          <Button variant="ghost" onClick={() => navigate('/student')} className="py-1.5 px-2.5 gap-1.5 text-slate-600">
             <FiArrowLeft size={15} /> Về trang chủ
-          </button>
+          </Button>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto p-4 space-y-4">
         {/* Score card */}
-        <div className={`bg-white rounded-xl border border-slate-100 shadow-soft p-8 text-center border-t-4 ${passed ? 'border-t-emerald-400' : 'border-t-red-400'}`}>
+        <Card className={`p-8 gap-0 text-center border-t-4 ${passed ? 'border-t-emerald-400' : 'border-t-red-400'}`}>
           <div className={`inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-4 ${
             passed ? 'bg-emerald-50' : 'bg-red-50'
           }`}>
@@ -57,21 +58,21 @@ export default function ExamResult() {
           </p>
           <p className="text-sm text-slate-500">{result.correct}/{result.total} câu đúng</p>
           <p className="text-sm font-semibold text-slate-700 mt-2">{result.examName}</p>
-        </div>
+        </Card>
 
         {/* Teacher comment */}
         {result.teacherComment && (
-          <div className="card border-l-4 border-l-indigo-400 bg-indigo-50/40">
+          <Card className="p-5 gap-0 border-l-4 border-l-indigo-400 bg-indigo-50/40">
             <p className="text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">
               Nhận xét của giáo viên
             </p>
             <p className="text-sm text-slate-700 leading-relaxed">{result.teacherComment}</p>
-          </div>
+          </Card>
         )}
 
         {/* AI feedback */}
         {(aiLoading || aiFeedback) && (
-          <div className="card border-l-4 border-l-violet-400 bg-violet-50/40">
+          <Card className="p-5 gap-0 border-l-4 border-l-violet-400 bg-violet-50/40">
             <p className="text-xs font-bold text-violet-600 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
               <FiZap size={11} /> Nhận xét từ AI
             </p>
@@ -80,7 +81,7 @@ export default function ExamResult() {
                   <FiLoader size={13} className="animate-spin" /> Đang phân tích bài làm...
                 </div>
               : <p className="text-sm text-slate-700 leading-relaxed">{aiFeedback}</p>}
-          </div>
+          </Card>
         )}
 
         {/* Review */}

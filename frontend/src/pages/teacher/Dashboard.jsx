@@ -1,38 +1,23 @@
 import { useState } from 'react';
-import { Bar, Doughnut } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend } from 'chart.js';
+import {
+  Bar, BarChart, Cell, CartesianGrid, LabelList,
+  PolarAngleAxis, RadialBar, RadialBarChart, XAxis, YAxis,
+} from 'recharts';
 import TeacherLayout from '../../layouts/TeacherLayout';
 import { useTeacherDashboard, useAIAdviceMutation } from '../../hooks/useStudent';
 import { FiUsers, FiLayers, FiBook, FiFileText, FiRefreshCw, FiZap, FiAward, FiTrendingUp } from 'react-icons/fi';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
+// Các khoảng điểm là thang có thứ tự → ordinal ramp một hue, nhạt→đậm theo
+// khoảng điểm tăng dần. Đã chạy scripts/validate_palette.js --ordinal trên nền
+// trắng: monotone L, mọi bước ΔL ≥ 0.06, đầu nhạt 2.98:1 — PASS toàn bộ.
+const DIST_RAMP = ['#818cf8', '#6366f1', '#4f46e5', '#3730a3'];
 
-const DIST_COLORS = ['#f87171', '#fbbf24', '#818cf8', '#34d399'];
-
-const distOpts = {
-  responsive: true,
-  plugins: {
-    legend: { display: false },
-    tooltip: { callbacks: { label: ctx => ` ${ctx.raw} học sinh` } },
-  },
-  scales: {
-    x: { grid: { display: false }, ticks: { font: { size: 12, family: 'Plus Jakarta Sans' } } },
-    y: { grid: { color: '#F1F5F9' }, ticks: { precision: 0, stepSize: 1, font: { size: 12, family: 'Plus Jakarta Sans' } } },
-  },
-};
-
-const hBarOpts = {
-  indexAxis: 'y',
-  responsive: true,
-  plugins: {
-    legend: { display: false },
-    tooltip: { callbacks: { label: ctx => ` ${ctx.raw} điểm` } },
-  },
-  scales: {
-    x: { grid: { color: '#F1F5F9' }, min: 0, max: 10, ticks: { stepSize: 2, font: { size: 12, family: 'Plus Jakarta Sans' } } },
-    y: { grid: { display: false }, ticks: { font: { size: 12, family: 'Plus Jakarta Sans' } } },
-  },
-};
+const distConfig     = { count:    { label: 'Học sinh', color: 'var(--chart-1)' } };
+const classAvgConfig = { avgScore: { label: 'Điểm TB',  color: 'var(--chart-1)' } };
+const passConfig     = { pass:     { label: 'Đạt',      color: 'var(--chart-2)' } };
 
 function SectionTitle({ icon: Icon, title, iconColor = 'text-indigo-500' }) {
   return (
@@ -94,62 +79,86 @@ export default function Dashboard() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {statsCards.map(({ label, value, icon: Icon, from, to }) => (
-          <div key={label}
-            className="bg-white rounded-2xl border border-slate-100 shadow-soft hover:shadow-soft-hover hover:-translate-y-0.5 p-5 flex items-center gap-4 transition-all duration-200">
-            <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${from} ${to} flex items-center justify-center shrink-0 shadow-sm`}>
+          <Card key={label} className="p-5 gap-4 flex-row items-center rounded-2xl">
+            <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${from} ${to} flex items-center justify-center shrink-0 shadow-xs`}>
               <Icon size={20} className="text-white" />
             </div>
             <div>
               <p className="text-2xl font-extrabold text-slate-900 leading-none">{value}</p>
               <p className="text-sm text-slate-500 mt-1">{label}</p>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
 
       {/* Row 1: Score dist + Pass rate */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        <div className="card">
+        <Card className="p-5 gap-0">
           <SectionTitle icon={FiTrendingUp} title="Phân bố điểm số" />
-          <Bar
-            data={{
-              labels: Object.keys(dist),
-              datasets: [{
-                label: 'Số học sinh',
-                data: Object.values(dist),
-                backgroundColor: DIST_COLORS,
-                borderRadius: 8,
-                borderSkipped: false,
-              }],
-            }}
-            options={distOpts}
-          />
-          <div className="flex gap-3 mt-3 flex-wrap">
-            {Object.keys(dist).map((k, i) => (
-              <div key={k} className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: DIST_COLORS[i] }} />
-                <span className="text-xs text-slate-500">{k}: <span className="font-semibold text-slate-700">{dist[k]}</span></span>
-              </div>
-            ))}
-          </div>
-        </div>
+          <ChartContainer config={distConfig} className="h-56 w-full">
+            <BarChart
+              data={Object.entries(dist).map(([band, count]) => ({ band, count }))}
+              margin={{ top: 16, right: 8, left: -20, bottom: 0 }}
+            >
+              <CartesianGrid vertical={false} stroke="var(--border)" />
+              <XAxis
+                dataKey="band"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
+              />
+              <YAxis
+                allowDecimals={false}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
+              />
+              <ChartTooltip
+                cursor={{ fill: 'var(--accent)' }}
+                content={<ChartTooltipContent formatter={v => [`${v} `, 'học sinh']} />}
+              />
+              {/* maxBarSize giữ mark mảnh, để lại khoảng thở trong mỗi ô */}
+              <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={24}>
+                {Object.keys(dist).map((band, i) => (
+                  <Cell key={band} fill={DIST_RAMP[i] ?? DIST_RAMP[DIST_RAMP.length - 1]} />
+                ))}
+                <LabelList
+                  dataKey="count"
+                  position="top"
+                  offset={8}
+                  className="fill-slate-500"
+                  fontSize={11}
+                />
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        </Card>
 
-        <div className="card">
+        <Card className="p-5 gap-0">
           <SectionTitle icon={FiUsers} title="Tỉ lệ đạt / không đạt" />
           <div className="flex items-center justify-center gap-8 py-2">
             <div className="relative w-40 h-40 shrink-0">
-              <Doughnut
-                data={{
-                  labels: ['Đạt', 'Không đạt'],
-                  datasets: [{
-                    data: [passRate.pass ?? 0, passRate.fail ?? 0],
-                    backgroundColor: ['#34d399', '#f87171'],
-                    borderWidth: 0,
-                    hoverOffset: 4,
-                  }],
-                }}
-                options={{ plugins: { legend: { display: false } }, cutout: '68%' }}
-              />
+              {/* Một tỉ lệ duy nhất → meter (track cùng ramp, nhạt hơn),
+                  không phải pie 2 lát. Con số ở giữa mới là nội dung chính. */}
+              <ChartContainer config={passConfig} className="h-40 w-40">
+                <RadialBarChart
+                  data={[{ name: 'pass', pass: passPct }]}
+                  startAngle={90}
+                  endAngle={-270}
+                  innerRadius="72%"
+                  outerRadius="100%"
+                  barSize={14}
+                >
+                  <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+                  <RadialBar
+                    dataKey="pass"
+                    cornerRadius={7}
+                    fill="var(--color-pass)"
+                    background={{ fill: '#d1fae5' }}
+                  />
+                </RadialBarChart>
+              </ChartContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <p className="text-2xl font-extrabold text-slate-900 leading-none">{passPct}%</p>
                 <p className="text-xs text-slate-400 mt-0.5">đạt</p>
@@ -172,36 +181,64 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Row 2: Class avg + Top students */}
       {(classAvgScores.length > 0 || topStudents.length > 0) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
           {classAvgScores.length > 0 && (
-            <div className="card">
+            <Card className="p-5 gap-0">
               <SectionTitle icon={FiLayers} title="Điểm trung bình theo lớp" />
-              <Bar
-                data={{
-                  labels: classAvgScores.map(c => c.className),
-                  datasets: [{
-                    label: 'Điểm TB',
-                    data: classAvgScores.map(c => c.avgScore ?? 0),
-                    backgroundColor: classAvgScores.map(c =>
-                      (c.avgScore ?? 0) >= 8 ? '#34d399' :
-                      (c.avgScore ?? 0) >= 5 ? '#818cf8' : '#f87171'
-                    ),
-                    borderRadius: 6,
-                    borderSkipped: false,
-                  }],
-                }}
-                options={hBarOpts}
-              />
-            </div>
+              {/* Tên lớp là category danh nghĩa nên không tô màu theo giá trị —
+                  chiều dài cột đã mang thông tin đó rồi. Một series, một màu. */}
+              <ChartContainer
+                config={classAvgConfig}
+                className="w-full"
+                style={{ height: Math.max(140, classAvgScores.length * 40 + 40) }}
+              >
+                <BarChart
+                  layout="vertical"
+                  data={classAvgScores.map(c => ({ className: c.className, avgScore: c.avgScore ?? 0 }))}
+                  margin={{ top: 4, right: 32, left: 8, bottom: 0 }}
+                >
+                  <CartesianGrid horizontal={false} stroke="var(--border)" />
+                  <XAxis
+                    type="number"
+                    domain={[0, 10]}
+                    ticks={[0, 2, 4, 6, 8, 10]}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="className"
+                    width={90}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
+                  />
+                  <ChartTooltip
+                    cursor={{ fill: 'var(--accent)' }}
+                    content={<ChartTooltipContent formatter={v => [`${v} `, 'điểm']} />}
+                  />
+                  <Bar dataKey="avgScore" fill="var(--color-avgScore)" radius={[0, 4, 4, 0]} maxBarSize={24}>
+                    <LabelList
+                      dataKey="avgScore"
+                      position="right"
+                      offset={8}
+                      className="fill-slate-500"
+                      fontSize={11}
+                    />
+                  </Bar>
+                </BarChart>
+              </ChartContainer>
+            </Card>
           )}
 
           {topStudents.length > 0 && (
-            <div className="card">
+            <Card className="p-5 gap-0">
               <SectionTitle icon={FiAward} title="Top 5 học sinh" iconColor="text-amber-500" />
               <div className="space-y-1">
                 {topStudents.map((s, i) => {
@@ -233,13 +270,13 @@ export default function Dashboard() {
                   );
                 })}
               </div>
-            </div>
+            </Card>
           )}
         </div>
       )}
 
       {/* AI Advisor */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-soft p-5">
+      <Card className="p-5 gap-0 rounded-2xl">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-btn">
@@ -250,11 +287,10 @@ export default function Dashboard() {
               <p className="text-xs text-slate-400">Phân tích từ Gemini AI</p>
             </div>
           </div>
-          <button className="btn-secondary text-xs py-1.5 gap-1.5"
-            onClick={() => fetchAdvice(data)} disabled={loadingAI}>
+          <Button variant="outline" className="text-xs py-1.5 gap-1.5" onClick={() => fetchAdvice(data)} disabled={loadingAI}>
             <FiRefreshCw size={13} className={loadingAI ? 'animate-spin' : ''} />
             {loadingAI ? 'Đang phân tích...' : 'Phân tích lại'}
-          </button>
+          </Button>
         </div>
 
         {loadingAI ? (
@@ -283,7 +319,7 @@ export default function Dashboard() {
             ))}
           </div>
         )}
-      </div>
+      </Card>
     </TeacherLayout>
   );
 }

@@ -1,15 +1,16 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { getMe } from '../api/auth';
 import { getToken } from '../api/index';
-
-const AuthContext = createContext(null);
+import { AuthContext } from './auth-context';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Chỉ chờ khi thực sự có token để khôi phục phiên — không có token thì
+  // vào thẳng trang đăng nhập, khỏi setLoading(false) đồng bộ trong effect.
+  const [loading, setLoading] = useState(() => !!getToken());
 
   useEffect(() => {
-    if (!getToken()) { setLoading(false); return; }
+    if (!getToken()) return;
     getMe()
       .then(data => { if (data.loggedIn) setUser(data); })
       .catch(() => {})
@@ -22,5 +23,3 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
-
-export const useAuth = () => useContext(AuthContext);

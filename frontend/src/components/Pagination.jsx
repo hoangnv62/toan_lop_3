@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button';
+
 export default function Pagination({ page, pages, onChange }) {
   if (pages <= 1) return null;
 
@@ -15,32 +17,35 @@ export default function Pagination({ page, pages, onChange }) {
 
   return (
     <div className="flex items-center justify-center gap-1 mt-5">
-      <button
-        className="btn-ghost py-1.5 px-2.5 text-sm disabled:opacity-40"
+      <Button variant="ghost" size="sm"
+        className="text-slate-500 disabled:opacity-40"
         disabled={page === 1}
-        onClick={() => onChange(page - 1)}>
+        onClick={() => onChange(page - 1)}
+        aria-label="Trang trước">
         ←
-      </button>
+      </Button>
       {getPageNums().map((p, i) =>
         p === '…'
           ? <span key={`e${i}`} className="w-9 h-9 flex items-center justify-center text-slate-400 text-sm">…</span>
-          : <button
+          : <Button
               key={p}
-              className={`w-9 h-9 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                p === page
-                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-btn'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
+              variant={p === page ? 'default' : 'ghost'}
+              size="icon"
+              aria-current={p === page ? 'page' : undefined}
+              className={p === page
+                ? 'rounded-xl font-semibold bg-gradient-to-r from-indigo-600 to-violet-600 shadow-btn hover:from-indigo-500 hover:to-violet-500'
+                : 'rounded-xl font-semibold text-slate-600'}
               onClick={() => onChange(p)}>
               {p}
-            </button>
+            </Button>
       )}
-      <button
-        className="btn-ghost py-1.5 px-2.5 text-sm disabled:opacity-40"
+      <Button variant="ghost" size="sm"
+        className="text-slate-500 disabled:opacity-40"
         disabled={page === pages}
-        onClick={() => onChange(page + 1)}>
+        onClick={() => onChange(page + 1)}
+        aria-label="Trang sau">
         →
-      </button>
+      </Button>
     </div>
   );
 }

@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { FiEdit2, FiCheck, FiX, FiUsers, FiFileText, FiBell } from 'react-icons/fi';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export default function ClassHeader({ detail, assignedExams, announcements, onUpdate }) {
   const [editing, setEditing] = useState(false);
@@ -26,34 +29,32 @@ export default function ClassHeader({ detail, assignedExams, announcements, onUp
       <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/10 rounded-full pointer-events-none" />
       <div className="absolute -bottom-8 right-16 w-20 h-20 bg-white/10 rounded-full pointer-events-none" />
       <div className="relative flex items-center gap-4">
-        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0 select-none">
-          {initial}
-        </div>
+        <Avatar className="size-14 rounded-2xl bg-white/20">
+          <AvatarFallback className="rounded-2xl bg-transparent text-white text-2xl font-bold">
+            {initial}
+          </AvatarFallback>
+        </Avatar>
         <div className="flex-1 min-w-0">
           {editing ? (
             <div className="flex items-center gap-2">
-              <input
-                className="bg-white/20 border border-white/30 rounded-xl px-3 py-1.5 text-white placeholder-white/60 text-lg font-semibold focus:outline-none focus:border-white w-64"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel(); }}
-                autoFocus
-              />
-              <button className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors" onClick={handleSave}>
+              <Input className="bg-white/20 border border-white/30 rounded-xl px-3 py-1.5 text-white placeholder-white/60 text-lg font-semibold focus:outline-hidden focus:border-white w-64" value={name} onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel(); }} autoFocus />
+              <Button variant="ghost" size="icon-sm" title="Lưu tên lớp"
+                className="bg-white/20 text-white hover:bg-white/30 hover:text-white" onClick={handleSave}>
                 <FiCheck size={16} />
-              </button>
-              <button className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors" onClick={handleCancel}>
+              </Button>
+              <Button variant="ghost" size="icon-sm" title="Hủy"
+                className="bg-white/20 text-white hover:bg-white/30 hover:text-white" onClick={handleCancel}>
                 <FiX size={16} />
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold leading-tight truncate">{detail.className}</h1>
-              <button
-                className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors shrink-0"
+              <Button variant="ghost" size="icon-sm" title="Đổi tên lớp"
+                className="shrink-0 bg-white/20 text-white hover:bg-white/30 hover:text-white"
                 onClick={() => { setName(detail.className); setEditing(true); }}>
                 <FiEdit2 size={14} />
-              </button>
+              </Button>
             </div>
           )}
           <div className="flex items-center gap-4 mt-2 text-indigo-200 text-sm">

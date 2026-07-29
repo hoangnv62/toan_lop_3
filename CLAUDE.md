@@ -139,13 +139,44 @@ Teacher agent has 7 AI tools. Each tool folder contains `definition.js` (OpenAI 
   - `lessonService.js` — lesson CRUD
   - `announcementService.js` — getAnnouncements, createAnnouncement, deleteAnnouncement
   - `relativeService.js` — getRelatives, addRelative, updateRelative, deleteRelative
-- `src/context/AuthContext.jsx` — provides `{ user, setUser, loading }` via `useAuth()` hook
-- `src/components/Toast.jsx` — re-exports `{ toast, ToastContainer }` from `react-toastify`; use `toast.success()`, `toast.error()` etc.
-- `src/components/TeacherLayout.jsx` — layout wrapper for all teacher pages (sidebar + main content)
+- `src/context/AuthContext.jsx` — chỉ export component `AuthProvider` (giữ được Fast Refresh)
+- `src/context/auth-context.js` — export `AuthContext` + hook `useAuth()` trả về `{ user, setUser, loading }`. **Import `useAuth` từ file này**, không phải từ `AuthContext.jsx`. Tên đặt kebab-case để không đụng `AuthContext.jsx` trên filesystem không phân biệt hoa/thường (macOS, Windows)
+- Toast: import `{ toast }` straight from `react-toastify`; `<ToastContainer />` is mounted in `src/main.jsx`
+- `src/layouts/TeacherLayout.jsx` — layout wrapper for all teacher pages (sidebar + main content)
 - `src/components/ErrorBoundary.jsx` — React error boundary for graceful error handling
 - `src/components/Sidebar.jsx` — teacher sidebar navigation
-- `src/components/shared/ChatBot.jsx` — AI chatbot UI (floating button, conversation panel)
-- Custom Tailwind component classes defined in `src/index.css`: `.btn-primary`, `.btn-secondary`, `.btn-danger`, `.btn-ghost`, `.card`, `.input`, `.badge-indigo`, `.badge-green`, `.badge-yellow`, `.badge-gray`, `.table-head`, `.table-row`, `.table-cell`
+- `src/components/Pagination.jsx` — shared pager (page / pages / onChange)
+- `src/components/shared/ChatBot.jsx` — AI chatbot UI (floating button, conversation panel); available to **both** roles
+
+### UI components (shadcn/ui)
+
+The UI is built on **shadcn/ui** with Tailwind CSS 4. There are no hand-written `.btn-*` / `.card` / `.input` / `.badge-*` / `.table-*` classes any more — use the components:
+
+| Need | Component | Notes |
+|---|---|---|
+| Button | `@/components/ui/button` | `variant`: `gradient` (nút chính của dự án), `outline`, `destructive`, `ghost`, `default`, `secondary`, `link`. Nút chỉ có icon: `size="icon-xs" \| "icon-sm" \| "icon"` |
+| Badge | `@/components/ui/badge` | `variant`: `success`, `danger`, `warning`, `info`, `neutral` (pastel, riêng của dự án) + các variant gốc |
+| Card | `@/components/ui/card` | Đã gắn `shadow-soft` + hover lift. Dùng `className="p-5 gap-0"` cho card gọn, thêm `hover:translate-y-0` khi không muốn hiệu ứng nhấc lên |
+| Alert | `@/components/ui/alert` | Banner cảnh báo. `variant`: `success`, `danger`, `warning`, `info` (pastel, cùng bảng màu Badge) + `default`, `destructive` |
+| Form | `input`, `textarea`, `select`, `checkbox`, `radio-group`, `label` | |
+| Modal | `@/components/ui/dialog` | Có sẵn focus trap, Escape, ARIA — **đừng tự dựng `fixed inset-0`** |
+| Hỏi xác nhận | `@/components/ui/alert-dialog` | Thay cho `confirm()` native — xem `ManageClass.jsx` (xóa lớp) |
+| Tab | `@/components/ui/tabs` | Chọn vai trò ở `Register.jsx` |
+| Avatar | `@/components/ui/avatar` | Chữ cái đầu của lớp/học sinh. Dự án dùng squircle: `className="rounded-xl"` cho cả `Avatar` lẫn `AvatarFallback` |
+| Cuộn | `@/components/ui/scroll-area` | Vùng tin nhắn ChatBot, stack trace ErrorBoundary |
+| Loading danh sách | `@/components/ui/skeleton` | Dùng cho danh sách/lưới; spinner `FiLoader` chỉ dùng trong nút đang xử lý |
+| Bảng | `@/components/ui/table` | |
+| Biểu đồ | `@/components/ui/chart` (recharts) | `ChartContainer` + `ChartTooltip`/`ChartTooltipContent`. Màu series khai qua `config` → dùng lại bằng `var(--color-<dataKey>)`. Xem `ScoreChart.jsx` (Area) và `Dashboard.jsx` (Bar, RadialBar) |
+
+Quy ước quan trọng:
+- Path alias `@/` → `frontend/src/` (khai báo ở `vite.config.js` + `jsconfig.json`)
+- `cn()` trong `src/lib/utils.js` để gộp class (clsx + tailwind-merge)
+- Theme tokens (`--primary`, `--border`, `--shadow-soft`…) nằm trong `@theme` ở `src/index.css`; **không có `tailwind.config.js`** (Tailwind 4)
+- Thêm component mới: `npx -p shadcn@latest -- shadcn add <tên> --yes`
+- File trong `src/components/ui/` thuộc quyền sở hữu của repo — sửa trực tiếp được, và `eslint.config.js` có override riêng cho thư mục này
+- Radix `Select` **không nhận `value=""`** — dùng sentinel (`'all'`, `'none'`) rồi map lại, xem `QuestionBank/index.jsx`
+- Radix `ScrollArea` bọc children trong một div nội bộ, nên `space-y-*` phải đặt ở div con tự khai báo chứ không đặt trên `ScrollArea`
+- Không còn `<button>` / `<div>` dựng card thủ công trong `src/` — mọi thứ đi qua component ở `src/components/ui/`
 
 ### Frontend routes (React Router v7)
 | Path | Component | Role |

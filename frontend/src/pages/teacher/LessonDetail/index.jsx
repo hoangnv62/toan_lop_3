@@ -9,6 +9,8 @@ import ExamModal from './ExamModal';
 import AssignExamModal from './AssignExamModal';
 import ExamStatsModal from './ExamStatsModal';
 import ExportPdfModal from './ExportPdfModal';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 export default function LessonDetail() {
   const { lessonId } = useParams();
@@ -74,14 +76,14 @@ export default function LessonDetail() {
   return (
     <TeacherLayout>
       {/* Header */}
-      <div className="page-header">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="page-title">{lesson?.lessonTitle || '...'}</h1>
+          <h1 className="text-xl font-bold text-slate-900">{lesson?.lessonTitle || '...'}</h1>
           <p className="text-sm text-slate-500 mt-0.5">{lesson?.exams?.length ?? 0} bài tập</p>
         </div>
-        <button className="btn-primary" onClick={() => setModal({ examId: null, initialData: null })}>
+        <Button variant="gradient" onClick={() => setModal({ examId: null, initialData: null })}>
           <FiPlus size={16} /> Tạo bài tập
-        </button>
+        </Button>
       </div>
 
       {/* Exam list */}
@@ -96,56 +98,41 @@ export default function LessonDetail() {
       ) : (
         <div className="space-y-2">
           {lesson?.exams?.map(exam => (
-            <div key={exam.id}
-              className="card flex items-center justify-between gap-4 py-4">
+            <Card key={exam.id} className="flex-row items-center justify-between gap-4 px-5 py-4">
               <div className="flex items-center gap-4 flex-1 min-w-0">
                 <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center shrink-0">
                   <FiEdit2 size={15} className="text-amber-600" />
                 </div>
-                <div>
-                  <p className="font-semibold text-slate-900">{exam.name}</p>
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-900 truncate">{exam.name}</p>
                   <p className="text-xs text-slate-400 mt-0.5">{exam.dateCreated || '--'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <button title="Giao cho lớp"
-                  className="btn-ghost text-indigo-600 hover:bg-indigo-50 p-2"
-                  onClick={() => setAssignModal({ exam })}>
+                <Button variant="ghost" size="icon-sm" title="Giao cho lớp" className="text-indigo-600 hover:bg-indigo-50" onClick={() => setAssignModal({ exam })}>
                   <FiSend size={15} />
-                </button>
-                <button title="Thống kê"
-                  className="btn-ghost p-2"
-                  onClick={() => setStatsModal({ examId: exam.id, examName: exam.name })}>
+                </Button>
+                <Button variant="ghost" size="icon-sm" title="Thống kê" onClick={() => setStatsModal({ examId: exam.id, examName: exam.name })}>
                   <FiBarChart2 size={15} />
-                </button>
-                <button title="Xuất PDF"
-                  className="btn-ghost text-rose-500 hover:text-rose-600 hover:bg-rose-50 p-2"
-                  onClick={() => setPdfModal({ id: exam.id, name: exam.name })}>
+                </Button>
+                <Button variant="ghost" size="icon-sm" title="Xuất PDF" className="text-rose-500 hover:text-rose-600 hover:bg-rose-50" onClick={() => setPdfModal({ id: exam.id, name: exam.name })}>
                   <FiFileText size={15} />
-                </button>
-                <button title="Sao chép"
-                  className="btn-ghost text-slate-500 hover:bg-slate-100 p-2"
-                  disabled={cloning === exam.id}
-                  onClick={() => handleClone(exam.id)}>
+                </Button>
+                <Button variant="ghost" size="icon-sm" title="Sao chép" className="text-slate-500 hover:bg-slate-100" disabled={cloning === exam.id} onClick={() => handleClone(exam.id)}>
                   {cloning === exam.id
                     ? <FiLoader size={15} className="animate-spin" />
                     : <FiCopy size={15} />}
-                </button>
-                <button title="Chỉnh sửa"
-                  className="btn-ghost p-2"
-                  onClick={() => openEdit(exam.id)}>
+                </Button>
+                <Button variant="ghost" size="icon-sm" title="Chỉnh sửa" onClick={() => openEdit(exam.id)}>
                   <FiEdit2 size={15} />
-                </button>
-                <button title="Xóa"
-                  className="btn-ghost text-red-500 hover:text-red-600 hover:bg-red-50 p-2"
-                  disabled={deleting === exam.id}
-                  onClick={() => handleDelete(exam.id)}>
+                </Button>
+                <Button variant="ghost" size="icon-sm" title="Xóa" className="text-red-500 hover:text-red-600 hover:bg-red-50" disabled={deleting === exam.id} onClick={() => handleDelete(exam.id)}>
                   {deleting === exam.id
                     ? <FiLoader size={15} className="animate-spin" />
                     : <FiTrash2 size={15} />}
-                </button>
+                </Button>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}

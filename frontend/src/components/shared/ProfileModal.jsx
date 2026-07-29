@@ -1,18 +1,24 @@
 import { useEffect, useState } from 'react';
-import { FiX, FiLoader, FiUser, FiMail, FiPhone, FiCalendar, FiAtSign } from 'react-icons/fi';
+import { FiLoader, FiUser, FiMail, FiPhone, FiCalendar, FiAtSign } from 'react-icons/fi';
 import { getProfile } from '../../api/auth';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/auth-context';
 import { toast } from 'react-toastify';
 import { parseDateToInput } from '../../utils/date';
 import { useAuthMutations } from '../../hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 function Field({ label, icon: Icon, children }) {
   return (
     <div>
-      <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-1.5">
+      <Label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-1.5">
         <Icon size={13} className="text-slate-400" />
         {label}
-      </label>
+      </Label>
       {children}
     </div>
   );
@@ -57,17 +63,11 @@ export default function ProfileModal({ onClose }) {
   const initials = fullName.trim().split(' ').pop()?.charAt(0).toUpperCase() || '?';
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-modal border border-slate-100 w-full max-w-md">
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h3 className="font-bold text-slate-900">Thông tin cá nhân</h3>
-          <button onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
-            <FiX size={17} />
-          </button>
-        </div>
+    <Dialog open onOpenChange={open => !open && onClose()}>
+      <DialogContent className="sm:max-w-md gap-0 p-0">
+        <DialogHeader className="px-6 py-4 border-b border-slate-100">
+          <DialogTitle>Thông tin cá nhân</DialogTitle>
+        </DialogHeader>
 
         {fetching ? (
           <div className="flex items-center justify-center py-16">
@@ -92,46 +92,41 @@ export default function ProfileModal({ onClose }) {
             {/* Form */}
             <div className="px-6 pb-2 space-y-3.5">
               <Field label="Tên đăng nhập" icon={FiAtSign}>
-                <input className="input bg-slate-50 text-slate-500 cursor-not-allowed font-mono"
-                  value={username} readOnly />
+                <Input className="bg-slate-50 text-slate-500 cursor-not-allowed font-mono" value={username} readOnly />
               </Field>
 
               <Field label="Họ và tên" icon={FiUser}>
-                <input className="input" placeholder="Nguyễn Văn A"
-                  value={fullName} onChange={e => setFullName(e.target.value)} autoFocus />
+                <Input placeholder="Nguyễn Văn A" value={fullName} onChange={e => setFullName(e.target.value)} autoFocus />
               </Field>
 
               <Field label="Ngày sinh" icon={FiCalendar}>
-                <input className="input" type="date"
-                  value={dob} onChange={e => setDob(e.target.value)} />
+                <Input type="date" value={dob} onChange={e => setDob(e.target.value)} />
               </Field>
 
               {user?.role === 'teacher' && (
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Email" icon={FiMail}>
-                    <input className="input" type="email" placeholder="vd@gmail.com"
-                      value={email} onChange={e => setEmail(e.target.value)} />
+                    <Input type="email" placeholder="vd@gmail.com" value={email} onChange={e => setEmail(e.target.value)} />
                   </Field>
                   <Field label="Số điện thoại" icon={FiPhone}>
-                    <input className="input" placeholder="09xxxxxxxx"
-                      value={phone} onChange={e => setPhone(e.target.value)} />
+                    <Input placeholder="09xxxxxxxx" value={phone} onChange={e => setPhone(e.target.value)} />
                   </Field>
                 </div>
               )}
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 px-6 py-4 border-t border-slate-100 mt-2">
-              <button className="btn-secondary flex-1" onClick={onClose}>Hủy</button>
-              <button className="btn-primary flex-1" onClick={handleSave} disabled={loading}>
+            <DialogFooter className="gap-3 px-6 py-4 border-t border-slate-100 mt-2 sm:justify-stretch">
+              <Button variant="outline" className="flex-1" onClick={onClose}>Hủy</Button>
+              <Button variant="gradient" className="flex-1" onClick={handleSave} disabled={loading}>
                 {loading
                   ? <><FiLoader size={14} className="animate-spin" /> Đang lưu...</>
                   : 'Lưu thay đổi'}
-              </button>
-            </div>
+              </Button>
+            </DialogFooter>
           </>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

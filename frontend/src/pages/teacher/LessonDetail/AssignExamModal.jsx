@@ -4,6 +4,13 @@ import { getExamAssignments } from '../../../api/examService';
 import { useClassExamMutations } from '../../../hooks/useClass';
 import { toast } from 'react-toastify';
 import { parseDateTimeToLocal, parseDateTime } from '../../../utils/date';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 function toDatetimeLocal(str) {
   return parseDateTimeToLocal(str);
@@ -82,17 +89,12 @@ export default function AssignExamModal({ exam, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h3 className="font-semibold text-slate-900">Giao bài cho lớp</h3>
-            <p className="text-xs text-slate-400 mt-0.5 truncate max-w-[210px]">{exam.name}</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
-            <FiX size={17} />
-          </button>
-        </div>
+    <Dialog open onOpenChange={open => !open && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Giao bài cho lớp</DialogTitle>
+          <DialogDescription className="text-xs truncate">{exam.name}</DialogDescription>
+        </DialogHeader>
 
         {assignments === null ? (
           <div className="flex justify-center py-10">
@@ -112,29 +114,21 @@ export default function AssignExamModal({ exam, onClose }) {
                   <div className="flex items-center gap-1.5 shrink-0">
                     {cls.assigned ? (
                       <>
-                        <span className="badge-green text-xs">Đã giao</span>
-                        <button
-                          className="btn-ghost py-0.5 px-2 text-xs gap-0.5"
-                          disabled={actionId === cls.classId}
-                          onClick={() => editingId === cls.classId ? cancelEdit() : startEdit(cls)}>
+                        <Badge variant="success" className="text-xs">Đã giao</Badge>
+                        <Button variant="ghost" className="py-0.5 px-2 text-xs gap-0.5" disabled={actionId === cls.classId} onClick={() => editingId === cls.classId ? cancelEdit() : startEdit(cls)}>
                           <FiEdit2 size={11} />
                           {editingId === cls.classId ? 'Hủy' : 'Sửa'}
-                        </button>
-                        <button
-                          className="btn-ghost text-red-500 hover:bg-red-50 py-0.5 px-2 text-xs gap-0.5"
-                          disabled={actionId === cls.classId}
-                          onClick={() => handleUnassign(cls.classId)}>
+                        </Button>
+                        <Button variant="ghost" className="text-red-500 hover:bg-red-50 py-0.5 px-2 text-xs gap-0.5" disabled={actionId === cls.classId} onClick={() => handleUnassign(cls.classId)}>
                           {actionId === cls.classId
                             ? <FiLoader size={11} className="animate-spin" />
                             : <><FiX size={11} /> Thu hồi</>}
-                        </button>
+                        </Button>
                       </>
                     ) : (
-                      <button
-                        className="btn-primary py-0.5 px-2.5 text-xs gap-1"
-                        onClick={() => { setPendingId(cls.classId); cancelEdit(); setTimeLimit(''); setDeadline(''); setOpenTime(''); }}>
+                      <Button variant="gradient" className="py-0.5 px-2.5 text-xs gap-1" onClick={() => { setPendingId(cls.classId); cancelEdit(); setTimeLimit(''); setDeadline(''); setOpenTime(''); }}>
                         <FiSend size={11} /> Giao
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -164,39 +158,32 @@ export default function AssignExamModal({ exam, onClose }) {
                 {editingId === cls.classId && (
                   <div className="mt-2.5 pt-2.5 border-t border-indigo-200 space-y-2">
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                      <Label className="block text-xs font-medium text-slate-600 mb-1">
                         Thời gian làm bài (phút) <span className="text-red-500">*</span>
-                      </label>
-                      <input type="number" min="1" className="input text-sm py-1.5"
-                        placeholder="VD: 20" value={editTimeLimit}
-                        onChange={e => setEditTimeLimit(e.target.value)} />
+                      </Label>
+                      <Input type="number" min="1" className="text-sm py-1.5" placeholder="VD: 20" value={editTimeLimit} onChange={e => setEditTimeLimit(e.target.value)} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                      <Label className="block text-xs font-medium text-slate-600 mb-1">
                         Thời gian mở bài <span className="text-red-500">*</span>
-                      </label>
-                      <input type="datetime-local" className="input text-sm py-1.5"
-                        value={editOpenTime} onChange={e => setEditOpenTime(e.target.value)} />
+                      </Label>
+                      <Input type="datetime-local" className="text-sm py-1.5" value={editOpenTime} onChange={e => setEditOpenTime(e.target.value)} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                      <Label className="block text-xs font-medium text-slate-600 mb-1">
                         Hạn nộp bài <span className="text-red-500">*</span>
-                      </label>
-                      <input type="datetime-local" className="input text-sm py-1.5"
-                        value={editDeadline} onChange={e => setEditDeadline(e.target.value)} />
+                      </Label>
+                      <Input type="datetime-local" className="text-sm py-1.5" value={editDeadline} onChange={e => setEditDeadline(e.target.value)} />
                     </div>
                     <div className="flex gap-2">
-                      <button className="btn-secondary flex-1 text-xs py-1.5" onClick={cancelEdit}>
+                      <Button variant="outline" className="flex-1 text-xs py-1.5" onClick={cancelEdit}>
                         Hủy
-                      </button>
-                      <button
-                        className="btn-primary flex-1 text-xs py-1.5"
-                        disabled={actionId === cls.classId}
-                        onClick={() => handleUpdate(cls.classId)}>
+                      </Button>
+                      <Button variant="gradient" className="flex-1 text-xs py-1.5" disabled={actionId === cls.classId} onClick={() => handleUpdate(cls.classId)}>
                         {actionId === cls.classId
                           ? <FiLoader size={11} className="animate-spin" />
                           : 'Lưu'}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -205,41 +192,32 @@ export default function AssignExamModal({ exam, onClose }) {
                 {pendingId === cls.classId && (
                   <div className="mt-2.5 pt-2.5 border-t border-slate-200 space-y-2">
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                      <Label className="block text-xs font-medium text-slate-600 mb-1">
                         Thời gian làm bài (phút) <span className="text-red-500">*</span>
-                      </label>
-                      <input type="number" min="1" className="input text-sm py-1.5"
-                        placeholder="VD: 20" value={timeLimit}
-                        onChange={e => setTimeLimit(e.target.value)} />
+                      </Label>
+                      <Input type="number" min="1" className="text-sm py-1.5" placeholder="VD: 20" value={timeLimit} onChange={e => setTimeLimit(e.target.value)} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                      <Label className="block text-xs font-medium text-slate-600 mb-1">
                         Thời gian mở bài <span className="text-red-500">*</span>
-                      </label>
-                      <input type="datetime-local" className="input text-sm py-1.5"
-                        value={openTime} onChange={e => setOpenTime(e.target.value)} />
+                      </Label>
+                      <Input type="datetime-local" className="text-sm py-1.5" value={openTime} onChange={e => setOpenTime(e.target.value)} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                      <Label className="block text-xs font-medium text-slate-600 mb-1">
                         Hạn nộp bài <span className="text-red-500">*</span>
-                      </label>
-                      <input type="datetime-local" className="input text-sm py-1.5"
-                        value={deadline} onChange={e => setDeadline(e.target.value)} />
+                      </Label>
+                      <Input type="datetime-local" className="text-sm py-1.5" value={deadline} onChange={e => setDeadline(e.target.value)} />
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        className="btn-secondary flex-1 text-xs py-1.5"
-                        onClick={() => { setPendingId(null); setTimeLimit(''); setDeadline(''); setOpenTime(''); }}>
+                      <Button variant="outline" className="flex-1 text-xs py-1.5" onClick={() => { setPendingId(null); setTimeLimit(''); setDeadline(''); setOpenTime(''); }}>
                         Hủy
-                      </button>
-                      <button
-                        className="btn-primary flex-1 text-xs py-1.5"
-                        disabled={actionId === cls.classId}
-                        onClick={() => handleAssign(cls.classId)}>
+                      </Button>
+                      <Button variant="gradient" className="flex-1 text-xs py-1.5" disabled={actionId === cls.classId} onClick={() => handleAssign(cls.classId)}>
                         {actionId === cls.classId
                           ? <FiLoader size={11} className="animate-spin" />
                           : 'Xác nhận'}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -248,8 +226,10 @@ export default function AssignExamModal({ exam, onClose }) {
           </div>
         )}
 
-        <button className="btn-secondary w-full mt-4" onClick={onClose}>Đóng</button>
-      </div>
-    </div>
+        <DialogFooter>
+          <Button variant="outline" className="w-full" onClick={onClose}>Đóng</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -3,34 +3,42 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { fetchExam, submitExam } from '../../api/examService';
 import { toast } from 'react-toastify';
 import { FiAlertCircle, FiLoader } from 'react-icons/fi';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 
 function ConfirmSubmitModal({ answered, total, onConfirm, onCancel }) {
   const unanswered = total - answered;
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-modal border border-slate-100 w-full max-w-sm p-6">
-        <div className="text-center mb-5">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 ${
+    <Dialog open onOpenChange={open => !open && onCancel()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader className="items-center text-center sm:text-center">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-1 ${
             unanswered > 0 ? 'bg-amber-50' : 'bg-indigo-50'
           }`}>
             <FiAlertCircle size={24} className={unanswered > 0 ? 'text-amber-500' : 'text-indigo-500'} />
           </div>
-          <h3 className="font-bold text-slate-900 text-base">Xác nhận nộp bài?</h3>
-          <p className="text-sm text-slate-500 mt-2">
+          <DialogTitle>Xác nhận nộp bài?</DialogTitle>
+          <DialogDescription>
             Đã trả lời <span className="font-bold text-slate-800">{answered}/{total}</span> câu hỏi.
-          </p>
+          </DialogDescription>
           {unanswered > 0 && (
-            <p className="text-xs text-amber-600 mt-1 font-semibold">
+            <p className="text-xs text-amber-600 font-semibold">
               Còn {unanswered} câu chưa trả lời.
             </p>
           )}
-        </div>
-        <div className="flex gap-3">
-          <button className="btn-secondary flex-1" onClick={onCancel}>Làm tiếp</button>
-          <button className="btn-primary flex-1" onClick={onConfirm}>Nộp bài</button>
-        </div>
-      </div>
-    </div>
+        </DialogHeader>
+        <DialogFooter className="sm:justify-stretch">
+          <Button variant="outline" className="flex-1" onClick={onCancel}>Làm tiếp</Button>
+          <Button variant="gradient" className="flex-1" onClick={onConfirm}>Nộp bài</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -129,9 +137,9 @@ export default function StudentExam() {
             <div className={`font-mono font-bold text-base px-3 py-1 rounded-lg border ${timerCls}`}>
               {mm}:{ss}
             </div>
-            <button className="btn-primary py-1.5 px-4" onClick={() => handleSubmit(false)} disabled={submitting}>
+            <Button variant="gradient" className="py-1.5 px-4" onClick={() => handleSubmit(false)} disabled={submitting}>
               {submitting ? 'Đang nộp...' : 'Nộp bài'}
-            </button>
+            </Button>
           </div>
         </div>
         {/* Progress bar */}
@@ -152,28 +160,32 @@ export default function StudentExam() {
             <FiLoader size={24} className="animate-spin text-indigo-400" />
           </div>
         ) : exam.questions.map((q, qi) => (
-          <div key={q.questionId} className="card">
+          <Card key={q.questionId} className="p-5 gap-0">
             <p className="font-bold text-slate-900 mb-4 text-sm leading-relaxed">
-              <span className="badge-indigo mr-2">Câu {qi + 1}</span>
+              <Badge variant="info" className="mr-2">Câu {qi + 1}</Badge>
               {q.questionContent}
             </p>
-            <div className="space-y-2">
+            <RadioGroup
+              className="space-y-2 gap-0"
+              value={answers[q.questionId] != null ? String(answers[q.questionId]) : ''}
+              onValueChange={v => selectAnswer(q.questionId, Number(v))}>
               {q.answers.map(a => {
                 const selected = answers[q.questionId] === a.answerId;
+                const inputId = `q${q.questionId}-a${a.answerId}`;
                 return (
-                  <button key={a.answerId}
-                    className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all duration-200 ${
+                  <Label key={a.answerId} htmlFor={inputId}
+                    className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl border text-sm font-normal cursor-pointer transition-all duration-200 ${
                       selected
                         ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold shadow-[0_2px_8px_rgba(79,70,229,0.15)]'
                         : 'border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30 text-slate-700'
-                    }`}
-                    onClick={() => selectAnswer(q.questionId, a.answerId)}>
+                    }`}>
+                    <RadioGroupItem value={String(a.answerId)} id={inputId} className="shrink-0" />
                     {a.content}
-                  </button>
+                  </Label>
                 );
               })}
-            </div>
-          </div>
+            </RadioGroup>
+          </Card>
         ))}
       </div>
     </div>

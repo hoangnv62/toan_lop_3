@@ -1,107 +1,157 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
-@layer base {
-  *, *::before, *::after { box-sizing: border-box; }
+@custom-variant dark (&:is(.dark *));
 
-  body {
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    @apply bg-slate-50 text-slate-900 antialiased;
-  }
+/* ──────────────────────────────────────────────────────────────
+   Theme tokens (shadcn/ui)
+   Giá trị bám sát bảng màu Tailwind mà dự án đang dùng:
+   nền slate-50, chữ slate-900, primary indigo-600.
+   ────────────────────────────────────────────────────────────── */
+:root {
+  --radius: 0.625rem;
 
-  h1, h2, h3, h4, h5, h6 { @apply font-bold; }
+  --background: #f8fafc;          /* slate-50  */
+  --foreground: #0f172a;          /* slate-900 */
+
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+
+  --primary: #4f46e5;             /* indigo-600 */
+  --primary-foreground: #ffffff;
+
+  --secondary: #f1f5f9;           /* slate-100 */
+  --secondary-foreground: #334155;
+
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;    /* slate-500 */
+
+  --accent: #eef2ff;              /* indigo-50 */
+  --accent-foreground: #4338ca;   /* indigo-700 */
+
+  --destructive: #ef4444;         /* red-500 */
+  --destructive-foreground: #ffffff;
+
+  --border: #e2e8f0;              /* slate-200 */
+  --input: #e2e8f0;
+  --ring: #6366f1;                /* indigo-500 */
+
+  --chart-1: #4f46e5;
+  --chart-2: #10b981;
+  --chart-3: #f59e0b;
+  --chart-4: #8b5cf6;
+  --chart-5: #ef4444;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #4f46e5;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef2ff;
+  --sidebar-accent-foreground: #4338ca;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #6366f1;
 }
 
-@layer components {
-  /* ── Buttons ── */
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2
-           bg-gradient-to-r from-indigo-600 to-violet-600
-           hover:from-indigo-500 hover:to-violet-500
-           active:from-indigo-700 active:to-violet-700
-           text-white font-semibold text-sm py-2 px-5 rounded-lg
-           shadow-btn hover:shadow-btn-hover hover:-translate-y-0.5
-           transition-all duration-200 cursor-pointer
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2
-           disabled:opacity-50 disabled:pointer-events-none disabled:transform-none disabled:shadow-none;
+.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --popover: #1e293b;
+  --popover-foreground: #f8fafc;
+  --primary: #818cf8;
+  --primary-foreground: #1e1b4b;
+  --secondary: #334155;
+  --secondary-foreground: #f8fafc;
+  --muted: #334155;
+  --muted-foreground: #94a3b8;
+  --accent: #312e81;
+  --accent-foreground: #e0e7ff;
+  --destructive: #f87171;
+  --destructive-foreground: #450a0a;
+  --border: #334155;
+  --input: #334155;
+  --ring: #818cf8;
+  --sidebar: #1e293b;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #818cf8;
+  --sidebar-primary-foreground: #1e1b4b;
+  --sidebar-accent: #312e81;
+  --sidebar-accent-foreground: #e0e7ff;
+  --sidebar-border: #334155;
+  --sidebar-ring: #818cf8;
+}
+
+@theme inline {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Bóng đổ riêng của dự án — chuyển từ tailwind.config.js sang @theme */
+  --shadow-soft: 0 4px 20px -2px rgb(79 70 229 / 0.1);
+  --shadow-soft-hover: 0 10px 25px -5px rgb(79 70 229 / 0.15), 0 8px 10px -6px rgb(79 70 229 / 0.1);
+  --shadow-btn: 0 4px 14px 0 rgb(79 70 229 / 0.3);
+  --shadow-btn-hover: 0 6px 20px 0 rgb(79 70 229 / 0.4);
+  --shadow-glow: 0 0 20px rgb(79 70 229 / 0.5);
+  --shadow-modal: 0 20px 60px -10px rgb(79 70 229 / 0.2);
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    border-color: var(--border);
   }
 
-  .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2
-           bg-white hover:bg-slate-50 active:bg-slate-100
-           text-slate-700 font-medium text-sm py-2 px-4 rounded-lg
-           border border-slate-200 hover:border-slate-300
-           shadow-sm transition-all duration-200 cursor-pointer
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2
-           disabled:opacity-50 disabled:pointer-events-none;
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
   }
 
-  .btn-danger {
-    @apply inline-flex items-center justify-center gap-2
-           bg-red-500 hover:bg-red-600 active:bg-red-700
-           text-white font-semibold text-sm py-2 px-4 rounded-lg
-           shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer
-           disabled:opacity-50 disabled:pointer-events-none disabled:transform-none;
-  }
-
-  .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2
-           text-slate-500 hover:text-slate-800 hover:bg-slate-100
-           font-medium text-sm py-2 px-3 rounded-lg
-           transition-all duration-200 cursor-pointer;
-  }
-
-  /* ── Card ── */
-  .card {
-    @apply bg-white rounded-xl border border-slate-100
-           shadow-soft hover:shadow-soft-hover
-           hover:-translate-y-0.5
-           transition-all duration-200 p-5;
-  }
-
-  /* ── Input ── */
-  .input {
-    @apply block w-full border border-slate-200 rounded-lg px-3 py-2 text-sm
-           text-slate-900 placeholder-slate-400 bg-white
-           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 focus:border-indigo-500
-           transition-all duration-150;
-  }
-
-  /* ── Badge ── */
-  .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold;
-  }
-  .badge-green  { @apply badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60; }
-  .badge-red    { @apply badge bg-red-50 text-red-700 ring-1 ring-red-200/60; }
-  .badge-yellow { @apply badge bg-amber-50 text-amber-700 ring-1 ring-amber-200/60; }
-  .badge-indigo { @apply badge bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200/60; }
-  .badge-gray   { @apply badge bg-slate-100 text-slate-600; }
-
-  /* ── Table ── */
-  .table-row {
-    @apply border-b border-slate-100 hover:bg-slate-50/70 transition-colors;
-  }
-  .table-head {
-    @apply text-left text-xs font-semibold text-slate-500 uppercase tracking-wide py-3 px-4;
-  }
-  .table-cell {
-    @apply py-3 px-4 text-sm text-slate-700;
-  }
-
-  /* ── Page layout helpers ── */
-  .page-header {
-    @apply flex items-center justify-between mb-6;
-  }
-  .page-title {
-    @apply text-xl font-bold text-slate-900;
-  }
-
-  /* ── Stat card ── */
-  .stat-card {
-    @apply card flex items-center gap-4;
-  }
-  .stat-icon {
-    @apply w-11 h-11 rounded-xl flex items-center justify-center shrink-0;
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-bold;
   }
 }

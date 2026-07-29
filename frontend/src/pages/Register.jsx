@@ -2,13 +2,18 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuthMutations } from '../hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 function Field({ label, required, children }) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+      <Label className="block text-sm font-semibold text-slate-700 mb-1.5">
         {label} {required && <span className="text-red-500">*</span>}
-      </label>
+      </Label>
       {children}
     </div>
   );
@@ -68,78 +73,65 @@ export default function Register() {
       </div>
 
       {/* Card */}
-      <div className="w-full max-w-[420px] bg-white rounded-2xl border border-slate-100 shadow-[0_8px_40px_-4px_rgba(79,70,229,0.18)] overflow-hidden relative">
-        {/* Tabs */}
-        <div className="flex border-b border-slate-100">
-          {[
-            { value: 'student', label: 'Học Sinh' },
-            { value: 'teacher', label: 'Giáo Viên' },
-          ].map(({ value, label }) => (
-            <button key={value} onClick={() => setRole(value)}
-              className={`flex-1 py-3.5 text-sm font-semibold transition-all duration-200 ${
-                role === value
-                  ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white -mb-px'
-                  : 'text-slate-500 hover:text-slate-700 bg-slate-50/60'
-              }`}>
-              {label}
-            </button>
-          ))}
-        </div>
+      <Card className="w-full max-w-[420px] p-0 gap-0 rounded-2xl shadow-[0_8px_40px_-4px_rgba(79,70,229,0.18)] overflow-hidden relative hover:translate-y-0">
+        {/* Chọn vai trò */}
+        <Tabs value={role} onValueChange={setRole}>
+          <TabsList className="w-full rounded-none border-b border-slate-100 bg-slate-50/60 p-0 h-auto">
+            {[
+              { value: 'student', label: 'Học Sinh' },
+              { value: 'teacher', label: 'Giáo Viên' },
+            ].map(({ value, label }) => (
+              <TabsTrigger key={value} value={value}
+                className="flex-1 rounded-none border-0 border-b-2 border-transparent py-3.5 text-sm font-semibold text-slate-500 shadow-none data-[state=active]:border-indigo-600 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-none">
+                {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
         <div className="p-6 space-y-3.5">
           {role === 'teacher' ? (
             <>
               <Field label="Họ và tên" required>
-                <input className="input" placeholder="Nguyễn Thị Lan"
-                  value={tFullName} onChange={e => setTFullName(e.target.value)} />
+                <Input placeholder="Nguyễn Thị Lan" value={tFullName} onChange={e => setTFullName(e.target.value)} />
               </Field>
               <Field label="Tên đăng nhập" required>
-                <input className="input" placeholder="username"
-                  value={tUsername} onChange={e => setTUsername(e.target.value)} />
+                <Input placeholder="username" value={tUsername} onChange={e => setTUsername(e.target.value)} />
               </Field>
               <Field label="Mật khẩu" required>
-                <input className="input" type="password" placeholder="Mật khẩu"
-                  value={tPass} onChange={e => setTPass(e.target.value)} />
+                <Input type="password" placeholder="Mật khẩu" value={tPass} onChange={e => setTPass(e.target.value)} />
               </Field>
               <Field label="Xác nhận mật khẩu" required>
-                <input className="input" type="password" placeholder="Nhập lại mật khẩu"
-                  value={tConfirm} onChange={e => setTConfirm(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleTeacherRegister()} />
+                <Input type="password" placeholder="Nhập lại mật khẩu" value={tConfirm} onChange={e => setTConfirm(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleTeacherRegister()} />
               </Field>
-              <button className="btn-primary w-full py-2.5 mt-1" onClick={handleTeacherRegister} disabled={loading}>
+              <Button variant="gradient" className="w-full py-2.5 mt-1" onClick={handleTeacherRegister} disabled={loading}>
                 {loading ? 'Đang xử lý...' : 'Đăng ký tài khoản giáo viên'}
-              </button>
+              </Button>
             </>
           ) : (
             <>
               <Field label="Tên đăng nhập" required>
-                <input className="input" placeholder="username học sinh"
-                  value={sUsername} onChange={e => setSUsername(e.target.value)} />
+                <Input placeholder="username học sinh" value={sUsername} onChange={e => setSUsername(e.target.value)} />
               </Field>
               <Field label="Họ và tên học sinh" required>
-                <input className="input" placeholder="Nguyễn Văn An"
-                  value={sFullName} onChange={e => setSFullName(e.target.value)} />
+                <Input placeholder="Nguyễn Văn An" value={sFullName} onChange={e => setSFullName(e.target.value)} />
               </Field>
               <Field label="Ngày sinh">
-                <input className="input" type="date"
-                  value={sDob} onChange={e => setSdob(e.target.value)} />
+                <Input type="date" value={sDob} onChange={e => setSdob(e.target.value)} />
               </Field>
               <Field label="Mật khẩu" required>
-                <input className="input" type="password" placeholder="Mật khẩu"
-                  value={sPass} onChange={e => setSPass(e.target.value)} />
+                <Input type="password" placeholder="Mật khẩu" value={sPass} onChange={e => setSPass(e.target.value)} />
               </Field>
               <Field label="Xác nhận mật khẩu" required>
-                <input className="input" type="password" placeholder="Nhập lại mật khẩu"
-                  value={sConfirm} onChange={e => setSConfirm(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleStudentRegister()} />
+                <Input type="password" placeholder="Nhập lại mật khẩu" value={sConfirm} onChange={e => setSConfirm(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleStudentRegister()} />
               </Field>
-              <button className="btn-primary w-full py-2.5 mt-1" onClick={handleStudentRegister} disabled={loading}>
+              <Button variant="gradient" className="w-full py-2.5 mt-1" onClick={handleStudentRegister} disabled={loading}>
                 {loading ? 'Đang xử lý...' : 'Đăng ký tài khoản học sinh'}
-              </button>
+              </Button>
             </>
           )}
         </div>
-      </div>
+      </Card>
 
       <p className="mt-6 text-sm text-slate-500 relative">
         Đã có tài khoản?{' '}

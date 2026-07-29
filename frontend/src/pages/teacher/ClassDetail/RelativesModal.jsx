@@ -1,18 +1,18 @@
-import { FiX, FiUser, FiPhone, FiLoader } from 'react-icons/fi';
+import { FiUser, FiPhone, FiLoader } from 'react-icons/fi';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 
 export default function RelativesModal({ student, relatives, loading, onClose }) {
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h3 className="font-semibold text-slate-900">Người thân</h3>
-            <p className="text-xs text-slate-400 mt-0.5">{student.fullName}</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
-            <FiX size={17} />
-          </button>
-        </div>
+    <Dialog open onOpenChange={open => !open && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Người thân</DialogTitle>
+          <DialogDescription className="text-xs">{student.fullName}</DialogDescription>
+        </DialogHeader>
 
         {loading ? (
           <div className="flex justify-center py-8">
@@ -31,7 +31,7 @@ export default function RelativesModal({ student, relatives, loading, onClose })
                   <p className="text-sm font-medium text-slate-900 truncate">{rel.name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     {rel.relationship && (
-                      <span className="badge-gray text-xs">{rel.relationship}</span>
+                      <Badge variant="neutral" className="text-xs">{rel.relationship}</Badge>
                     )}
                     <span className="flex items-center gap-1 text-xs text-slate-400">
                       <FiPhone size={10} /> {rel.phone}
@@ -43,8 +43,10 @@ export default function RelativesModal({ student, relatives, loading, onClose })
           </div>
         )}
 
-        <button className="btn-secondary w-full mt-5" onClick={onClose}>Đóng</button>
-      </div>
-    </div>
+        <DialogFooter>
+          <Button variant="outline" className="w-full" onClick={onClose}>Đóng</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

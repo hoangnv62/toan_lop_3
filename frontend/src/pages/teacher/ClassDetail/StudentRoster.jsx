@@ -2,6 +2,13 @@ import { useState } from 'react';
 import { FiUsers, FiDownload, FiLoader, FiEye, FiUserX } from 'react-icons/fi';
 import Pagination from '../../../components/Pagination';
 import { useClassStudentMutations } from '../../../hooks/useClass';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 
 function scoreStyle(score) {
   if (score == null) return { avatar: 'bg-slate-100 text-slate-500', pill: 'bg-slate-100 text-slate-400' };
@@ -12,24 +19,24 @@ function scoreStyle(score) {
 
 function ConfirmModal({ student, onConfirm, onCancel }) {
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-        <div className="text-center mb-5">
-          <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+    <Dialog open onOpenChange={open => !open && onCancel()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader className="items-center text-center sm:text-center">
+          <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-1">
             <FiUserX size={22} className="text-red-500" />
           </div>
-          <h3 className="text-base font-semibold text-slate-900">Xác nhận gỡ học sinh</h3>
-          <p className="text-sm text-slate-500 mt-2">
+          <DialogTitle>Xác nhận gỡ học sinh</DialogTitle>
+          <DialogDescription>
             Gỡ <span className="font-semibold text-slate-800">{student.fullName}</span> khỏi lớp?
-          </p>
-          <p className="text-xs text-slate-400 mt-1">Tài khoản học sinh vẫn được giữ lại.</p>
-        </div>
-        <div className="flex gap-3">
-          <button className="btn-secondary flex-1" onClick={onCancel}>Hủy</button>
-          <button className="btn-danger flex-1" onClick={onConfirm}>Gỡ khỏi lớp</button>
-        </div>
-      </div>
-    </div>
+          </DialogDescription>
+          <p className="text-xs text-slate-400">Tài khoản học sinh vẫn được giữ lại.</p>
+        </DialogHeader>
+        <DialogFooter className="sm:justify-stretch">
+          <Button variant="outline" className="flex-1" onClick={onCancel}>Hủy</Button>
+          <Button variant="destructive" className="flex-1" onClick={onConfirm}>Gỡ khỏi lớp</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -57,28 +64,25 @@ export default function StudentRoster({
         />
       )}
 
-      <div className="card">
+      <Card className="p-5 gap-0">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <FiUsers size={16} className="text-indigo-600" />
             <h3 className="text-sm font-semibold text-slate-900">Danh sách học sinh</h3>
-            <span className="badge-indigo">{totalStudents}</span>
+            <Badge variant="info">{totalStudents}</Badge>
             {classAvg && (
               <span className="text-xs text-slate-400">· TB lớp:
                 <span className="font-semibold text-slate-700 ml-1">{classAvg}</span>
               </span>
             )}
           </div>
-          <button
-            className="btn-secondary py-1.5 px-3 text-xs gap-1"
-            onClick={onExportStudents}
-            disabled={exportingStudents}>
+          <Button variant="outline" className="py-1.5 px-3 text-xs gap-1" onClick={onExportStudents} disabled={exportingStudents}>
             {exportingStudents
               ? <FiLoader size={13} className="animate-spin" />
               : <FiDownload size={13} />}
             {exportingStudents ? 'Đang xuất...' : 'Xuất Excel'}
-          </button>
+          </Button>
         </div>
 
         {/* Column labels */}
@@ -115,9 +119,11 @@ export default function StudentRoster({
                   </span>
 
                   {/* Avatar — color reflects score level */}
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 select-none ${style.avatar}`}>
-                    {name.trim().charAt(0).toUpperCase() || '?'}
-                  </div>
+                  <Avatar className={`size-9 rounded-xl ${style.avatar}`}>
+                    <AvatarFallback className="rounded-xl bg-transparent text-sm font-bold text-inherit">
+                      {name.trim().charAt(0).toUpperCase() || '?'}
+                    </AvatarFallback>
+                  </Avatar>
 
                   {/* Name + username */}
                   <div className="flex-1 min-w-0">
@@ -132,24 +138,27 @@ export default function StudentRoster({
 
                   {/* Actions — icon-only, always visible */}
                   <div className="flex items-center gap-0.5 shrink-0 w-20 justify-end">
-                    <button
+                    <Button
+                      variant="ghost" size="icon-sm"
                       title="Xem bài làm"
-                      className="p-1.5 rounded-lg text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                      className="text-slate-300 hover:text-indigo-600 hover:bg-indigo-50"
                       onClick={() => onViewExams(s)}>
                       <FiEye size={14} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="ghost" size="icon-sm"
                       title="Người thân"
-                      className="p-1.5 rounded-lg text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                      className="text-slate-300 hover:text-indigo-600 hover:bg-indigo-50"
                       onClick={() => onViewRelatives(s)}>
                       <FiUsers size={14} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="ghost" size="icon-sm"
                       title="Gỡ khỏi lớp"
-                      className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      className="text-slate-300 hover:text-red-500 hover:bg-red-50"
                       onClick={() => setConfirm({ studentId: s.id, fullName: name })}>
                       <FiUserX size={14} />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               );
@@ -158,7 +167,7 @@ export default function StudentRoster({
         )}
 
         <Pagination page={page} pages={pages} onChange={onPageChange} />
-      </div>
+      </Card>
     </>
   );
 }
