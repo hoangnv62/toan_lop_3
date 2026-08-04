@@ -132,12 +132,12 @@ export const TABLE_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS question_bank (
     id          INT AUTO_INCREMENT PRIMARY KEY,
     teacher_id  INT NOT NULL,
-    lesson_id   INT,
+    lesson_id   INT NOT NULL,
     content     TEXT NOT NULL,
     explanation TEXT,
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (lesson_id)  REFERENCES lessons(id) ON DELETE SET NULL
+    FOREIGN KEY (lesson_id)  REFERENCES lessons(id) ON DELETE CASCADE
   )`,
 
   `CREATE TABLE IF NOT EXISTS question_bank_answers (
@@ -183,6 +183,50 @@ export async function addUserClassForeignKey(conn, dbName) {
     ALTER TABLE users
       ADD CONSTRAINT fk_user_class
       FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL`);
+}
+
+// Database tạo trước bản này có question_bank.lesson_id cho phép NULL ("chưa phân
+// loại"). Mọi câu hỏi giờ đều bắt buộc thuộc một bài học, nên siết lại NOT NULL và
+// đổi FK SET NULL -> CASCADE (SET NULL không thể tồn tại cùng cột NOT NULL).
+export async function enforceQuestionBankLessonNotNull(conn, dbName) {
+  const [col] = await conn.query(
+    `SELECT IS_NULLABLE FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'question_bank' AND COLUMN_NAME = 'lesson_id'`,
+    [dbName]
+  );
+  if (!col || col.IS_NULLABLE === 'NO') return;
+
+  // Không tự ý gán bừa hay xóa dữ liệu của giáo viên: còn dòng NULL thì báo để
+  // người dùng tự phân loại, chứ không chặn app khởi động.
+  const [{ nulls }] = await conn.query(
+    'SELECT COUNT(*) AS nulls FROM question_bank WHERE lesson_id IS NULL'
+  );
+  if (Number(nulls) > 0) {
+    console.warn(
+      `>>> BỎ QUA ràng buộc NOT NULL cho question_bank.lesson_id: còn ${nulls} câu hỏi chưa có chủ đề.\n` +
+      '    Hãy gán chủ đề cho các câu đó rồi khởi động lại để ràng buộc được áp dụng.'
+    );
+    return;
+  }
+
+  // Tên FK do MariaDB tự sinh (question_bank_ibfk_N) nên phải tra ngược ra.
+  const fks = await conn.query(
+    `SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'question_bank'
+       AND COLUMN_NAME = 'lesson_id' AND REFERENCED_TABLE_NAME = 'lessons'`,
+    [dbName]
+  );
+  for (const { CONSTRAINT_NAME } of fks) {
+    await conn.query(`ALTER TABLE question_bank DROP FOREIGN KEY \`${CONSTRAINT_NAME}\``);
+  }
+
+  await conn.query('ALTER TABLE question_bank MODIFY COLUMN lesson_id INT NOT NULL');
+  await conn.query(`
+    ALTER TABLE question_bank
+      ADD CONSTRAINT fk_question_bank_lesson
+      FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE`);
+
+  console.log('>>> question_bank.lesson_id: đã siết NOT NULL + FK ON DELETE CASCADE');
 }
 
 // Inserts the demo teacher/students/lesson/exam. Assumes an empty schema —

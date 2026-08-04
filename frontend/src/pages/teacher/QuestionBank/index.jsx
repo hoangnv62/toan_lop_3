@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import TeacherLayout from '../../../layouts/TeacherLayout';
 import { useDebounce } from '../../../hooks/useDebounce';
-import { getQuestionBank, deleteBankQuestion, importQuestionBankFromExcel, downloadSampleQuestionBank } from '../../../api/questionBankService';
+import { getQuestionBank, deleteBankQuestion, deleteBankQuestions, importQuestionBankFromExcel, downloadSampleQuestionBank } from '../../../api/questionBankService';
 import { fetchLessons } from '../../../api/lessonService';
 import { toast } from 'react-toastify';
-import { FiPlus, FiEdit2, FiTrash2, FiLoader, FiDatabase, FiUpload, FiDownload, FiSearch } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiLoader, FiDatabase, FiUpload, FiDownload, FiSearch, FiZap } from 'react-icons/fi';
 import QuestionFormModal from './QuestionFormModal';
+import AiGenerateModal from './AiGenerateModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import Pagination from '../../../components/Pagination';
 import { Button } from '@/components/ui/button';
@@ -13,16 +14,21 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function QuestionBank() {
   const [questions, setQuestions]           = useState([]);
   const [total, setTotal]                   = useState(0);
   const [page, setPage]                     = useState(1);
   const [pages, setPages]                   = useState(1);
+  const [limit, setLimit]                   = useState(10);
   const [loading, setLoading]               = useState(true);
   const [modal, setModal]                   = useState(null);
+  const [aiModal, setAiModal]               = useState(false);
   const [confirmDelete, setConfirmDelete]   = useState(null);
   const [deleting, setDeleting]             = useState(null);
+  const [selectedIds, setSelectedIds]       = useState([]);
+  const [bulkDeleting, setBulkDeleting]     = useState(false);
   const [importing, setImporting]           = useState(false);
   const [query, setQuery]                   = useState('');
   const [lessons, setLessons]               = useState([]);
@@ -51,10 +57,21 @@ export default function QuestionBank() {
     load(query, 1, val);
   }
 
-  async function load(q, p, lessonId) {
+  function handleLimitChange(val) {
+    const next = Number(val);
+    setLimit(next);
+    setPage(1);
+    // Truyền limit tường minh: setLimit chưa kịp có hiệu lực trong lần chạy này.
+    load(query, 1, selectedLesson, next);
+  }
+
+  async function load(q, p, lessonId, pageSize = limit) {
     setLoading(true);
+    // Đổi trang/tìm kiếm/lọc là danh sách khác hẳn — giữ lựa chọn cũ sẽ khiến
+    // người dùng xóa nhầm những câu không còn nhìn thấy trên màn hình.
+    setSelectedIds([]);
     try {
-      const data = await getQuestionBank(p, 10, q, lessonId);
+      const data = await getQuestionBank(p, pageSize, q, lessonId);
       setQuestions(data.items ?? []);
       setTotal(data.total ?? 0);
       setPages(data.pages ?? 1);
@@ -63,19 +80,44 @@ export default function QuestionBank() {
     } finally { setLoading(false); }
   }
 
+  function toggleSelect(id) {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds(prev => prev.length === questions.length ? [] : questions.map(q => q.id));
+  }
+
+  // Xóa hết câu trên trang cuối thì trang đó biến mất — lùi về trang trước cho
+  // khỏi hiện danh sách rỗng.
+  function reloadAfterDelete(removedCount) {
+    const newPage = removedCount >= questions.length && page > 1 ? page - 1 : page;
+    setPage(newPage);
+    if (newPage === page) load(debouncedQuery, page, selectedLesson);
+  }
+
   async function confirmDeleteQuestion() {
-    const id = confirmDelete.id;
-    setConfirmDelete(null);
-    setDeleting(id);
+    const ids = confirmDelete.map(q => q.id);
+    const isBulk = ids.length > 1;
+    if (isBulk) setBulkDeleting(true); else setDeleting(ids[0]);
     try {
-      await deleteBankQuestion(id);
-      toast.success('Đã xóa câu hỏi');
-      const newPage = questions.length === 1 && page > 1 ? page - 1 : page;
-      setPage(newPage);
-      if (newPage === page) load(debouncedQuery, page, selectedLesson);
+      if (isBulk) {
+        const { deleted } = await deleteBankQuestions(ids);
+        toast.success(`Đã xóa ${deleted} câu hỏi`);
+        // deleted < ids.length nghĩa là có câu vừa bị xóa ở nơi khác — nói thật
+        // thay vì báo thành công trọn vẹn.
+        if (deleted < ids.length) {
+          toast.warning(`${ids.length - deleted} câu hỏi không còn tồn tại`);
+        }
+      } else {
+        await deleteBankQuestion(ids[0]);
+        toast.success('Đã xóa câu hỏi');
+      }
+      setConfirmDelete(null);
+      reloadAfterDelete(ids.length);
     } catch (err) {
       toast.error(err.message || 'Xóa thất bại');
-    } finally { setDeleting(null); }
+    } finally { setDeleting(null); setBulkDeleting(false); }
   }
 
   async function handleImport(e) {
@@ -84,8 +126,7 @@ export default function QuestionBank() {
     e.target.value = '';
     setImporting(true);
     try {
-      const lessonId = (selectedLesson !== null && selectedLesson !== 0) ? selectedLesson : null;
-      const data = await importQuestionBankFromExcel(file, lessonId);
+      const data = await importQuestionBankFromExcel(file, selectedLesson);
       const { imported, errors } = data;
       if (imported > 0) {
         toast.success(`Đã import ${imported} câu hỏi`);
@@ -104,16 +145,18 @@ export default function QuestionBank() {
     return lessons.find(l => l.id === lessonId)?.title ?? null;
   }
 
-  const importLessonLabel = selectedLesson && selectedLesson !== 0
-    ? `Import vào: ${getLessonName(selectedLesson) ?? 'chủ đề đã chọn'}`
-    : 'Import (chưa phân loại)';
+  const importLessonLabel = `Import vào: ${getLessonName(selectedLesson) ?? 'chủ đề đã chọn'}`;
 
   return (
     <TeacherLayout>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Ngân hàng câu hỏi</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{total} câu hỏi</p>
+          <p className="text-sm text-slate-500 mt-0.5">
+            {total > 0
+              ? `Hiển thị ${(page - 1) * limit + 1}–${Math.min(page * limit, total)} trong ${total} câu hỏi`
+              : '0 câu hỏi'}
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <div className="relative">
@@ -131,7 +174,6 @@ export default function QuestionBank() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả chủ đề</SelectItem>
-              <SelectItem value="0">Chưa phân loại</SelectItem>
               {lessons.map(l => (
                 <SelectItem key={l.id} value={String(l.id)}>{l.title}</SelectItem>
               ))}
@@ -148,6 +190,9 @@ export default function QuestionBank() {
               {importing ? 'Đang import...' : 'Import Excel'}
             </Button>
           )}
+          <Button variant="outline" className="whitespace-nowrap" onClick={() => setAiModal(true)}>
+            <FiZap size={15} /> Tạo bằng AI
+          </Button>
           <Button variant="gradient" className="whitespace-nowrap" onClick={() => setModal({ initial: null })}>
             <FiPlus size={16} /> Thêm câu hỏi
           </Button>
@@ -172,18 +217,43 @@ export default function QuestionBank() {
         </div>
       ) : (
         <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 px-1">
+            <label className="flex items-center gap-2.5 text-sm text-slate-600 cursor-pointer select-none">
+              <Checkbox
+                checked={selectedIds.length === questions.length}
+                onCheckedChange={toggleSelectAll}
+                aria-label="Chọn tất cả câu hỏi trên trang"
+              />
+              {selectedIds.length > 0 ? `Đã chọn ${selectedIds.length} câu` : 'Chọn tất cả trang này'}
+            </label>
+            {selectedIds.length > 0 && (
+              <Button
+                variant="destructive"
+                onClick={() => setConfirmDelete(questions.filter(q => selectedIds.includes(q.id)))}
+                disabled={bulkDeleting}
+              >
+                {bulkDeleting ? <FiLoader size={15} className="animate-spin" /> : <FiTrash2 size={15} />}
+                Xóa {selectedIds.length} câu
+              </Button>
+            )}
+          </div>
+
           {questions.map(q => {
             const lessonName = getLessonName(q.lessonId);
             return (
               <Card key={q.id} className="p-5 gap-0">
                 <div className="flex items-start justify-between gap-4">
+                  <Checkbox
+                    className="mt-1 shrink-0"
+                    checked={selectedIds.includes(q.id)}
+                    onCheckedChange={() => toggleSelect(q.id)}
+                    aria-label={`Chọn câu hỏi: ${q.content.slice(0, 40)}`}
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-900 leading-relaxed line-clamp-2">{q.content}</p>
                     <div className="flex items-center gap-3 mt-2 flex-wrap">
                       <Badge variant="info" className="text-xs">{q.answers?.length ?? 0} đáp án</Badge>
-                      {lessonName
-                        ? <Badge variant="success" className="text-xs">{lessonName}</Badge>
-                        : <Badge variant="neutral" className="text-xs">Chưa phân loại</Badge>}
+                      {lessonName && <Badge variant="success" className="text-xs">{lessonName}</Badge>}
                       <span className="text-xs text-slate-400">{q.createdAt || '--'}</span>
                       {q.explanation && (
                         <span className="text-xs text-slate-400 truncate max-w-[200px]" title={q.explanation}>
@@ -196,7 +266,7 @@ export default function QuestionBank() {
                     <Button variant="ghost" title="Chỉnh sửa" className="p-2" onClick={() => setModal({ initial: q })}>
                       <FiEdit2 size={15} />
                     </Button>
-                    <Button variant="ghost" title="Xóa" className="text-red-500 hover:text-red-600 hover:bg-red-50 p-2" disabled={deleting === q.id} onClick={() => setConfirmDelete(q)}>
+                    <Button variant="ghost" title="Xóa" className="text-red-500 hover:text-red-600 hover:bg-red-50 p-2" disabled={deleting === q.id} onClick={() => setConfirmDelete([q])}>
                       {deleting === q.id ? <FiLoader size={15} className="animate-spin" /> : <FiTrash2 size={15} />}
                     </Button>
                   </div>
@@ -207,6 +277,22 @@ export default function QuestionBank() {
         </div>
       )}
 
+      {/* Chỉ hiện khi thật sự có gì để phân trang — dưới 10 câu thì đây là nhiễu. */}
+      {total > 10 && (
+        <div className="flex items-center justify-end gap-2 mt-5">
+          <span className="text-sm text-slate-500">Mỗi trang</span>
+          <Select value={String(limit)} onValueChange={handleLimitChange}>
+            <SelectTrigger size="sm" className="w-20"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {[10, 20, 50].map(n => (
+                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* Pagination tự có mt-5 nên không bọc thêm lề ở đây */}
       <Pagination page={page} pages={pages} onChange={p => setPage(p)} />
 
       {modal && (
@@ -219,9 +305,19 @@ export default function QuestionBank() {
         />
       )}
 
+      {aiModal && (
+        <AiGenerateModal
+          lessons={lessons}
+          defaultLessonId={selectedLesson > 0 ? selectedLesson : null}
+          onClose={() => setAiModal(false)}
+          onSaved={() => { setAiModal(false); setPage(1); load(debouncedQuery, 1, selectedLesson); }}
+        />
+      )}
+
       {confirmDelete && (
         <ConfirmDeleteModal
-          question={confirmDelete}
+          questions={confirmDelete}
+          deleting={bulkDeleting || deleting !== null}
           onConfirm={confirmDeleteQuestion}
           onClose={() => setConfirmDelete(null)}
         />

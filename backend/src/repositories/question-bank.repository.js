@@ -120,3 +120,15 @@ export const bulkCreate = async (teacherId, questionsData, lessonId = null) => {
 
 export const deleteQuestion = (id) =>
   query('DELETE FROM question_bank WHERE id = :id', { id });
+
+// teacher_id nằm ngay trong WHERE thay vì kiểm tra từng câu ở service: vừa tránh
+// N+1, vừa không có khe hở giữa lúc kiểm tra quyền và lúc xóa.
+// Đáp án tự biến mất nhờ FK question_bank_answers ... ON DELETE CASCADE.
+export const deleteManyByTeacher = async (ids, teacherId) => {
+  const placeholders = ids.map(() => '?').join(',');
+  const result = await query(
+    `DELETE FROM question_bank WHERE teacher_id = ? AND id IN (${placeholders})`,
+    [teacherId, ...ids]
+  );
+  return Number(result.affectedRows ?? 0);
+};

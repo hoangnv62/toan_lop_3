@@ -46,6 +46,7 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
   }
 
   async function handleSave() {
+    if (!lessonId) return toast.error('Vui lòng chọn chủ đề cho câu hỏi');
     if (!content.trim()) return toast.error('Nội dung câu hỏi không được trống');
     if (!answers.some(a => a.isCorrect)) return toast.error('Vui lòng chọn 1 đáp án đúng');
     const emptyIdx = answers.findIndex(a => !a.content.trim());
@@ -55,7 +56,7 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
       const payload = {
         content: content.trim(),
         explanation: explanation.trim(),
-        lessonId: lessonId || null,
+        lessonId,
         answers: answers.map(a => ({ content: a.content.trim(), isCorrect: !!a.isCorrect })),
       };
       if (isEdit) {
@@ -82,22 +83,28 @@ export default function QuestionFormModal({ initial, lessons = [], defaultLesson
 
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
           <div>
-            <Label className="block text-sm font-medium text-slate-700 mb-1.5">Chủ đề</Label>
-            {/* Radix Select không nhận value="" nên dùng sentinel 'none' cho "Chưa phân loại" */}
+            <Label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Chủ đề <span className="text-red-500">*</span>
+            </Label>
+            {/* value={undefined} để Radix hiện placeholder — mọi câu hỏi đều phải có chủ đề */}
             <Select
-              value={lessonId == null ? 'none' : String(lessonId)}
-              onValueChange={v => setLessonId(v === 'none' ? null : Number(v))}
+              value={lessonId == null ? undefined : String(lessonId)}
+              onValueChange={v => setLessonId(Number(v))}
             >
               <SelectTrigger className="w-full">
-                <SelectValue />
+                <SelectValue placeholder="Chọn chủ đề..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Chưa phân loại</SelectItem>
                 {lessons.map(l => (
                   <SelectItem key={l.id} value={String(l.id)}>{l.title}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {lessons.length === 0 && (
+              <p className="text-xs text-amber-600 mt-1.5">
+                Chưa có bài học nào — hãy tạo bài học ở mục "Quản lý bài học" trước.
+              </p>
+            )}
           </div>
 
           <div>

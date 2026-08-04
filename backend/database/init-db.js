@@ -3,6 +3,7 @@ import { env } from '../src/config/env.js';
 import {
   TABLE_STATEMENTS,
   addUserClassForeignKey,
+  enforceQuestionBankLessonNotNull,
   seedSampleData,
 } from './schema.js';
 
@@ -40,6 +41,7 @@ export async function initializeDatabase() {
       await conn.query(statement);
     }
     await addUserClassForeignKey(conn, env.DB_NAME);
+    await enforceQuestionBankLessonNotNull(conn, env.DB_NAME);
 
     // Seed demo data only when the schema is brand new (no users yet).
     const [{ userCount }] = await conn.query('SELECT COUNT(*) AS userCount FROM users');
