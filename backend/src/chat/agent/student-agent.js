@@ -19,7 +19,7 @@ export const runStudentAgent = async (messages, { onToken, signal }) => {
     { role: 'system', content: systemPrompt },
     ...messages.map(m => ({ role: m.role, content: m.content })),
   ];
-  const stream = await streamChat(history, signal);
+  const stream = await streamChat(history, signal, 'student:answer');
   for await (const chunk of stream) {
     const token = chunk.choices[0]?.delta?.content;
     if (token) onToken(token);

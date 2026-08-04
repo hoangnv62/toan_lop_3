@@ -15,6 +15,9 @@ export const env = {
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
   OPENAI_MODEL: process.env.OPENAI_MODEL,
+  // Nhà cung cấp AI nào cũng được miễn tương thích OpenAI — đổi cả 3 biến
+  // OPENAI_BASE_URL/API_KEY/MODEL cùng lúc là chuyển được, không phải sửa code.
+  OPENAI_BASE_URL: process.env.OPENAI_BASE_URL || 'https://openrouter.ai/api/v1',
   // Proxy đi ra internet (mạng công ty). Bỏ trống khi chạy ở môi trường
   // không cần proxy. Nhận cả 2 kiểu viết vì shell/CI đặt biến khác nhau.
   HTTPS_PROXY: process.env.HTTPS_PROXY || process.env.https_proxy || '',

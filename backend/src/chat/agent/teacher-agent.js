@@ -23,12 +23,14 @@ export const runTeacherAgent = async (messages, user, { onToken, onToolStart, on
     ...messages.map(m => ({ role: m.role, content: m.content })),
   ];
 
+  console.log(`[agent] teacher start userId=${user.id} history=${history.length}`);
+
   // First call: detect whether tools are needed
-  let assistantMsg = await chatCompletion(history, TEACHER_TOOLS, signal);
+  let assistantMsg = await chatCompletion(history, TEACHER_TOOLS, signal, 'teacher:detect');
 
   // No tools → re-call as streaming for better UX
   if (!assistantMsg.tool_calls?.length) {
-    const stream = await streamChat(history, signal);
+    const stream = await streamChat(history, signal, 'teacher:answer');
     for await (const chunk of stream) {
       const token = chunk?.choices[0]?.delta?.content;
       if (token) onToken(token);
@@ -42,6 +44,7 @@ export const runTeacherAgent = async (messages, user, { onToken, onToolStart, on
   let loops = 0;
   while (assistantMsg.tool_calls?.length > 0 && loops < MAX_LOOPS) {
     loops++;
+    console.log(`[agent] teacher loop=${loops}/${MAX_LOOPS} tools=${assistantMsg.tool_calls.length}`);
 
     for (const tc of assistantMsg.tool_calls) {
       // Tool chạy trên DB nên không nhận signal — chặn ở đây để lần hủy có hiệu
@@ -64,12 +67,17 @@ export const runTeacherAgent = async (messages, user, { onToken, onToolStart, on
       });
     }
 
-    assistantMsg = await chatCompletion(history, TEACHER_TOOLS, signal);
+    assistantMsg = await chatCompletion(history, TEACHER_TOOLS, signal, `teacher:loop${loops}`);
     history.push(assistantMsg);
+  }
+
+  if (loops >= MAX_LOOPS && assistantMsg.tool_calls?.length) {
+    console.warn(`[agent] teacher hit MAX_LOOPS=${MAX_LOOPS}, còn tool chưa chạy`);
   }
 
   // Stream final response after tools
   if (assistantMsg.content) {
     onToken(assistantMsg.content);
   }
+  console.log(`[agent] teacher done loops=${loops} content_len=${assistantMsg.content?.length || 0}`);
 };
