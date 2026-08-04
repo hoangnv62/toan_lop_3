@@ -14,11 +14,24 @@ export const chat = async (req, res) => {
   res.flushHeaders();
 
   let streamedAny = false;
+  const startedAt = Date.now();
+  const elapsed = () => `${Date.now() - startedAt}ms`;
 
-  // Người dùng bấm "Dừng" (hoặc đóng tab) → client hủy request, Express bắn
-  // 'close'. Không hủy thì model vẫn chạy tiếp và vẫn tính token dù không ai đọc.
+  console.log(`[chat] start userId=${req.user.id} role=${role} chars=${newUserContent.length}`);
+
+  // Người dùng bấm "Dừng" (hoặc đóng tab) → client hủy request. Không hủy thì
+  // model vẫn chạy tiếp và vẫn tính token dù không ai đọc.
+  //
+  // Phải nghe trên res, KHÔNG phải req: 'close' của req bắn ngay khi đọc xong body
+  // (express.json đã tiêu thụ hết trước khi controller chạy), nên nghe ở đó thì
+  // lượt chat nào cũng tự hủy ở 0ms rồi treo vì cả 2 nhánh return đều bỏ res.end().
   const abort = new AbortController();
-  req.on('close', () => abort.abort());
+  res.on('close', () => {
+    // res.end() cũng làm bắn 'close' — chỉ coi là hủy khi response còn dang dở.
+    if (res.writableEnded) return;
+    console.warn(`[chat] aborted userId=${req.user.id} after=${elapsed()}`);
+    abort.abort();
+  });
 
   try {
     await runChat(newUserContent, role, req.user, {
@@ -34,6 +47,7 @@ export const chat = async (req, res) => {
     // Bị hủy thì không còn ai bên kia để nhận lời xin lỗi.
     if (abort.signal.aborted) return;
 
+    console.error(`[chat] failed userId=${req.user.id} after=${elapsed()} streamed=${streamedAny}`);
     console.error('Chat error:', err);
     // Nếu model đã kịp trả một phần rồi mới hỏng, xuống dòng để câu xin lỗi
     // không dính liền vào chữ cuối của đoạn dở dang.
@@ -43,6 +57,7 @@ export const chat = async (req, res) => {
   }
 
   if (abort.signal.aborted) return;
+  console.log(`[chat] done userId=${req.user.id} total=${elapsed()} streamed=${streamedAny}`);
   res.write('data: [DONE]\n\n');
   res.end();
 };
