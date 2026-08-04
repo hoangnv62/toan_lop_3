@@ -85,11 +85,14 @@ export default function ExamModal({ lesson, examId, initialData, onClose, onSave
       const generated = await generateQuestions({
         lessonTitle: lesson?.lessonTitle, examDescription: examDesc, numQuestions: qCount,
       });
-      setQuestions(generated.map(q => ({
+      const mapped = generated.map(q => ({
         questionId: null, content: q.questionContent, explanation: q.explanation || '',
         answers: q.answers.map(a => ({ answerId: null, content: a.content, correct: a.isCorrected === 1 })),
-      })));
-      toast.success('Tạo câu hỏi AI thành công');
+      }));
+      // Nối thêm chứ không ghi đè — giống Import Excel, "Từ ngân hàng" và "Thêm
+      // câu hỏi". Ghi đè sẽ xóa sạch câu giáo viên vừa soạn tay mà không hỏi.
+      setQuestions(p => [...p, ...mapped]);
+      toast.success(`Đã thêm ${mapped.length} câu hỏi từ AI`);
     } catch {
       toast.error('AI không phản hồi, thử lại');
     } finally { setGenerating(false); }
