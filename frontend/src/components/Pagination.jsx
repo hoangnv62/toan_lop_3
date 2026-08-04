@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { GrNext, GrPrevious } from "react-icons/gr";
 
 export default function Pagination({ page, pages, onChange }) {
   if (pages <= 1) return null;
@@ -22,7 +23,7 @@ export default function Pagination({ page, pages, onChange }) {
         disabled={page === 1}
         onClick={() => onChange(page - 1)}
         aria-label="Trang trước">
-        ←
+        <GrPrevious />
       </Button>
       {getPageNums().map((p, i) =>
         p === '…'
@@ -44,7 +45,7 @@ export default function Pagination({ page, pages, onChange }) {
         disabled={page === pages}
         onClick={() => onChange(page + 1)}
         aria-label="Trang sau">
-        →
+        <GrNext/>
       </Button>
     </div>
   );
