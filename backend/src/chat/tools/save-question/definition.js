@@ -2,13 +2,13 @@ export const definition = {
   type: 'function',
   function: {
     name: 'save_questions_to_bank',
-    description: 'Lưu danh sách câu hỏi trắc nghiệm vào ngân hàng câu hỏi. Mỗi câu phải có đúng 4 đáp án và đúng 1 đáp án đúng.',
+    description: 'Lưu danh sách câu hỏi trắc nghiệm vào ngân hàng câu hỏi. Mỗi câu phải có đúng 4 đáp án và đúng 1 đáp án đúng. Bắt buộc phải có lesson_id — gọi get_lessons trước để lấy đúng ID.',
     parameters: {
       type: 'object',
       properties: {
         lesson_id: {
           type: 'integer',
-          description: 'ID bài học liên quan (tuỳ chọn)',
+          description: 'ID bài học chứa các câu hỏi này (BẮT BUỘC). Phải là ID có thật lấy từ get_lessons, KHÔNG được tự bịa hay đoán. Nếu giáo viên chỉ nói tên chủ đề, hãy gọi get_lessons để tìm bài học khớp; không tìm thấy thì hỏi lại giáo viên chứ đừng lưu.',
         },
         questions: {
           type: 'array',
@@ -41,7 +41,7 @@ export const definition = {
           },
         },
       },
-      required: ['questions'],
+      required: ['lesson_id', 'questions'],
     },
   },
 };
