@@ -23,6 +23,8 @@ function RequireAuth({ children, role }) {
 }
 
 export default function App() {
+  const { user } = useAuth();
+
   return (
     <BrowserRouter>
       <Routes>
@@ -60,7 +62,10 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <ChatBot />
+      {/* key theo user: ChatBot nằm ngoài Routes nên không tự unmount khi đổi
+          tài khoản. Không có key thì hội thoại của giáo viên còn nguyên trên
+          màn hình học sinh cho tới khi tải lại trang. */}
+      <ChatBot key={user?.id ?? 'anon'} />
     </BrowserRouter>
   );
 }

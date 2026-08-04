@@ -134,15 +134,24 @@ export default function ChatBot() {
     const inputRef = useRef(null);
     const abortRef = useRef(null);
 
+    // App gắn key={user.id} cho ChatBot nên đổi tài khoản là component remount
+    // sạch state — chỗ này chỉ còn lo nạp lịch sử của đúng người đang đăng nhập.
     useEffect(() => {
         if (!user) return;
+        let cancelled = false;
         getChatHistory().then(data => {
-            if (data.messages?.length > 0) {
-                setMessages([{role: 'assistant', content: welcome}, ...data.messages]);
-            }
+            if (cancelled) return;
+            // Gán cả khi rỗng: tài khoản chưa có lịch sử thì phải chỉ còn mỗi lời
+            // chào, chứ không giữ nguyên những gì đang hiển thị.
+            setMessages([{role: 'assistant', content: welcome}, ...(data.messages ?? [])]);
         }).catch(() => {
         });
-    }, [user]);
+        return () => { cancelled = true; };
+    }, [user, welcome]);
+
+    // Rời trang / đổi tài khoản giữa chừng: cắt stream đang chạy, không thì model
+    // vẫn sinh tiếp và vẫn tính token dù không còn ai đọc.
+    useEffect(() => () => abortRef.current?.abort(), []);
 
     useEffect(() => {
         if (open) {
