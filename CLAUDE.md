@@ -85,16 +85,27 @@ src/chat/
   tools/
     registry.js         → Exports TEACHER_TOOLS, TOOL_LABELS, toolRegistry
     executor.js         → Executes tool calls by name
-    search-question/    → search_question_bank tool
-    save-question/      → save_questions_to_bank tool
-    get-student-stats/  → get_student_stats tool
-    get-lessons/        → get_lessons tool
-    get-classes/        → get_classes tool
-    create-exam/        → create_exam tool
-    get-exam-stats/     → get_exam_stats tool
+    search-question/       → search_question_bank
+    save-question/         → save_questions_to_bank
+    get-student-stats/     → get_student_stats
+    get-student-progress/  → get_student_progress
+    get-lessons/           → get_lessons
+    get-classes/           → get_classes
+    create-exam/           → create_exam
+    update-exam/           → update_exam
+    delete-exam/           → delete_exam
+    assign-exam/           → assign_exam_to_class
+    unassign-exam/         → unassign_exam
+    get-exam-stats/        → get_exam_stats
+    create-announcement/   → create_announcement
 ```
 
-Teacher agent has 7 AI tools. Each tool folder contains `definition.js` (OpenAI tool schema) and `handler.js` (execution logic). Chat route: `POST /api/chat`.
+Teacher agent has 13 AI tools. Each tool folder contains `definition.js` (OpenAI tool schema) và `handler.js` (execution logic). Chat route: `POST /api/chat`.
+
+Lưu ý khi sửa phần chat:
+- **SSE phải nghe `res.on('close')`, KHÔNG phải `req.on('close')`** (`chat.controller.js`). `'close'` của `req` bắn ngay khi đọc xong body — mà `express.json()` đã tiêu thụ hết body trước khi controller chạy — nên nghe ở đó thì lượt chat nào cũng tự `abort()` ở 0ms, rồi cả hai nhánh `if (aborted) return` bỏ qua `res.end()` khiến response treo vô hạn và frontend quay loading mãi.
+- Tool nào cần ID (lesson_id, class_id, exam_id) thì phải để `required` trong `definition.js` **và** kiểm tra quyền sở hữu trong `handler.js`. Để "tuỳ chọn" thì model sẽ lặng lẽ bỏ qua rồi ghi dữ liệu thiếu — xem `save-question/handler.js`.
+- Prompt hệ thống ở `src/prompts/teacher-system.md`; bảng "Khi nào dùng Tool" phải ghi rõ tool nào cần ID và phải gọi `get_lessons`/`get_classes` trước.
 
 ### Key API endpoints (non-obvious ones)
 
@@ -122,9 +133,14 @@ Teacher agent has 7 AI tools. Each tool folder contains `definition.js` (OpenAI 
 | DELETE | `/api/announcements/:annId` | Xóa thông báo |
 | GET/POST | `/api/students/:studentId/relatives` | Danh sách / thêm người thân học sinh |
 | PUT/DELETE | `/api/relatives/:id` | Sửa / xóa người thân |
-| GET/POST | `/api/question-bank` | Ngân hàng câu hỏi (có phân trang, tìm kiếm, lọc theo lesson) |
-| POST | `/api/question-bank/import-excel` | Import câu hỏi vào ngân hàng từ Excel |
+| GET/POST | `/api/question-bank` | Ngân hàng câu hỏi (có phân trang, tìm kiếm, lọc theo lesson). `lessonId` **bắt buộc** khi tạo/sửa |
+| DELETE | `/api/question-bank` | Xóa nhiều câu hỏi (`{ids: []}`, tối đa 500) → `{deleted, requested}` |
+| POST | `/api/question-bank/generate` | AI soạn câu hỏi, **chưa lưu** (`{lessonId, numQuestions, description}`, tối đa 50) |
+| POST | `/api/question-bank/batch` | Lưu hàng loạt câu hỏi đã xem lại (`{lessonId, questions}`) |
+| POST | `/api/question-bank/import-excel` | Import câu hỏi vào ngân hàng từ Excel (cần `lessonId`) |
 | GET | `/api/question-bank/sample-excel` | Tải file Excel mẫu |
+
+`/api/question-bank/generate` chia yêu cầu thành nhiều nhóm 10 câu gọi song song (`AI_CHUNK_SIZE` trong `question-bank.service.js`) — xin thẳng 50 câu trong một lệnh gọi sẽ vượt timeout 60s của SDK và treo. Dùng `Promise.allSettled` nên một nhóm hỏng vẫn giữ được phần còn lại; kết quả được lọc bỏ câu sai định dạng và khử trùng lặp, nên **thường trả về ít hơn số yêu cầu** (50 → ~40 là bình thường).
 
 ### Frontend structure
 - `src/config.js` — single `API_BASE = 'http://localhost:5000'` constant used by all API modules
@@ -133,7 +149,7 @@ Teacher agent has 7 AI tools. Each tool folder contains `definition.js` (OpenAI 
   - `auth.js` — login, register, logout, getMe, changePassword, getProfile, updateProfile
   - `examService.js` — exam CRUD, submit, result, stats, export, export-pdf, assignments, cloneExam, saveComment
   - `questionService.js` — generateQuestions, importQuestionsFromExcel (FormData POST)
-  - `questionBankService.js` — getQuestionBank (paginated), createBankQuestion, updateBankQuestion, deleteBankQuestion, importQuestionBankFromExcel, downloadSampleQuestionBank
+  - `questionBankService.js` — getQuestionBank (paginated), createBankQuestion, updateBankQuestion, deleteBankQuestion, deleteBankQuestions (xóa nhiều), generateBankQuestions (AI), saveBankQuestionsBatch, importQuestionBankFromExcel, downloadSampleQuestionBank
   - `studentService.js` — student dashboard, teacher dashboard, AI advice, student results, getStudentProgress
   - `classService.js` — class CRUD, getStudentsWithScores, exportStudents, getClassExams, assignExam, updateExamAssignment, unassignExam
   - `lessonService.js` — lesson CRUD
@@ -174,7 +190,7 @@ Quy ước quan trọng:
 - Theme tokens (`--primary`, `--border`, `--shadow-soft`…) nằm trong `@theme` ở `src/index.css`; **không có `tailwind.config.js`** (Tailwind 4)
 - Thêm component mới: `npx -p shadcn@latest -- shadcn add <tên> --yes`
 - File trong `src/components/ui/` thuộc quyền sở hữu của repo — sửa trực tiếp được, và `eslint.config.js` có override riêng cho thư mục này
-- Radix `Select` **không nhận `value=""`** — dùng sentinel (`'all'`, `'none'`) rồi map lại, xem `QuestionBank/index.jsx`
+- Radix `Select` **không nhận `value=""`** — dùng sentinel (`'all'` cho bộ lọc) rồi map lại, xem `QuestionBank/index.jsx`; trường bắt buộc thì để `value={undefined}` + `<SelectValue placeholder="..." />`, xem `QuestionBank/QuestionFormModal.jsx`
 - Radix `ScrollArea` bọc children trong một div nội bộ, nên `space-y-*` phải đặt ở div con tự khai báo chứ không đặt trên `ScrollArea`
 - Không còn `<button>` / `<div>` dựng card thủ công trong `src/` — mọi thứ đi qua component ở `src/components/ui/`
 
@@ -199,7 +215,7 @@ Quy ước quan trọng:
 - **LessonDetail** (teacher): each exam has Clone (`FiCopy`) + Assign (`FiSend`) + Stats + Edit + Delete + Export PDF buttons; ExamModal toolbar has "Import Excel" for batch question upload and "Chọn từ ngân hàng" to pick from question bank
 - **ClassDetail** (teacher): tabs for exam list, student roster (`StudentRoster`), announcements (`AnnouncementsCard`); `AddStudentCard` for adding students; `ImportCard` for bulk import; "Xem bài" opens `StudentResultsModal` (progress line chart + per-exam detail + teacher comment textarea)
 - **ExamResult** (student): shows teacher comment block if `result.teacherComment` is set
-- **QuestionBank** (teacher): paginated list with search + filter by lesson; supports create, edit, delete, import from Excel
+- **QuestionBank** (teacher): paginated list with search + filter by lesson; supports create, edit, delete, import from Excel. Checkbox mỗi câu + "Chọn tất cả trang này" để xóa nhiều (lựa chọn bị xóa khi đổi trang/tìm kiếm/lọc). Nút "Tạo bằng AI" mở `AiGenerateModal` (2 bước: nhập yêu cầu → xem lại & chọn câu → lưu). **Mọi câu hỏi bắt buộc có chủ đề** — không còn mục "Chưa phân loại"
 - **ChatBot** (teacher): floating chat panel, role-aware (teacher sees tool-calling responses with loading labels like "Đang tìm câu hỏi...", "Đang tạo đề thi...")
 
 ### Excel import format for questions (`POST /api/questions/import-excel` and `/api/question-bank/import-excel`)
