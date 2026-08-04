@@ -3,7 +3,9 @@ import api, { downloadBlob } from './index';
 export const getQuestionBank = (page = 1, limit = 10, q = '', lessonId = null) => {
   const params = new URLSearchParams({ page, limit });
   if (q) params.set('q', q);
-  if (lessonId !== null) params.set('lessonId', lessonId);
+  // != null (lỏng) để bắt cả undefined: truyền nhầm khóa không tồn tại sẽ thành
+  // params "lessonId=undefined" và backend lặng lẽ bỏ lọc thay vì báo lỗi.
+  if (lessonId != null) params.set('lessonId', lessonId);
   return api.get(`/api/question-bank?${params}`);
 };
 export const createBankQuestion = (payload) => api.post('/api/question-bank', payload);
