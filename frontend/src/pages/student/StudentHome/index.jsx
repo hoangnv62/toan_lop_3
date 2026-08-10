@@ -47,20 +47,23 @@ export default function StudentHome() {
 
   const dateFrom = viewAll ? null : toISO(week.from);
   const dateTo   = viewAll ? null : toISO(week.to);
-  const { dashboard: data, setDashboard: setData } = useStudentDashboard(dateFrom, dateTo, viewAll);
+  const { dashboard: data, reload: reloadDashboard } = useStudentDashboard(dateFrom, dateTo, viewAll);
 
   const { relatives, setRelatives } = useRelatives(user?.userId);
   const { add: addRel, update: updateRel, remove: removeRel, loading: relLoading } = useRelativeMutations();
   const { logout } = useAuthMutations();
 
-  // Re-fetch dashboard when window regains focus
+  // Quay lại tab thì tải lại số liệu — giáo viên vừa giao đề ở cửa sổ bên cạnh
+  // thì học sinh quay về là thấy ngay, không phải F5.
+  //
+  // Phải gọi reloadDashboard(), TUYỆT ĐỐI không setDashboard(null): effect tải
+  // dữ liệu trong useStudentDashboard chỉ phụ thuộc khoảng ngày, nên xoá state
+  // không kích hoạt lần tải nào — trang trắng trơn (mất cả đề thi, điểm, xếp
+  // hạng, thông báo) cho tới khi F5 hoặc bấm đổi tuần.
   useEffect(() => {
-    function onFocus() {
-      setData(null);
-    }
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
-  }, []); // eslint-disable-line
+    window.addEventListener('focus', reloadDashboard);
+    return () => window.removeEventListener('focus', reloadDashboard);
+  }, [reloadDashboard]);
 
   async function handleRelSubmit(formData) {
     if (!formData.name.trim() || !formData.phone.trim())

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   fetchDashboard, fetchTeacherDashboard,
   getStudentResults, getStudentProgress, getAIAdvice,
@@ -10,10 +10,20 @@ export const useStudentDashboard = (dateFrom, dateTo, all = false) => {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // reload chỉ tăng biến đếm để effect dưới chạy lại, chứ không tự gọi API.
+  // Nhờ vậy tham chiếu của nó cố định (deps rỗng) — bên StudentHome dùng nó trực
+  // tiếp làm listener 'focus', tham chiếu đổi mỗi render thì effect ở đó sẽ gỡ
+  // rồi gắn lại listener liên tục.
+  const reload = useCallback(() => setRefreshKey((k) => k + 1), []);
+
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
+        // Cố ý KHÔNG xoá dashboard trước khi gọi API: giữ số liệu cũ trên màn
+        // hình trong lúc tải để không nháy trắng.
         const result = await fetchDashboard(dateFrom, dateTo, all);
         setDashboard(result);
       } catch (err) {
@@ -23,9 +33,9 @@ export const useStudentDashboard = (dateFrom, dateTo, all = false) => {
       }
     };
     load();
-  }, [dateFrom, dateTo, all]);
+  }, [dateFrom, dateTo, all, refreshKey]);
 
-  return { dashboard, setDashboard, loading };
+  return { dashboard, loading, reload };
 };
 
 export const useTeacherDashboard = () => {
