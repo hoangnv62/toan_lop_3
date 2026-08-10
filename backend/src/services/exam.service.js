@@ -54,6 +54,28 @@ export const createExamForTeacher = async (teacherId, lessonId, name, descriptio
     return examRepo.createExam(lessonId, name, description, questions);
 };
 
+// Danh sách đề của giáo viên. lessonId = null thì lấy hết mọi bài học.
+export const getExamsForTeacher = async (teacherId, lessonId = null) => {
+    if (lessonId != null) {
+        const lesson = await lessonRepo.findById(lessonId);
+        if (!lesson || lesson.teacher_id !== teacherId) {
+            throw new ForbiddenError('Bài học không thuộc quyền quản lý của bạn');
+        }
+    }
+    const rows = await examRepo.findByTeacher(teacherId, lessonId ?? null);
+    return rows.map(r => ({
+        examId: Number(r.id),
+        examName: r.name,
+        description: r.description || '',
+        lessonId: Number(r.lesson_id),
+        lessonTitle: r.lesson_title,
+        questionCount: Number(r.question_count || 0),
+        // GROUP_CONCAT trả về null khi đề chưa giao cho lớp nào.
+        assignedClasses: r.assigned_classes ? r.assigned_classes.split(',') : [],
+        dateCreated: formatDate(r.date_created),
+    }));
+};
+
 export const getStatsForTeacher = async (examId, teacherId) => {
     const exam = await examRepo.findByIdWithTeacher(examId, teacherId);
     if (!exam) throw new NotFoundError('Đề thi không tồn tại hoặc không thuộc quyền quản lý của bạn');

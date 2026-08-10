@@ -34,6 +34,9 @@ import { handler as createAnnouncementHandler } from './create-announcement/hand
 import { definition as studentProgressDef } from './get-student-progress/definition.js';
 import { handler as studentProgressHandler } from './get-student-progress/handler.js';
 
+import { definition as getExamsDef } from './get-exams/definition.js';
+import { handler as getExamsHandler } from './get-exams/handler.js';
+
 import { definition as updateExamDef } from './update-exam/definition.js';
 import { handler as updateExamHandler } from './update-exam/handler.js';
 
@@ -43,6 +46,7 @@ export const TEACHER_TOOLS = [
   statsDef,
   lessonsDef,
   classesDef,
+  getExamsDef,
   createExamDef,
   examStatsDef,
   assignExamDef,
@@ -59,6 +63,7 @@ export const TOOL_LABELS = {
   get_student_stats:      'Đang lấy thống kê học sinh...',
   get_lessons:            'Đang lấy danh sách bài học...',
   get_classes:            'Đang lấy danh sách lớp học...',
+  get_exams:              'Đang lấy danh sách đề thi...',
   create_exam:            'Đang tạo đề thi...',
   get_exam_stats:         'Đang lấy thống kê đề thi...',
   assign_exam_to_class:   'Đang giao bài tập cho lớp...',
@@ -75,6 +80,7 @@ export const toolRegistry = {
   get_student_stats:      statsHandler,
   get_lessons:            lessonsHandler,
   get_classes:            classesHandler,
+  get_exams:              getExamsHandler,
   create_exam:            createExamHandler,
   get_exam_stats:         examStatsHandler,
   assign_exam_to_class:   assignExamHandler,

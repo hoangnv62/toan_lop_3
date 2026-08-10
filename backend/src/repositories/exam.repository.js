@@ -11,6 +11,29 @@ export const findByIdWithTeacher = (examId, teacherId) =>
     { examId, teacherId }
   );
 
+// Danh sách đề của giáo viên kèm số câu hỏi và các lớp đã được giao. Lọc theo
+// lessons.teacher_id nên không trả về đề của giáo viên khác.
+// Một câu JOIN thay vì lặp findExamsByLesson theo từng bài học — xem quy tắc
+// tránh N+1 trong .claude/rules/database.md.
+export const findByTeacher = (teacherId, lessonId = null) =>
+  query(
+    `SELECT e.id, e.name, e.description, e.date_created,
+            l.id AS lesson_id, l.title AS lesson_title,
+            COUNT(DISTINCT q.id) AS question_count,
+            GROUP_CONCAT(DISTINCT c.class_name ORDER BY c.class_name) AS assigned_classes
+     FROM exams e
+     JOIN lessons l ON l.id = e.lesson_id
+     LEFT JOIN questions q ON q.exam_id = e.id
+     LEFT JOIN class_exams ce ON ce.exam_id = e.id
+     LEFT JOIN classes c ON c.id = ce.class_id
+     WHERE l.teacher_id = :teacherId
+       AND (:lessonId IS NULL OR e.lesson_id = :lessonId)
+     GROUP BY e.id, l.id
+     ORDER BY e.date_created DESC
+     LIMIT 100`,
+    { teacherId, lessonId }
+  );
+
 export const findWithQuestions = async (examId) => {
   const exam = await queryOne('SELECT * FROM exams WHERE id = :id', { id: examId });
   if (!exam) return null;
