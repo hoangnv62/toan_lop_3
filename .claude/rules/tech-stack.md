@@ -24,7 +24,7 @@
 | **Monitoring** | None | |
 | **Testing** | None set up | |
 | **Deploy** | TBD | |
-| **AI / LLM** | openai SDK → OpenRouter | Model: `openai/gpt-oss-120b:free` |
+| **AI / LLM** | openai SDK → Gemini (lớp tương thích OpenAI) | Model: `gemini-3.5-flash-lite` (15 RPM bậc miễn phí). Đặt `GEMINI_API_KEY` để dùng Gemini; bỏ trống thì rơi về `OPENAI_*` (OpenRouter) |
 | **PDF** | pdfkit | Exam PDF export |
 | **Excel** | xlsx (SheetJS) | Import questions, export results |
 | **Validation** | Zod | Applied as Express middleware |
@@ -108,3 +108,7 @@
 | 2026-07-29 | chart.js → recharts + shadcn chart | Dùng chung hệ component shadcn; màu series đi qua token `--chart-*` |
 | 2026-07-29 | Phân bố điểm dùng ordinal ramp indigo, không phải 4 hue rời | Khoảng điểm là thang có thứ tự; ramp đã qua `validate_palette.js --ordinal` |
 | 2026-07-29 | Tỉ lệ đạt: pie 2 lát → RadialBar (meter) | Một tỉ lệ duy nhất thì meter đúng hơn pie; con số ở giữa mới là nội dung chính |
+| 2026-08-10 | OpenRouter → Gemini | Dùng lớp tương thích OpenAI của Google nên giữ nguyên openai SDK |
+| 2026-08-10 | Chọn `gemini-3.5-flash-lite`, không phải `gemini-3.6-flash` | Đo thực tế: lite được 15 RPM so với 5 RPM, nhanh hơn ~3.7x (4.8s vs 17.7s cho 3 nhóm 10 câu), mà chất lượng không tụt (30/30 câu hợp lệ, chọn tool giống hệt trên 4 ca thử) |
+| 2026-08-10 | Chat giáo viên: stream kèm tool ngay lượt đầu | Bỏ lượt "dò tool" riêng — câu thường từ 2 request xuống 1 (nửa ngân sách 15 RPM), câu chốt sau tool giờ cũng chạy chữ dần thay vì đổ ra một cục |
+| 2026-08-10 | Tự thử lại theo `RetryInfo.retryDelay`, tắt retry của SDK | Ở 5–15 RPM thì backoff cứng 0.5s/1s không đủ (Google đòi chờ 5–45s), còn retry của SDK bắn lại ngay và đốt thêm quota |

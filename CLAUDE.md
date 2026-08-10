@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project overview
 
 E-learning platform for Grade 3 Math (Vietnamese). Two separate sub-projects:
-- `backend/` — Node.js/Express REST API, MariaDB/MySQL, OpenRouter AI (via openai SDK)
+- `backend/` — Node.js/Express REST API, MariaDB/MySQL, Gemini AI (via openai SDK)
 - `frontend/` — React 19 SPA (Vite, Tailwind CSS 3)
 
 Two user roles: **teacher** (manages classes/lessons/exams/question bank, views dashboard, uses AI chatbot) and **student** (takes exams, views progress, manages relatives).
@@ -59,7 +59,7 @@ src/validation/             → Zod schemas used as route middleware
 src/validation/schema/      → Zod schema definitions
 src/utils/error.utils.js    → AppError subclasses (NotFoundError, UnauthorizedError, etc.)
 src/utils/response.js       → Standardized API response helpers
-src/utils/llm.utils.js      → OpenAI/OpenRouter client factory
+src/utils/llm.utils.js      → LLM client factory (Gemini / endpoint tương thích OpenAI)
 src/utils/date.utils.js     → Date helpers
 src/constants/authority.js  → Role constants
 src/config/env.js           → Typed env vars
@@ -70,10 +70,27 @@ src/chat/                   → AI chatbot system (see below)
 Database access: `mariadb` npm package, raw SQL, no ORM. `camelCaseResponse` middleware auto-converts snake_case DB column names to camelCase in JSON responses.  
 Auth: `jsonwebtoken` (HS256, 24h) + `bcryptjs`. Token validated by `authenticate` middleware, populates `req.user`. Role checked by `authorize` middleware.  
 Validation: `zod` schemas applied as Express middleware before controllers.  
-AI calls: `openai` SDK pointed at `openrouter.ai/api/v1`. LLM client created via `src/utils/llm.utils.js`.  
+AI calls: `openai` SDK trỏ vào lớp tương thích OpenAI của Gemini. `src/config/env.js` chọn nhà cung cấp: có `GEMINI_API_KEY` thì dùng Gemini (`GEMINI_MODEL`, mặc định `gemini-3.5-flash-lite`), không thì rơi về bộ `OPENAI_*` (mặc định OpenRouter). Phần còn lại của code chỉ đọc `env.AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL` — đổi nhà cung cấp không phải sửa service. LLM client tạo ở `src/utils/llm.utils.js`.  
 File uploads: `multer` for Excel imports.  
 PDF generation: `pdfkit`.  
 Excel: `xlsx` (SheetJS) for import and export.
+
+Giới hạn lượt gọi (bậc miễn phí Gemini) — **quota tính theo project, không theo API key**:
+
+| Model | RPM (đo thực tế) |
+|---|---|
+| `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite` | 15 |
+| `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-flash-latest` | 5 |
+| `gemini-2.5-pro` | 0 — luôn 429 |
+| `gemini-2.5-flash` | không mở cho tài khoản mới — 404 |
+
+Chi phí mỗi lượt: chat giáo viên câu thường **1 request**, có dùng tool **2–4** (1 lượt đầu + tối đa `MAX_LOOPS` vòng), chat học sinh 1, sinh 50 câu hỏi 5. Nên đụng 429 là bình thường, không phải sự cố.
+
+`llm.utils.js` xử lý việc đó, có 2 chỗ dễ làm hỏng nếu sửa:
+- **`maxRetries: 0` khi khởi tạo client là cố ý.** Lần thử lại của SDK bắn lại gần như tức thì và không đọc `RetryInfo`, nên ở mức 5 RPM nó chỉ đốt thêm một lượt gọi rồi vẫn 429. Việc thử lại do `createCompletion()` lo.
+- **Vòng lặp agent gọi `streamChatWithTools`, không gọi 2 lượt như trước.** Lượt đầu đã là stream *có kèm tool*: model tự trả lời được thì token chạy ra ngay trong lượt đó, chọn tool thì không phát token nào. Đừng quay lại kiểu "dò tool trước rồi stream lại" — kiểu đó tốn 2 request cho mọi câu thường và bỏ đi đúng câu trả lời vừa sinh.
+- **`mergeToolCallDeltas` phải giữ `extra_content`.** Gemini 3.x đính `thought_signature` trong đó và bắt buộc nhận lại nguyên vẹn ở lượt sau; làm rơi field này thì vòng tool thứ hai trả 400 `Function call is missing a thought_signature`. Hàm này cũng phải chịu được cả hai kiểu delta: Gemini gửi trọn tool call trong một delta không có `index`, còn OpenRouter chẻ `arguments` ra nhiều delta và đánh dấu bằng `index`.
+- **`client.fetch` bị bọc lại để gỡ vỏ mảng của body lỗi.** Gemini trả `[{ "error": ... }]`, còn SDK openai chỉ đọc `{ "error": ... }` nên `err.error` thành `undefined` và log chỉ còn `429 status code (no body)` — mất luôn `RetryInfo.retryDelay`. Wrapper phải lấy `fetch` từ chính client (là `node-fetch`, hiểu option `agent`); dùng `fetch` global của Node thì `httpAgent` bị bỏ qua và request chết ở proxy công ty.
 
 ### AI Chatbot system (`src/chat/`)
 
@@ -91,6 +108,7 @@ src/chat/
     get-student-progress/  → get_student_progress
     get-lessons/           → get_lessons
     get-classes/           → get_classes
+    get-exams/             → get_exams
     create-exam/           → create_exam
     update-exam/           → update_exam
     delete-exam/           → delete_exam
@@ -100,12 +118,14 @@ src/chat/
     create-announcement/   → create_announcement
 ```
 
-Teacher agent has 13 AI tools. Each tool folder contains `definition.js` (OpenAI tool schema) và `handler.js` (execution logic). Chat route: `POST /api/chat`.
+Teacher agent has 14 AI tools. Each tool folder contains `definition.js` (OpenAI tool schema) và `handler.js` (execution logic). Chat route: `POST /api/chat`.
 
 Lưu ý khi sửa phần chat:
 - **SSE phải nghe `res.on('close')`, KHÔNG phải `req.on('close')`** (`chat.controller.js`). `'close'` của `req` bắn ngay khi đọc xong body — mà `express.json()` đã tiêu thụ hết body trước khi controller chạy — nên nghe ở đó thì lượt chat nào cũng tự `abort()` ở 0ms, rồi cả hai nhánh `if (aborted) return` bỏ qua `res.end()` khiến response treo vô hạn và frontend quay loading mãi.
 - Tool nào cần ID (lesson_id, class_id, exam_id) thì phải để `required` trong `definition.js` **và** kiểm tra quyền sở hữu trong `handler.js`. Để "tuỳ chọn" thì model sẽ lặng lẽ bỏ qua rồi ghi dữ liệu thiếu — xem `save-question/handler.js`.
-- Prompt hệ thống ở `src/prompts/teacher-system.md`; bảng "Khi nào dùng Tool" phải ghi rõ tool nào cần ID và phải gọi `get_lessons`/`get_classes` trước.
+- Prompt hệ thống ở `src/prompts/teacher-system.md`; bảng "Khi nào dùng Tool" phải ghi rõ tool nào cần ID và phải gọi `get_lessons`/`get_classes`/`get_exams` trước.
+- **`get_exams` là tool duy nhất trả về `exam_id`.** `get_lessons` chỉ trả `id/title/examCount` của *bài học*. Ngữ cảnh giữa các lượt chat chỉ giữ `{role, content}` (`chat.service.js`) — tool call và kết quả tool bị bỏ — nên nếu bỏ `get_exams` khỏi registry thì `update_exam`/`delete_exam`/`assign_exam_to_class`/`get_exam_stats` mất đường lấy ID, và model sẽ lặng lẽ `create_exam` một đề trùng thay vì sửa đề cũ.
+- **`MAX_LOOPS` trong `teacher-agent.js` phải đủ cho chuỗi tool dài nhất.** "Giao cho lớp 3A một bài kiểm tra 5 câu" cần 4 vòng tuần tự (`get_classes` → `get_lessons` → `create_exam` → `assign_exam_to_class`). Đặt trần 3 thì đề được tạo mà không được giao, đồng thời vòng lặp thoát lúc model vẫn đòi gọi tool nên không có chữ nào → chatbot im lặng, và `chat.service` không lưu message rỗng nên lượt sau mất luôn ngữ cảnh. Hết vòng lặp thì phải `history.pop()` lượt đòi-gọi-tool (mỗi `tool_call` bắt buộc có kết quả đi kèm ngay sau) rồi gọi lại **không kèm tool** để buộc ra câu trả lời.
 
 ### Key API endpoints (non-obvious ones)
 
