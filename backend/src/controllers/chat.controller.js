@@ -75,3 +75,12 @@ export const getChatHistory = async (req, res) => {
   }));
   success(res, { messages, expiresAt: session.expires_at });
 };
+
+// Bắt đầu cuộc trò chuyện mới: xóa phiên hiện tại để lượt chat kế tiếp không
+// mang theo ngữ cảnh cũ. Phiên sống 24h nên không có việc này thì hội thoại hôm
+// trước vẫn ảnh hưởng tới câu trả lời hôm sau.
+export const clearChatHistory = async (req, res) => {
+  await chatRepo.deleteUserSessions(req.user.id);
+  console.log(`[chat] cleared userId=${req.user.id}`);
+  success(res, null, 'Đã bắt đầu cuộc trò chuyện mới');
+};

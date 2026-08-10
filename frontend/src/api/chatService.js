@@ -2,6 +2,9 @@ import api from './index';
 
 export const getChatHistory = () => api.get('/api/chat/history');
 
+/** Xóa phiên chat hiện tại để lượt hỏi kế tiếp bắt đầu với ngữ cảnh trắng. */
+export const clearChatHistory = () => api.delete('/api/chat/history');
+
 /**
  * Gửi câu hỏi và nhận câu trả lời dạng stream (SSE qua XHR).
  * @param {Array} messages

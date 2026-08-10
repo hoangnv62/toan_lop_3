@@ -1,13 +1,13 @@
 import {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {matchPath, useLocation} from 'react-router-dom';
-import {FiLoader, FiMaximize2, FiMinimize2, FiSend, FiSquare, FiX} from 'react-icons/fi';
+import {FiLoader, FiMaximize2, FiMinimize2, FiPlus, FiSend, FiSquare, FiX} from 'react-icons/fi';
 import {IoCheckmarkOutline} from 'react-icons/io5';
 import {LuCopy} from "react-icons/lu";
 import {toast} from 'react-toastify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import {getChatHistory, streamChat} from '../../api/chatService';
+import {clearChatHistory, getChatHistory, streamChat} from '../../api/chatService';
 import {useAuth} from '../../context/auth-context';
 import chatbotIcon from '../../assets/chatbot.png';
 import {Textarea} from '@/components/ui/textarea';
@@ -15,6 +15,10 @@ import {Button} from '@/components/ui/button';
 import {Card} from '@/components/ui/card';
 import {ScrollArea} from '@/components/ui/scroll-area';
 import {Avatar, AvatarFallback, AvatarImage} from '@/components/ui/avatar';
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {cn} from '@/lib/utils';
 
 const mdComponents = {
@@ -130,6 +134,8 @@ export default function ChatBot() {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [toolLabel, setToolLabel] = useState(null);
+    const [confirmClear, setConfirmClear] = useState(false);
+    const [clearing, setClearing] = useState(false);
     const bottomRef = useRef(null);
     const inputRef = useRef(null);
     const abortRef = useRef(null);
@@ -232,6 +238,26 @@ export default function ChatBot() {
         abortRef.current?.abort();
     }
 
+    // Phiên chat sống 24h nên hội thoại hôm trước vẫn nằm trong ngữ cảnh gửi cho
+    // model. Nút này xóa phiên để bắt đầu lại từ đầu — hữu ích khi mạch hội thoại
+    // đã lệch hoặc trước khi trình bày cho người khác xem.
+    async function handleClear() {
+        setClearing(true);
+        try {
+            abortRef.current?.abort();
+            await clearChatHistory();
+            setMessages([{role: 'assistant', content: welcome}]);
+            setInput('');
+            setToolLabel(null);
+            setConfirmClear(false);
+            inputRef.current?.focus();
+        } catch (err) {
+            toast.error(err?.message || 'Không xóa được cuộc trò chuyện');
+        } finally {
+            setClearing(false);
+        }
+    }
+
     function handleKey(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -272,10 +298,16 @@ export default function ChatBot() {
                     <p className="text-sm font-semibold text-white">Trợ lý Toán</p>
                     <p className="text-xs text-indigo-200">Toán lớp 3 · Luôn sẵn sàng giúp bạn</p>
                 </div>
+                <Button onClick={() => setConfirmClear(true)} variant="ghost" size="icon-sm"
+                        disabled={loading || clearing}
+                        title="Cuộc trò chuyện mới" aria-label="Bắt đầu cuộc trò chuyện mới"
+                        className="ml-auto text-indigo-200 hover:bg-white/15 hover:text-white">
+                    {clearing ? <FiLoader size={15} className="animate-spin"/> : <FiPlus size={16}/>}
+                </Button>
                 <Button onClick={() => setExpanded(e => !e)} variant="ghost" size="icon-sm"
                         title={expanded ? 'Thu nhỏ' : 'Phóng to'}
                         aria-label={expanded ? 'Thu nhỏ khung chat' : 'Phóng to khung chat'}
-                        className="ml-auto text-indigo-200 hover:bg-white/15 hover:text-white">
+                        className="text-indigo-200 hover:bg-white/15 hover:text-white">
                     {expanded ? <FiMinimize2 size={15}/> : <FiMaximize2 size={15}/>}
                 </Button>
                 <Button onClick={() => setOpen(false)} variant="ghost" size="icon-sm"
@@ -375,8 +407,29 @@ export default function ChatBot() {
         </Card>
     );
 
+    const clearDialog = (
+        <AlertDialog open={confirmClear} onOpenChange={setConfirmClear}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Bắt đầu cuộc trò chuyện mới?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Toàn bộ tin nhắn trong cuộc trò chuyện hiện tại sẽ bị xóa và không thể
+                        khôi phục. Trợ lý cũng sẽ không còn nhớ những gì đã nói trước đó.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel disabled={clearing}>Hủy</AlertDialogCancel>
+                    <AlertDialogAction onClick={(e) => { e.preventDefault(); handleClear(); }}
+                                       disabled={clearing}>
+                        {clearing ? 'Đang xóa...' : 'Xóa và bắt đầu lại'}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+
     return createPortal(
-        <>{button}{panel}</>,
+        <>{button}{panel}{clearDialog}</>,
         document.body
     );
 }

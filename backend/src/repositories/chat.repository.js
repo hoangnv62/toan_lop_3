@@ -54,3 +54,16 @@ export const getActiveSession = (userId) =>
     'SELECT id, expires_at FROM chat_sessions WHERE user_id = :userId AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
     { userId }
   );
+
+// Xóa hẳn mọi phiên chat của người dùng (kể cả phiên đã hết hạn còn sót lại),
+// để lượt chat kế tiếp bắt đầu bằng ngữ cảnh trắng. Xóa message trước rồi mới
+// xóa session — chat_messages tham chiếu session_id.
+export const deleteUserSessions = async (userId) => {
+  await query(
+    `DELETE FROM chat_messages
+     WHERE session_id IN (SELECT id FROM chat_sessions WHERE user_id = :userId)`,
+    { userId }
+  );
+  const result = await query('DELETE FROM chat_sessions WHERE user_id = :userId', { userId });
+  return Number(result?.affectedRows ?? 0);
+};

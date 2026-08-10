@@ -134,6 +134,7 @@ Lưu ý khi sửa phần chat:
 | GET/PUT | `/api/auth/profile` | View/update profile (fullName, dob, email, phone) |
 | PUT | `/api/auth/password` | Change password (`{currentPassword, newPassword}`) |
 | POST | `/api/chat` | AI chatbot (role-aware: teacher gets tool calling) |
+| DELETE | `/api/chat/history` | Xóa phiên chat của chính mình → bắt đầu cuộc trò chuyện mới |
 | POST | `/api/exams/:id/clone` | Deep-copy exam + questions + answers |
 | POST | `/api/exams/:id/submissions/:studentId/comment` | Upsert teacher comment on student submission |
 | GET | `/api/exams/:id/export` | Download Excel of all results (teacher only) |
@@ -173,6 +174,7 @@ Lưu ý khi sửa phần chat:
   - `studentService.js` — student dashboard, teacher dashboard, AI advice, student results, getStudentProgress
   - `classService.js` — class CRUD, getStudentsWithScores, exportStudents, getClassExams, assignExam, updateExamAssignment, unassignExam
   - `lessonService.js` — lesson CRUD
+  - `chatService.js` — getChatHistory, clearChatHistory, streamChat (SSE qua XHR)
   - `announcementService.js` — getAnnouncements, createAnnouncement, deleteAnnouncement
   - `relativeService.js` — getRelatives, addRelative, updateRelative, deleteRelative
 - `src/context/AuthContext.jsx` — chỉ export component `AuthProvider` (giữ được Fast Refresh)
@@ -236,7 +238,7 @@ Quy ước quan trọng:
 - **ClassDetail** (teacher): tabs for exam list, student roster (`StudentRoster`), announcements (`AnnouncementsCard`); `AddStudentCard` for adding students; `ImportCard` for bulk import; "Xem bài" opens `StudentResultsModal` (progress line chart + per-exam detail + teacher comment textarea)
 - **ExamResult** (student): shows teacher comment block if `result.teacherComment` is set
 - **QuestionBank** (teacher): paginated list with search + filter by lesson; supports create, edit, delete, import from Excel. Checkbox mỗi câu + "Chọn tất cả trang này" để xóa nhiều (lựa chọn bị xóa khi đổi trang/tìm kiếm/lọc). Nút "Tạo bằng AI" mở `AiGenerateModal` (2 bước: nhập yêu cầu → xem lại & chọn câu → lưu). **Mọi câu hỏi bắt buộc có chủ đề** — không còn mục "Chưa phân loại"
-- **ChatBot** (teacher): floating chat panel, role-aware (teacher sees tool-calling responses with loading labels like "Đang tìm câu hỏi...", "Đang tạo đề thi...")
+- **ChatBot** (cả 2 vai): floating chat panel, role-aware (giáo viên thấy nhãn tool đang chạy như "Đang tìm câu hỏi...", "Đang tạo đề thi..."). Nút `FiPlus` ở header = "Cuộc trò chuyện mới" → AlertDialog xác nhận → `DELETE /api/chat/history`. Cần nút này vì phiên chat sống 24h, không xóa thì hội thoại hôm trước vẫn nằm trong ngữ cảnh gửi cho model
 
 ### Excel import format for questions (`POST /api/questions/import-excel` and `/api/question-bank/import-excel`)
 | Column | Required | Values |
