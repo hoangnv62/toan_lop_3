@@ -19,6 +19,27 @@ export const handler = async (args, user) => {
 
   const { exam_id, class_id, time_limit = 1200, open_time = null, deadline = null } = parsed.data;
 
+  // Chốt hạ ở tầng code: model không biết hôm nay là ngày nào nên từng giao đề
+  // với deadline nằm ở quá khứ — học sinh mở ra là đã hết hạn, không làm được.
+  // System prompt có nhắc ngày hiện tại, nhưng prompt thì model bỏ qua được.
+  if (deadline) {
+    const when = new Date(deadline);
+    if (Number.isNaN(when.getTime())) {
+      return {
+        success: false, data: null, metadata: {},
+        message: `Hạn nộp "${deadline}" không đúng định dạng ISO 8601 (ví dụ 2026-08-11T09:00:00).`,
+      };
+    }
+    if (when.getTime() <= Date.now()) {
+      return {
+        success: false, data: null, metadata: {},
+        message:
+          `Hạn nộp ${deadline} đã ở quá khứ nên chưa giao đề. ` +
+          'Hãy xác nhận lại với giáo viên xem hạn nộp là ngày nào, rồi giao lại.',
+      };
+    }
+  }
+
   try {
     await classService.assignExam(class_id, user.id, exam_id, deadline, open_time, time_limit);
   } catch (err) {

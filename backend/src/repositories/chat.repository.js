@@ -24,11 +24,30 @@ export const saveMessage = (sessionId, role, content) =>
 export const deleteMessage = (id) =>
   query('DELETE FROM chat_messages WHERE id = :id', { id });
 
-export const getSessionMessages = (sessionId) =>
-  query(
-    'SELECT role, content, created_at FROM chat_messages WHERE session_id = :sessionId ORDER BY created_at ASC',
-    { sessionId }
+// limit = null: lấy hết, dùng cho việc hiển thị lại lịch sử trong giao diện.
+// limit = N: chỉ lấy N tin mới nhất (vẫn trả về theo thứ tự cũ → mới) để dựng
+// ngữ cảnh gửi cho model. Phiên sống 24h nên không giới hạn thì mỗi lượt chat
+// gửi lại cả ngày hội thoại, càng về sau càng chậm và càng tốn token.
+export const getSessionMessages = (sessionId, limit = null) => {
+  if (!limit) {
+    return query(
+      'SELECT role, content, created_at FROM chat_messages WHERE session_id = :sessionId ORDER BY created_at ASC',
+      { sessionId }
+    );
+  }
+  // Lấy N tin cuối bằng DESC rồi đảo lại ở ngoài — MySQL không cho ORDER BY
+  // ngược chiều ngay trong cùng một câu SELECT có LIMIT.
+  return query(
+    `SELECT role, content, created_at FROM (
+       SELECT role, content, created_at FROM chat_messages
+       WHERE session_id = :sessionId
+       ORDER BY created_at DESC, id DESC
+       LIMIT :limit
+     ) AS recent
+     ORDER BY created_at ASC`,
+    { sessionId, limit }
   );
+};
 
 export const getActiveSession = (userId) =>
   queryOne(
