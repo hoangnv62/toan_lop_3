@@ -15,6 +15,10 @@ export const CHAT_TOOL_LABELS = {
   create_announcement:    'Đang gửi thông báo...',
   get_student_progress:   'Đang lấy tiến độ học sinh...',
   update_exam:            'Đang cập nhật đề thi...',
+  show_assign_exam_form:  'Đang mở form giao bài...',
+  create_lesson:          'Đang tạo bài học...',
+  update_lesson:          'Đang đổi tên bài học...',
+  delete_lesson:          'Đang xóa bài học...',
 };
 
 // Tool đang chạy (chưa có kết quả) gần nhất của tin nhắn → nhãn để hiện, hoặc null.

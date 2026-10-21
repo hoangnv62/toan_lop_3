@@ -26,9 +26,7 @@ export const getLesson = async (lessonId) => {
   };
 };
 
-export const createLesson = async (teacherId, title) => {
-  await lessonRepo.createLesson(teacherId, title);
-};
+export const createLesson = (teacherId, title) => lessonRepo.createLesson(teacherId, title);
 
 export const updateLesson = async (lessonId, teacherId, title) => {
   const lesson = await lessonRepo.findById(lessonId);

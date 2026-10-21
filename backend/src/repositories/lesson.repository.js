@@ -45,5 +45,20 @@ export const createLesson = (teacherId, title) =>
 export const updateLesson = (lessonId, title) =>
   query('UPDATE lessons SET title = :title WHERE id = :id', { title, id: lessonId });
 
+// Những gì sẽ mất theo khi xóa bài học (FK ON DELETE CASCADE) — để hỏi xác nhận cho đúng.
+export const countLessonContent = (lessonId) =>
+  queryOne(
+    `SELECT
+       (SELECT COUNT(*) FROM exams WHERE lesson_id = :lessonId) AS exams,
+       (SELECT COUNT(*) FROM questions q JOIN exams e ON e.id = q.exam_id
+          WHERE e.lesson_id = :lessonId) AS questions,
+       (SELECT COUNT(*) FROM class_exams ce JOIN exams e ON e.id = ce.exam_id
+          WHERE e.lesson_id = :lessonId) AS assignments,
+       (SELECT COUNT(DISTINCT sa.student_id, sa.exam_id) FROM student_answers sa
+          JOIN exams e ON e.id = sa.exam_id WHERE e.lesson_id = :lessonId) AS submissions,
+       (SELECT COUNT(*) FROM question_bank WHERE lesson_id = :lessonId) AS bank_questions`,
+    { lessonId }
+  );
+
 export const deleteLesson = (lessonId) =>
   query('DELETE FROM lessons WHERE id = :id', { id: lessonId });

@@ -43,6 +43,15 @@ import { handler as updateExamHandler } from './update-exam/handler.js';
 import { definition as showAssignFormDef } from './show-assign-form/definition.js';
 import { handler as showAssignFormHandler } from './show-assign-form/handler.js';
 
+import { definition as createLessonDef } from './create-lesson/definition.js';
+import { handler as createLessonHandler } from './create-lesson/handler.js';
+
+import { definition as updateLessonDef } from './update-lesson/definition.js';
+import { handler as updateLessonHandler } from './update-lesson/handler.js';
+
+import { definition as deleteLessonDef } from './delete-lesson/definition.js';
+import { handler as deleteLessonHandler } from './delete-lesson/handler.js';
+
 export const TEACHER_TOOLS = [
   searchDef,
   saveDef,
@@ -59,6 +68,9 @@ export const TEACHER_TOOLS = [
   studentProgressDef,
   updateExamDef,
   showAssignFormDef,
+  createLessonDef,
+  updateLessonDef,
+  deleteLessonDef,
 ];
 
 export const toolRegistry = {
@@ -77,4 +89,7 @@ export const toolRegistry = {
   get_student_progress:   studentProgressHandler,
   update_exam:            updateExamHandler,
   show_assign_exam_form:  showAssignFormHandler,
+  create_lesson:          createLessonHandler,
+  update_lesson:          updateLessonHandler,
+  delete_lesson:          deleteLessonHandler,
 };

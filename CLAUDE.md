@@ -113,6 +113,9 @@ src/chat/
     create-exam/           → create_exam
     update-exam/           → update_exam
     show-assign-form/      → show_assign_exam_form (form giao bài A2UI)
+    create-lesson/         → create_lesson (trùng tên → dùng bài cũ; gần trùng → hỏi lại)
+    update-lesson/         → update_lesson
+    delete-lesson/         → delete_lesson (xác nhận như delete_exam)
   a2ui/
     assign-exam-form.js → dựng thông điệp A2UI v0.9 cho form giao bài
     surfaces.js         → form đang mở (examId/userId lưu ở server, không tin client)
@@ -123,7 +126,7 @@ src/chat/
     create-announcement/   → create_announcement
 ```
 
-Teacher agent has 15 AI tools. Each tool folder contains `definition.js` (OpenAI tool schema) và `handler.js` (execution logic). Chat route: `POST /api/chat`.
+Teacher agent has 18 AI tools. Each tool folder contains `definition.js` (OpenAI tool schema) và `handler.js` (execution logic). Chat route: `POST /api/chat`.
 
 Lưu ý khi sửa phần chat:
 - **SSE phải nghe `res.on('close')`, KHÔNG phải `req.on('close')`** (`chat.controller.js`). `'close'` của `req` bắn ngay khi đọc xong body — mà `express.json()` đã tiêu thụ hết body trước khi controller chạy — nên nghe ở đó thì lượt chat nào cũng tự `abort()` ở 0ms, rồi cả hai nhánh `if (aborted) return` bỏ qua `res.end()` khiến response treo vô hạn và frontend quay loading mãi.
@@ -131,7 +134,7 @@ Lưu ý khi sửa phần chat:
 - Prompt hệ thống ở `src/prompts/teacher-system.md`; bảng "Khi nào dùng Tool" phải ghi rõ tool nào cần ID và phải gọi `get_lessons`/`get_classes`/`get_exams` trước.
 - **`get_exams` là tool duy nhất trả về `exam_id`.** `get_lessons` chỉ trả `id/title/examCount` của *bài học*. Ngữ cảnh giữa các lượt chat chỉ giữ `{role, content}` (`chat.service.js`) — tool call và kết quả tool bị bỏ — nên nếu bỏ `get_exams` khỏi registry thì `update_exam`/`delete_exam`/`assign_exam_to_class`/`get_exam_stats` mất đường lấy ID, và model sẽ lặng lẽ `create_exam` một đề trùng thay vì sửa đề cũ.
 - **`MAX_LOOPS` trong `teacher-agent.js` phải đủ cho chuỗi tool dài nhất.** "Giao cho lớp 3A một bài kiểm tra 5 câu" cần 4 vòng tuần tự (`get_classes` → `get_lessons` → `create_exam` → `assign_exam_to_class`). Đặt trần 3 thì đề được tạo mà không được giao, đồng thời vòng lặp thoát lúc model vẫn đòi gọi tool nên không có chữ nào → chatbot im lặng, và `chat.service` không lưu message rỗng nên lượt sau mất luôn ngữ cảnh. Hết vòng lặp thì phải `history.pop()` lượt đòi-gọi-tool (mỗi `tool_call` bắt buộc có kết quả đi kèm ngay sau) rồi gọi lại **không kèm tool** để buộc ra câu trả lời.
-- **`delete_exam` và `create_announcement` phải được xác nhận** (`src/chat/tools/confirmation.js`). Lần gọi đầu chỉ trả "CHƯA XÓA"/"CHƯA GỬI" kèm `data.confirmation.actionId`; agent phát SSE `confirm_required` để `ChatBot.jsx` hiện nút **Đồng ý / Không**. Bấm nút → `POST /api/chat/confirm/:actionId` chạy thẳng hành động đã lưu (không gọi model, chạy đúng bản đã xem trước) và ghi cả lựa chọn lẫn kết quả vào lịch sử chat. Gõ chữ "đồng ý" thì model gọi lại tool ở lượt *sau* (tính theo `turnStartedAt`). Hai đường dùng chung một lần hỏi nên không thể chạy 2 lần. Lý do phải chặn ở code: model từng được bảo "xóa đề vừa tạo" khi đề đó chưa được tạo, rồi tự chọn một đề cũ trùng tên mà xóa cứng.
+- **`delete_exam`, `delete_lesson` và `create_announcement` phải được xác nhận** (`src/chat/tools/confirmation.js`). Lần gọi đầu chỉ trả "CHƯA XÓA"/"CHƯA GỬI" kèm `data.confirmation.actionId`; agent phát SSE `confirm_required` để `ChatBot.jsx` hiện nút **Đồng ý / Không**. Bấm nút → `POST /api/chat/confirm/:actionId` chạy thẳng hành động đã lưu (không gọi model, chạy đúng bản đã xem trước) và ghi cả lựa chọn lẫn kết quả vào lịch sử chat. Gõ chữ "đồng ý" thì model gọi lại tool ở lượt *sau* (tính theo `turnStartedAt`). Hai đường dùng chung một lần hỏi nên không thể chạy 2 lần. Lý do phải chặn ở code: model từng được bảo "xóa đề vừa tạo" khi đề đó chưa được tạo, rồi tự chọn một đề cũ trùng tên mà xóa cứng.
 - **Prompt phải bảo model GỌI TOOL NGAY để tạo bản xem trước**, không tự hỏi xác nhận bằng chữ trước. Câu cũ "xác nhận với thầy/cô trước khi gọi tool" khiến model tự viết bản xem trước — không có nút, và nó bịa luôn số phụ huynh nhận email. Thông báo kèm email nên khóa xác nhận gồm cả tiêu đề + nội dung; tool phải nói rõ email có thật sự đi không.
 - **Thời điểm mở đề / hạn nộp đi qua `src/chat/tools/schedule.js`.** Cột DATETIME của MariaDB *bỏ qua* hậu tố múi giờ: model gửi `...T16:00:00Z` (23:00 giờ VN) thì DB lưu 16:00 — sớm 7 tiếng. `parseScheduleTime()` parse bằng `Date` rồi ghi lại giờ địa phương. `assign_exam_to_class` bắt buộc có `open_time` + `deadline` (`"now"`/`"none"` khi mở ngay / không giới hạn) — để tuỳ chọn thì model chỉ hỏi thời gian làm bài rồi giao luôn. `update_exam` sửa giao đề phải giữ nguyên trường không truyền: `updateAssignment()` ghi đè cả 3 cột, thiếu `time_limit` (NOT NULL) là lỗi SQL.
 - **Response của chatbot theo giao thức "UI Message Stream" của Vercel AI SDK** (`src/chat/ui-message.js`, header `x-vercel-ai-ui-message-stream: v1`): mỗi chunk là `data: {type: start | text-start | text-delta | text-end | tool-input-available | tool-output-available | data-<tên> | error | finish}`, kết thúc `data: [DONE]`. Request cũng theo chuẩn UIMessage: `{messages: [{role, parts: [{type:'text', text}]}]}`. Dữ liệu riêng của app đi qua part `data-*` (`data-confirmation`, `data-exam-preview`) — đừng tự chế `event:` mới. Frontend dựng tin nhắn từ chunk bằng `applyChunk()` (`src/lib/ui-message-stream.js`) và hiển thị theo `parts`.
