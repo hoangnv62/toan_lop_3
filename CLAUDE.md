@@ -101,7 +101,7 @@ src/chat/
     teacher-agent.js    → Teacher-specific chat agent with tool calling
     student-agent.js    → Student-specific chat agent
   tools/
-    registry.js         → Exports TEACHER_TOOLS, TOOL_LABELS, toolRegistry
+    registry.js         → Exports TEACHER_TOOLS, toolRegistry (nhãn "Đang ..." nằm ở frontend `src/lib/chat-tool-labels.js`)
     executor.js         → Executes tool calls by name
     search-question/       → search_question_bank
     save-question/         → save_questions_to_bank
@@ -130,7 +130,8 @@ Lưu ý khi sửa phần chat:
 - **`delete_exam` và `create_announcement` phải được xác nhận** (`src/chat/tools/confirmation.js`). Lần gọi đầu chỉ trả "CHƯA XÓA"/"CHƯA GỬI" kèm `data.confirmation.actionId`; agent phát SSE `confirm_required` để `ChatBot.jsx` hiện nút **Đồng ý / Không**. Bấm nút → `POST /api/chat/confirm/:actionId` chạy thẳng hành động đã lưu (không gọi model, chạy đúng bản đã xem trước) và ghi cả lựa chọn lẫn kết quả vào lịch sử chat. Gõ chữ "đồng ý" thì model gọi lại tool ở lượt *sau* (tính theo `turnStartedAt`). Hai đường dùng chung một lần hỏi nên không thể chạy 2 lần. Lý do phải chặn ở code: model từng được bảo "xóa đề vừa tạo" khi đề đó chưa được tạo, rồi tự chọn một đề cũ trùng tên mà xóa cứng.
 - **Prompt phải bảo model GỌI TOOL NGAY để tạo bản xem trước**, không tự hỏi xác nhận bằng chữ trước. Câu cũ "xác nhận với thầy/cô trước khi gọi tool" khiến model tự viết bản xem trước — không có nút, và nó bịa luôn số phụ huynh nhận email. Thông báo kèm email nên khóa xác nhận gồm cả tiêu đề + nội dung; tool phải nói rõ email có thật sự đi không.
 - **Thời điểm mở đề / hạn nộp đi qua `src/chat/tools/schedule.js`.** Cột DATETIME của MariaDB *bỏ qua* hậu tố múi giờ: model gửi `...T16:00:00Z` (23:00 giờ VN) thì DB lưu 16:00 — sớm 7 tiếng. `parseScheduleTime()` parse bằng `Date` rồi ghi lại giờ địa phương. `assign_exam_to_class` bắt buộc có `open_time` + `deadline` (`"now"`/`"none"` khi mở ngay / không giới hạn) — để tuỳ chọn thì model chỉ hỏi thời gian làm bài rồi giao luôn. `update_exam` sửa giao đề phải giữ nguyên trường không truyền: `updateAssignment()` ghi đè cả 3 cột, thiếu `time_limit` (NOT NULL) là lỗi SQL.
-- **Nút "Xem đề thi" sau khi chatbot tạo đề.** `create_exam` trả thêm `ui: { examId }`; agent *gỡ* `ui` khỏi kết quả trước khi đưa cho model (nội dung đề không chui vào ngữ cảnh, đỡ token), đọc lại đề từ DB rồi phát SSE `exam_preview` kèm toàn bộ câu hỏi — bấm nút là hiện, không gọi thêm model. `chat_messages.exam_id` (FK `ON DELETE SET NULL`, migration `addChatMessageExamColumn`) giữ nút sau khi tải lại trang; lúc đó bấm lần đầu mới gọi `GET /api/exams/:id`.
+- **Response của chatbot theo giao thức "UI Message Stream" của Vercel AI SDK** (`src/chat/ui-message.js`, header `x-vercel-ai-ui-message-stream: v1`): mỗi chunk là `data: {type: start | text-start | text-delta | text-end | tool-input-available | tool-output-available | data-<tên> | error | finish}`, kết thúc `data: [DONE]`. Request cũng theo chuẩn UIMessage: `{messages: [{role, parts: [{type:'text', text}]}]}`. Dữ liệu riêng của app đi qua part `data-*` (`data-confirmation`, `data-exam-preview`) — đừng tự chế `event:` mới. Frontend dựng tin nhắn từ chunk bằng `applyChunk()` (`src/lib/ui-message-stream.js`) và hiển thị theo `parts`.
+- **`chat_messages.parts` lưu nguyên `UIMessage.parts`** (migration `migrateChatMessageParts`), `content` vẫn giữ chữ thuần để đưa vào ngữ cảnh cho model. Nhờ vậy F5 xong vẫn còn nút "Xem đề thi" và nút xác nhận (ẩn khi quá `expiresAt`). Kết quả tool chỉ lưu tóm tắt `{success, message}`; đề thi trong `data-exam-preview` chỉ lưu `examId` — bấm nút sau F5 mới gọi `GET /api/exams/:id`. `create_exam` trả `ui: { examId }`, agent *gỡ* `ui` trước khi đưa kết quả cho model (nội dung đề không chui vào ngữ cảnh).
 - **Sắp tin nhắn chat phải kèm `id`** (`chat.repository.js`). `created_at` chỉ chính xác tới giây; câu hỏi gửi trong cùng giây với câu trả lời trước có thể xếp lên trước nó → lượt cuối gửi cho Gemini là của trợ lý → 400 `Requests ending with a model turn are not supported`.
 
 ### Key API endpoints (non-obvious ones)
@@ -183,7 +184,7 @@ Lưu ý khi sửa phần chat:
   - `studentService.js` — student dashboard, teacher dashboard, AI advice, student results, getStudentProgress
   - `classService.js` — class CRUD, getStudentsWithScores, exportStudents, getClassExams, assignExam, updateExamAssignment, unassignExam
   - `lessonService.js` — lesson CRUD
-  - `chatService.js` — getChatHistory, clearChatHistory, streamChat (SSE qua XHR)
+  - `chatService.js` — getChatHistory, clearChatHistory, confirmChatAction, streamChat (UI Message Stream qua XHR — giữ lại phần dòng dở giữa 2 lần nhận dữ liệu)
   - `announcementService.js` — getAnnouncements, createAnnouncement, deleteAnnouncement
   - `relativeService.js` — getRelatives, addRelative, updateRelative, deleteRelative
 - `src/context/AuthContext.jsx` — chỉ export component `AuthProvider` (giữ được Fast Refresh)

@@ -48,7 +48,7 @@ export const handler = async (args, user, { turnStartedAt = Date.now() } = {}) =
   // bảo "xóa đề vừa tạo" khi đề đó chưa hề được tạo, rồi tự chọn một đề cũ trùng tên mà xóa.
   const key = `delete_exam:${user.id}:${exam_id}`;
   if (!consumeConfirmation(key, turnStartedAt)) {
-    const actionId = requestConfirmation({
+    const confirmation = requestConfirmation({
       key,
       userId: user.id,
       label: `Xóa đề "${exam.name}"`,
@@ -58,7 +58,7 @@ export const handler = async (args, user, { turnStartedAt = Date.now() } = {}) =
       success: false,
       data: {
         examId: exam_id, name: exam.name, requiresConfirmation: true,
-        confirmation: { actionId, label: `Xóa đề "${exam.name}"` },
+        confirmation,
       },
       message:
         `CHƯA XÓA. Hãy hỏi thầy/cô xác nhận xóa đề "${exam.name}" (ID ${exam_id}) — ` +

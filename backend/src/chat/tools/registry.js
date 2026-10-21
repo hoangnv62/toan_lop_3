@@ -57,23 +57,6 @@ export const TEACHER_TOOLS = [
   updateExamDef,
 ];
 
-export const TOOL_LABELS = {
-  search_question_bank:   'Đang tìm câu hỏi trong ngân hàng...',
-  save_questions_to_bank: 'Đang lưu câu hỏi vào ngân hàng...',
-  get_student_stats:      'Đang lấy thống kê học sinh...',
-  get_lessons:            'Đang lấy danh sách bài học...',
-  get_classes:            'Đang lấy danh sách lớp học...',
-  get_exams:              'Đang lấy danh sách đề thi...',
-  create_exam:            'Đang tạo đề thi...',
-  get_exam_stats:         'Đang lấy thống kê đề thi...',
-  assign_exam_to_class:   'Đang giao bài tập cho lớp...',
-  delete_exam:            'Đang xóa đề thi...',
-  unassign_exam:          'Đang hủy giao đề thi...',
-  create_announcement:    'Đang gửi thông báo...',
-  get_student_progress:   'Đang lấy tiến độ học sinh...',
-  update_exam:            'Đang cập nhật đề thi...',
-};
-
 export const toolRegistry = {
   search_question_bank:   searchHandler,
   save_questions_to_bank: saveHandler,

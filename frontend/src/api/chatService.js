@@ -5,73 +5,49 @@ export const getChatHistory = () => api.get('/api/chat/history');
 /** Xóa phiên chat hiện tại để lượt hỏi kế tiếp bắt đầu với ngữ cảnh trắng. */
 export const clearChatHistory = () => api.delete('/api/chat/history');
 
-/** Bấm nút Đồng ý / Không cho hành động chatbot đang chờ xác nhận → `{ userText, reply }`. */
+/** Bấm nút Đồng ý / Không cho hành động chatbot đang chờ xác nhận → `{ messages: [UIMessage, UIMessage] }`. */
 export const confirmChatAction = (actionId, accept) =>
   api.post(`/api/chat/confirm/${actionId}`, { accept });
 
 /**
- * Gửi câu hỏi và nhận câu trả lời dạng stream (SSE qua XHR).
- * @param {Array} messages
+ * Gửi câu hỏi và nhận câu trả lời theo giao thức "UI Message Stream" (Vercel AI SDK) qua XHR.
+ * Mỗi chunk (`{type: 'text-delta' | 'tool-input-available' | 'data-…' | …}`) được đưa cho
+ * onChunk; dựng tin nhắn từ chunk bằng applyChunk() ở `@/lib/ui-message-stream`.
+ * @param {object} message - UIMessage của câu vừa hỏi: { id, role: 'user', parts }
  * @param {object} handlers
- * @param {(token: string) => void} handlers.onToken
+ * @param {(chunk: object) => void} handlers.onChunk
  * @param {() => void} [handlers.onDone]
- * @param {(data: object) => void} [handlers.onToolStart]
- * @param {(data: object) => void} [handlers.onToolDone]
- * @param {(data: {actionId: string, label: string}) => void} [handlers.onConfirmRequired]
- * @param {(exam: object) => void} [handlers.onExamPreview] - nội dung đề chatbot vừa tạo
  * @param {AbortSignal} [handlers.signal] - hủy giữa chừng khi người dùng bấm Dừng
  */
-export async function streamChat(
-  messages, { onToken, onDone, onToolStart, onToolDone, onConfirmRequired, onExamPreview, signal },
-) {
+export async function streamChat(message, { onChunk, onDone, signal }) {
   let processed = 0;
+  let pending = ''; // dòng chưa trọn — một chunk JSON có thể bị cắt giữa 2 lần nhận dữ liệu
   let done = false;
-  let currentEvent = null;
 
   await api.post(
     '/api/chat',
-    { messages },
+    { messages: [message] },
     {
       responseType: 'text',
       signal,
       onDownloadProgress: (evt) => {
         const raw = evt.event.target.responseText;
-        const newText = raw.slice(processed);
+        pending += raw.slice(processed);
         processed = raw.length;
 
-        const lines = newText.split('\n');
+        const lines = pending.split('\n');
+        pending = lines.pop();
         for (const line of lines) {
-          if (line.startsWith('event: ')) {
-            currentEvent = line.slice(7).trim();
-            continue;
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6).trim();
+          if (payload === '[DONE]') {
+            done = true;
+            onDone?.();
+            return;
           }
-          if (line.startsWith('data: ')) {
-            const payload = line.slice(6).trim();
-            if (payload === '[DONE]') {
-              done = true;
-              onDone?.();
-              return;
-            }
-            try {
-              const parsed = JSON.parse(payload);
-              if (currentEvent === 'tool_start') {
-                onToolStart?.(parsed);
-              } else if (currentEvent === 'tool_done') {
-                onToolDone?.(parsed);
-              } else if (currentEvent === 'confirm_required') {
-                onConfirmRequired?.(parsed);
-              } else if (currentEvent === 'exam_preview') {
-                onExamPreview?.(parsed);
-              } else if (parsed.token) {
-                onToken(parsed.token);
-              }
-            } catch { /* bỏ qua chunk lỗi */ }
-            currentEvent = null;
-            continue;
-          }
-          if (line === '') {
-            currentEvent = null;
-          }
+          try {
+            onChunk(JSON.parse(payload));
+          } catch { /* bỏ qua chunk hỏng */ }
         }
       },
     }

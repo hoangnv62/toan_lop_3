@@ -10,6 +10,8 @@ import remarkGfm from 'remark-gfm';
 import {clearChatHistory, confirmChatAction, getChatHistory, streamChat} from '../../api/chatService';
 import {useAuth} from '../../context/auth-context';
 import ChatExamPreview from './ChatExamPreview';
+import {applyChunk, findPart, textMessage, textOf} from '@/lib/ui-message-stream';
+import {runningToolLabel} from '@/lib/chat-tool-labels';
 import chatbotIcon from '../../assets/chatbot.png';
 import {Textarea} from '@/components/ui/textarea';
 import {Button} from '@/components/ui/button';
@@ -129,16 +131,15 @@ export default function ChatBot() {
     const {user} = useAuth();
     const {pathname} = useLocation();
     const welcome = user?.role === 'teacher' ? WELCOME_TEACHER : WELCOME_STUDENT;
+    // Tin nhắn dạng UIMessage { id, role, parts } — cùng dạng backend stream về và lưu trong DB.
+    const welcomeMessage = textMessage('assistant', welcome, 'welcome');
     const [open, setOpen] = useState(false);
     const [expanded, setExpanded] = useState(false);
-    const [messages, setMessages] = useState([{role: 'assistant', content: welcome}]);
+    const [messages, setMessages] = useState([welcomeMessage]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    const [toolLabel, setToolLabel] = useState(null);
     const [confirmClear, setConfirmClear] = useState(false);
     const [clearing, setClearing] = useState(false);
-    // Hành động chatbot đang chờ giáo viên xác nhận (xóa đề, gửi thông báo) → nút Đồng ý / Không.
-    const [pendingConfirm, setPendingConfirm] = useState(null);
     const [resolving, setResolving] = useState(false);
     const bottomRef = useRef(null);
     const inputRef = useRef(null);
@@ -153,7 +154,7 @@ export default function ChatBot() {
             if (cancelled) return;
             // Gán cả khi rỗng: tài khoản chưa có lịch sử thì phải chỉ còn mỗi lời
             // chào, chứ không giữ nguyên những gì đang hiển thị.
-            setMessages([{role: 'assistant', content: welcome}, ...(data.messages ?? [])]);
+            setMessages([textMessage('assistant', welcome, 'welcome'), ...(data.messages ?? [])]);
         }).catch(() => {
         });
         return () => { cancelled = true; };
@@ -168,57 +169,51 @@ export default function ChatBot() {
             bottomRef.current?.scrollIntoView({behavior: 'smooth'});
             inputRef.current?.focus();
         }
-    }, [open, messages, pendingConfirm]);
+    }, [open, messages, loading]);
+
+    const lastMessage = messages[messages.length - 1];
+    const toolLabel = loading ? runningToolLabel(lastMessage) : null;
+    // Nút Đồng ý / Không chỉ cho câu hỏi xác nhận ở tin CUỐI: gửi tin khác là nút cũ hết ý nghĩa
+    // (gõ "đồng ý" vẫn xác nhận được qua model).
+    const confirmation = !loading && lastMessage.role === 'assistant'
+        ? findPart(lastMessage, 'data-confirmation')?.data : null;
+
+    // Hết hạn thì backend không nhận nữa → hẹn giờ ẩn nút đúng lúc expiresAt (đã quá hạn, vd.
+    // sau F5, thì ẩn ngay). Hẹn giờ thay vì so Date.now() khi render để render luôn thuần.
+    const [expiredActionId, setExpiredActionId] = useState(null);
+    useEffect(() => {
+        if (!confirmation) return;
+        const timer = setTimeout(() => setExpiredActionId(confirmation.actionId),
+            Math.max(0, confirmation.expiresAt - Date.now()));
+        return () => clearTimeout(timer);
+    }, [confirmation]);
+    const canConfirm = confirmation && confirmation.actionId !== expiredActionId;
 
     if (!user) return null;
     if (HIDDEN_ROUTES.some(route => matchPath(route, pathname))) return null;
+
+    const updateLastMessage = (update) =>
+        setMessages(prev => [...prev.slice(0, -1), update(prev[prev.length - 1])]);
 
     async function handleSend() {
         const text = input.trim();
         if (!text || loading) return;
 
-        const userMsg = {role: 'user', content: text};
+        const userMsg = textMessage('user', text);
         const history = [...messages, userMsg];
-        // Gửi tin khác thì nút xác nhận cũ hết ý nghĩa; gõ "đồng ý" vẫn xác nhận được qua model.
-        setPendingConfirm(null);
-        setMessages(history);
         setInput('');
         setLoading(true);
-
-        // placeholder tin nhắn AI đang stream
-        const placeholder = {role: 'assistant', content: ''};
-        setMessages([...history, placeholder]);
+        // Tin trả lời rỗng — các chunk stream về sẽ lần lượt dựng nó lên.
+        setMessages([...history, {id: 'streaming', role: 'assistant', parts: []}]);
 
         const controller = new AbortController();
         abortRef.current = controller;
 
         try {
-            await streamChat([userMsg], {
+            await streamChat(userMsg, {
                 signal: controller.signal,
-                onToken: (token) => {
-                    setMessages(prev => {
-                        const updated = [...prev];
-                        updated[updated.length - 1] = {
-                            ...updated[updated.length - 1],
-                            content: updated[updated.length - 1].content + token,
-                        };
-                        return updated;
-                    });
-                },
-                onDone: () => {
-                    setLoading(false);
-                    setToolLabel(null);
-                },
-                onToolStart: (data) => setToolLabel(data.label),
-                onToolDone: () => setToolLabel(null),
-                onConfirmRequired: (data) => setPendingConfirm(data),
-                // Gắn đề vừa tạo vào tin nhắn đang stream → hiện nút "Xem đề thi" dưới nó.
-                onExamPreview: (exam) => setMessages(prev => {
-                    const updated = [...prev];
-                    const last = updated[updated.length - 1];
-                    updated[updated.length - 1] = {...last, examId: exam.examId, exam};
-                    return updated;
-                }),
+                onChunk: (chunk) => updateLastMessage(m => applyChunk(m, chunk)),
+                onDone: () => setLoading(false),
             });
         } catch {
             // Người dùng chủ động dừng: bỏ hẳn cặp câu hỏi + đoạn trả lời dở, khớp
@@ -226,45 +221,30 @@ export default function ChatBot() {
             // việc khác, không phải để hỏi lại câu cũ.
             if (controller.signal.aborted) {
                 setMessages(history.slice(0, -1));
-                setPendingConfirm(null);
                 setLoading(false);
-                setToolLabel(null);
                 return;
             }
-            // Chỉ chạy khi không nối được tới server — lỗi từ phía model đã được
-            // backend chuyển thành một câu xin lỗi và stream về như token bình thường.
-            setMessages(prev => {
-                const updated = [...prev];
-                const failed = updated[updated.length - 1];
-                const apology = pickOffline(user.role === 'teacher');
-                updated[updated.length - 1] = {
-                    role: 'assistant',
-                    content: failed?.content ? `${failed.content}\n\n${apology}` : apology,
-                };
-                return updated;
-            });
+            // Chỉ chạy khi không nối được tới server — lỗi từ phía model thì backend
+            // đã gửi chunk `error` kèm câu xin lỗi.
+            const apology = pickOffline(user.role === 'teacher');
+            updateLastMessage(m => ({...m, parts: [...m.parts, {type: 'text', text: apology, isError: true}]}));
             setLoading(false);
         } finally {
             abortRef.current = null;
         }
     }
 
-    // Bấm nút thì backend chạy thẳng hành động đã lưu (không gọi model) và trả câu kết quả;
-    // ghi cả lựa chọn lẫn kết quả vào khung chat giống như giáo viên vừa gõ.
+    // Bấm nút thì backend chạy thẳng hành động đã lưu (không gọi model) và trả về 2 tin nhắn:
+    // lựa chọn của giáo viên + câu kết quả — ghi vào khung chat như vừa gõ.
     async function handleConfirm(accept) {
-        if (!pendingConfirm || resolving) return;
+        if (!canConfirm || resolving) return;
         setResolving(true);
         try {
-            const {userText, reply} = await confirmChatAction(pendingConfirm.actionId, accept);
-            setMessages(prev => [
-                ...prev,
-                {role: 'user', content: userText},
-                {role: 'assistant', content: reply},
-            ]);
+            const {messages: added} = await confirmChatAction(confirmation.actionId, accept);
+            setMessages(prev => [...prev, ...added]);
         } catch (err) {
             toast.error(err?.message || 'Không xử lý được yêu cầu xác nhận');
         } finally {
-            setPendingConfirm(null);
             setResolving(false);
         }
     }
@@ -281,10 +261,8 @@ export default function ChatBot() {
         try {
             abortRef.current?.abort();
             await clearChatHistory();
-            setMessages([{role: 'assistant', content: welcome}]);
+            setMessages([welcomeMessage]);
             setInput('');
-            setToolLabel(null);
-            setPendingConfirm(null);
             setConfirmClear(false);
             inputRef.current?.focus();
         } catch (err) {
@@ -356,12 +334,15 @@ export default function ChatBot() {
             {/* Messages */}
             <ScrollArea className="flex-1 min-h-0">
                 <div className="px-4 py-3 space-y-3">
-                    {messages.map((m, i) => {
-                        if (m.content === '' && i === messages.length - 1) return null; // placeholder ẩn khi chưa có token
+                    {messages.map((m) => {
+                        const text = textOf(m);
+                        const examPreview = findPart(m, 'data-exam-preview')?.data;
+                        // Tin đang stream chưa có chữ: ẩn bong bóng, chỉ báo loading bên dưới thay chỗ.
+                        if (!text && !examPreview) return null;
                         const isUser = m.role === 'user';
                         return (
                             // Cột: hàng [avatar + bong bóng] ở trên, nút copy ở dưới.
-                            <div key={i} className={`flex flex-col gap-0.5 ${isUser ? 'items-end' : 'items-start'}`}>
+                            <div key={m.id} className={`flex flex-col gap-0.5 ${isUser ? 'items-end' : 'items-start'}`}>
                                 <div className={`flex gap-2 max-w-[80%] ${isUser ? 'justify-end' : 'justify-start'}`}>
                                     {!isUser && <BotAvatar/>}
                                     <div className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
@@ -369,22 +350,24 @@ export default function ChatBot() {
                                             ? 'bg-indigo-600 text-white rounded-br-sm whitespace-pre-wrap'
                                             : 'bg-slate-100 text-slate-700 rounded-bl-sm'
                                     }`}>
-                                        {isUser ? m.content : (
+                                        {isUser ? text : (
                                             <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
-                                                {m.content}
+                                                {text}
                                             </ReactMarkdown>
                                         )}
                                     </div>
                                 </div>
                                 {/* ml-9 = bề rộng avatar (28px) + gap (8px), để nút thẳng mép bong bóng */}
-                                <CopyButton text={m.content} className={isUser ? '' : 'ml-9'}/>
-                                {!isUser && m.examId && (
-                                    <ChatExamPreview examId={m.examId} initialExam={m.exam}/>
+                                <CopyButton text={text} className={isUser ? '' : 'ml-9'}/>
+                                {/* Lúc stream có kèm toàn bộ đề; sau F5 chỉ còn examId → bấm mới gọi API */}
+                                {examPreview && (
+                                    <ChatExamPreview examId={examPreview.examId}
+                                                     initialExam={examPreview.questions ? examPreview : undefined}/>
                                 )}
                             </div>
                         );
                     })}
-                    {loading && messages[messages.length - 1]?.content === '' && (
+                    {loading && !textOf(lastMessage) && (
                         toolLabel ? (
                             <div className="flex gap-2 justify-start">
                                 <BotAvatar/>
@@ -409,7 +392,7 @@ export default function ChatBot() {
                             </div>
                         )
                     )}
-                    {pendingConfirm && !loading && (
+                    {canConfirm && (
                         <div className="ml-9 flex flex-wrap gap-2">
                             <Button variant="gradient" size="sm" disabled={resolving}
                                     onClick={() => handleConfirm(true)}>

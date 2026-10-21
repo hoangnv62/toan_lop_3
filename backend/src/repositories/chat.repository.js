@@ -13,11 +13,12 @@ export const getOrCreateSession = async (userId) => {
   return { id };
 };
 
-// examId: đề chatbot vừa tạo trong lượt này — để nút "Xem đề thi" còn sau khi tải lại trang.
-export const saveMessage = (sessionId, role, content, examId = null) =>
+// content: chữ thuần — đưa vào ngữ cảnh cho model. parts: UIMessage.parts — dựng lại giao diện
+// (nút xác nhận, "Xem đề thi"...) sau khi tải lại trang. Bỏ trống thì coi như chỉ có chữ.
+export const saveMessage = (sessionId, role, content, parts = null) =>
   insert(
-    'INSERT INTO chat_messages (session_id, role, content, exam_id) VALUES (:sessionId, :role, :content, :examId)',
-    { sessionId, role, content, examId }
+    'INSERT INTO chat_messages (session_id, role, content, parts) VALUES (:sessionId, :role, :content, :parts)',
+    { sessionId, role, content, parts: parts && JSON.stringify(parts) }
   );
 
 // Dùng khi người dùng hủy giữa chừng: câu hỏi đã lưu trước khi gọi model nên
@@ -36,15 +37,15 @@ export const deleteMessage = (id) =>
 export const getSessionMessages = (sessionId, limit = null) => {
   if (!limit) {
     return query(
-      'SELECT role, content, exam_id, created_at FROM chat_messages WHERE session_id = :sessionId ORDER BY created_at ASC, id ASC',
+      'SELECT id, role, content, parts, created_at FROM chat_messages WHERE session_id = :sessionId ORDER BY created_at ASC, id ASC',
       { sessionId }
     );
   }
   // Lấy N tin cuối bằng DESC rồi đảo lại ở ngoài — MySQL không cho ORDER BY
   // ngược chiều ngay trong cùng một câu SELECT có LIMIT.
   return query(
-    `SELECT role, content, exam_id, created_at FROM (
-       SELECT id, role, content, exam_id, created_at FROM chat_messages
+    `SELECT id, role, content, parts, created_at FROM (
+       SELECT id, role, content, parts, created_at FROM chat_messages
        WHERE session_id = :sessionId
        ORDER BY created_at DESC, id DESC
        LIMIT :limit

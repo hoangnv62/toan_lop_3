@@ -39,15 +39,18 @@ export const consumeConfirmation = (key, turnStartedAt) => {
 
 // Ghi nhận lần hỏi kèm hành động sẽ chạy khi giáo viên bấm "Đồng ý". run() trả câu báo kết
 // quả để ghi vào lịch sử chat. Đã hỏi trong chính lượt này thì dùng lại mã cũ.
+// → { actionId, label, expiresAt } — gửi xuống giao diện thành part `data-confirmation`;
+// expiresAt để giao diện ẩn nút khi đã quá hạn (kể cả sau khi tải lại trang).
 export const requestConfirmation = ({ key, userId, label, run }, turnStartedAt) => {
   sweepExpired();
-  const entry = pendingConfirmations.get(key);
-  if (entry && entry.askedAt >= turnStartedAt) return entry.actionId;
-  forget(key);
-  const actionId = randomUUID();
-  pendingConfirmations.set(key, { askedAt: Date.now(), actionId });
-  pendingActions.set(actionId, { key, userId, label, run });
-  return actionId;
+  let entry = pendingConfirmations.get(key);
+  if (!entry || entry.askedAt < turnStartedAt) {
+    forget(key);
+    entry = { askedAt: Date.now(), actionId: randomUUID() };
+    pendingConfirmations.set(key, entry);
+    pendingActions.set(entry.actionId, { key, userId, label, run });
+  }
+  return { actionId: entry.actionId, label, expiresAt: entry.askedAt + CONFIRM_WINDOW_MS };
 };
 
 // Đường bấm nút: lấy ra (và xóa) hành động đang chờ của đúng người dùng; null khi không còn

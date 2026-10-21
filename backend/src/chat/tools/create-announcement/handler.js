@@ -93,7 +93,7 @@ export const handler = async (args, user, { turnStartedAt = Date.now() } = {}) =
   const key = confirmationKey(user.id, parsed.data);
   if (!consumeConfirmation(key, turnStartedAt)) {
     const classNames = classes.map(c => c.class_name).join(', ');
-    const actionId = requestConfirmation({
+    const confirmation = requestConfirmation({
       key,
       userId: user.id,
       label: `Gửi thông báo "${title}" tới lớp ${classNames}`,
@@ -103,7 +103,7 @@ export const handler = async (args, user, { turnStartedAt = Date.now() } = {}) =
       success: false,
       data: {
         title, content, classIds, classNames, emailDelivery, requiresConfirmation: true,
-        confirmation: { actionId, label: `Gửi thông báo "${title}"` },
+        confirmation,
       },
       message:
         `CHƯA GỬI. Hãy cho thầy/cô xem NGUYÊN VĂN tiêu đề và nội dung dưới đây, nêu lớp nhận ` +

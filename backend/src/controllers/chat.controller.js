@@ -1,21 +1,23 @@
-import { runChat, resolveConfirmation } from '../services/chat.service.js';
+import { runChat, resolveConfirmation, toUiMessage } from '../services/chat.service.js';
+import { createUiMessageWriter, textOfParts, UI_MESSAGE_STREAM_HEADER } from '../chat/ui-message.js';
 import { getChatErrorMessage } from '../chat/fallback-messages.js';
 import * as chatRepo from '../repositories/chat.repository.js';
 import { success } from '../utils/response.js';
 
+// Trả lời theo giao thức "UI Message Stream" (Vercel AI SDK) — xem src/chat/ui-message.js.
 export const chat = async (req, res) => {
-  const { messages } = req.body;
   const role = req.user.role;
-  const newUserContent = messages[messages.length - 1].content;
+  const newUserContent = textOfParts(req.body.messages.at(-1).parts);
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader(...UI_MESSAGE_STREAM_HEADER);
   res.flushHeaders();
 
-  let streamedAny = false;
   const startedAt = Date.now();
   const elapsed = () => `${Date.now() - startedAt}ms`;
+  const writer = createUiMessageWriter((chunk) => res.write(`data: ${JSON.stringify(chunk)}\n\n`));
 
   console.log(`[chat] start userId=${req.user.id} role=${role} chars=${newUserContent.length}`);
 
@@ -33,34 +35,20 @@ export const chat = async (req, res) => {
     abort.abort();
   });
 
+  writer.start();
   try {
-    await runChat(newUserContent, role, req.user, {
-      signal: abort.signal,
-      onToken: (token) => {
-        streamedAny = true;
-        res.write(`data: ${JSON.stringify({ token })}\n\n`);
-      },
-      onToolStart: (data) => res.write(`event: tool_start\ndata: ${JSON.stringify(data)}\n\n`),
-      onToolDone: (data) => res.write(`event: tool_done\ndata: ${JSON.stringify(data)}\n\n`),
-      onConfirmRequired: (data) =>
-        res.write(`event: confirm_required\ndata: ${JSON.stringify(data)}\n\n`),
-      onExamPreview: (data) => res.write(`event: exam_preview\ndata: ${JSON.stringify(data)}\n\n`),
-    });
+    await runChat(newUserContent, role, req.user, { signal: abort.signal, writer });
   } catch (err) {
     // Bị hủy thì không còn ai bên kia để nhận lời xin lỗi.
     if (abort.signal.aborted) return;
-
-    console.error(`[chat] failed userId=${req.user.id} after=${elapsed()} streamed=${streamedAny}`);
+    console.error(`[chat] failed userId=${req.user.id} after=${elapsed()} streamed=${!!writer.text()}`);
     console.error('Chat error:', err);
-    // Nếu model đã kịp trả một phần rồi mới hỏng, xuống dòng để câu xin lỗi
-    // không dính liền vào chữ cuối của đoạn dở dang.
-    const prefix = streamedAny ? '\n\n' : '';
-    const message = prefix + getChatErrorMessage(role, err);
-    res.write(`data: ${JSON.stringify({ token: message })}\n\n`);
+    writer.error(getChatErrorMessage(role, err));
   }
 
   if (abort.signal.aborted) return;
-  console.log(`[chat] done userId=${req.user.id} total=${elapsed()} streamed=${streamedAny}`);
+  console.log(`[chat] done userId=${req.user.id} total=${elapsed()} streamed=${!!writer.text()}`);
+  writer.finish();
   res.write('data: [DONE]\n\n');
   res.end();
 };
@@ -71,12 +59,7 @@ export const getChatHistory = async (req, res) => {
     return success(res, { messages: [], expiresAt: null });
   }
   const rows = await chatRepo.getSessionMessages(session.id);
-  const messages = rows.map(r => ({
-    role: r.role,
-    content: r.content,
-    examId: r.exam_id,
-    createdAt: r.created_at,
-  }));
+  const messages = rows.map(toUiMessage);
   success(res, { messages, expiresAt: session.expires_at });
 };
 

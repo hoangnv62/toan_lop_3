@@ -161,10 +161,9 @@ export const TABLE_STATEMENTS = [
     session_id INT NOT NULL,
     role       ENUM('user','assistant') NOT NULL,
     content    TEXT NOT NULL,
-    exam_id    INT NULL,
+    parts      LONGTEXT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE,
-    CONSTRAINT fk_chat_messages_exams FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE SET NULL
+    FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
   )`,
 ];
 
@@ -187,23 +186,40 @@ export async function addUserClassForeignKey(conn, dbName) {
       FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL`);
 }
 
-// Tin nhắn chatbot báo "đã tạo đề" lưu kèm exam_id để nút "Xem đề thi" còn dùng được sau
-// khi tải lại trang. Database tạo trước bản này chưa có cột — thêm vào nếu thiếu. Đề bị xóa
-// thì SET NULL: tin nhắn vẫn còn, chỉ mất nút.
-export async function addChatMessageExamColumn(conn, dbName) {
-  const [{ c }] = await conn.query(
+// chat_messages.parts: tin nhắn dạng UIMessage.parts (giao thức UI Message Stream — xem
+// src/chat/ui-message.js) để F5 xong giao diện dựng lại đủ nút "Xem đề thi", nút xác nhận...
+// Bản ngay trước dùng cột exam_id cho riêng nút "Xem đề thi": chuyển sang parts rồi bỏ cột,
+// để chỉ còn một nguồn dữ liệu.
+export async function migrateChatMessageParts(conn, dbName) {
+  const columns = async (name) => Number((await conn.query(
     `SELECT COUNT(*) AS c FROM information_schema.COLUMNS
-     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'chat_messages' AND COLUMN_NAME = 'exam_id'`,
-    [dbName]
-  );
-  if (Number(c) > 0) return;
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'chat_messages' AND COLUMN_NAME = ?`,
+    [dbName, name]
+  ))[0].c);
+
+  if (!(await columns('parts'))) {
+    await conn.query('ALTER TABLE chat_messages ADD COLUMN parts LONGTEXT NULL AFTER content');
+    console.log('>>> chat_messages: đã thêm cột parts');
+  }
+  if (!(await columns('exam_id'))) return;
 
   await conn.query(`
-    ALTER TABLE chat_messages
-      ADD COLUMN exam_id INT NULL AFTER content,
-      ADD CONSTRAINT fk_chat_messages_exams
-      FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE SET NULL`);
-  console.log('>>> chat_messages: đã thêm cột exam_id');
+    UPDATE chat_messages
+    SET parts = JSON_ARRAY(
+      JSON_OBJECT('type', 'text', 'text', content),
+      JSON_OBJECT('type', 'data-exam-preview', 'data', JSON_OBJECT('examId', exam_id)))
+    WHERE exam_id IS NOT NULL AND parts IS NULL`);
+  const fks = await conn.query(
+    `SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'chat_messages' AND COLUMN_NAME = 'exam_id'
+       AND REFERENCED_TABLE_NAME IS NOT NULL`,
+    [dbName]
+  );
+  for (const { CONSTRAINT_NAME } of fks) {
+    await conn.query(`ALTER TABLE chat_messages DROP FOREIGN KEY \`${CONSTRAINT_NAME}\``);
+  }
+  await conn.query('ALTER TABLE chat_messages DROP COLUMN exam_id');
+  console.log('>>> chat_messages: đã chuyển exam_id sang parts và bỏ cột exam_id');
 }
 
 // Database tạo trước bản này có question_bank.lesson_id cho phép NULL ("chưa phân

@@ -3,7 +3,8 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { streamChatWithTools } from '../../utils/llm.utils.js';
 import { executeTool } from '../tools/executor.js';
-import { TEACHER_TOOLS, TOOL_LABELS } from '../tools/registry.js';
+import { randomUUID } from 'crypto';
+import { TEACHER_TOOLS } from '../tools/registry.js';
 import { describeNow } from '../../utils/date.utils.js';
 import * as examService from '../../services/exam.service.js';
 
@@ -86,14 +87,15 @@ export const runTeacherAgent = async (
       if (signal?.aborted) return;
 
       const name = tc.function.name;
-      onToolStart({ tool: name, label: TOOL_LABELS[name] || name });
-
       let args = {};
       try { args = JSON.parse(tc.function.arguments); } catch {}
+      // Gemini có lúc trả tool call không kèm id; giao diện cần id để khớp lúc chạy với kết quả.
+      const toolCallId = tc.id || `call_${randomUUID()}`;
+      onToolStart({ toolCallId, toolName: name, input: args });
 
       // `ui` chỉ dành cho giao diện — không đưa cho model, đỡ tốn token.
       const { ui, ...result } = await executeTool(name, args, user, { turnStartedAt });
-      onToolDone({ tool: name });
+      onToolDone({ toolCallId, output: result });
       // Tool cần giáo viên xác nhận → frontend hiện nút Đồng ý / Không dưới câu trả lời.
       if (result?.data?.confirmation) onConfirmRequired?.(result.data.confirmation);
       if (ui?.examId) await emitExamPreview(ui.examId, user, onExamPreview);
