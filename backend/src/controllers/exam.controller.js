@@ -88,6 +88,7 @@ export const getExamStats = async (req, res) => {
 export const getClassResults = async (req, res) => {
   const { examName, rows } = await svc.exportResults(parseInt(req.params.id));
   const data = rows.map(r => ({
+    studentId: r.student_id,
     fullName: r.full_name,
     username: r.username,
     score: parseFloat(r.score || 0),

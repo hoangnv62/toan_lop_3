@@ -32,7 +32,7 @@ export default function ClassResultsModal({ exam, onClose }) {
   }, [exam.examId]);
 
   const results = data?.results ?? [];
-  const myRank  = !isTeacher ? results.findIndex(r => r.username === user?.username) + 1 : 0;
+  const myRank  = !isTeacher ? results.findIndex(r => r.studentId === user?.userId) + 1 : 0;
   const topScore = results.length ? results[0].score : null;
 
   return (
@@ -97,11 +97,11 @@ export default function ClassResultsModal({ exam, onClose }) {
                 </TableHeader>
                 <TableBody>
                   {results.map((r, i) => {
-                    const isMe  = !isTeacher && r.username === user?.username;
+                    const isMe  = !isTeacher && r.studentId === user?.userId;
                     const rank  = i + 1;
                     const medalCls = rank === 1 ? 'text-yellow-500' : rank === 2 ? 'text-slate-400' : rank === 3 ? 'text-amber-600' : 'text-slate-300';
                     return (
-                      <TableRow key={r.username}
+                      <TableRow key={r.studentId}
                         className={isMe ? 'bg-indigo-50/70' : undefined}>
                         <TableCell className="px-5">
                           {rank <= 3

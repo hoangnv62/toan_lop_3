@@ -337,7 +337,7 @@ export const getStats = async (examId) => {
 
 export const getExportData = (examId) =>
   query(
-    `SELECT u.full_name, u.username,
+    `SELECT sa.student_id, u.full_name, u.username,
        ROUND(SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END)*10.0/NULLIF(COUNT(DISTINCT q.id),0),1) AS score,
        SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END) AS correct_count,
        COUNT(DISTINCT q.id) AS total_questions,
