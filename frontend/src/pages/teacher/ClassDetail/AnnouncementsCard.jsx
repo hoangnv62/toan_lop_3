@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-import { FiBell, FiTrash2, FiSave, FiLoader } from 'react-icons/fi';
+import { FiBell, FiPlus, FiTrash2, FiSave, FiLoader } from 'react-icons/fi';
 import { useAnnouncementMutations } from '../../../hooks/useAnnouncement';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,7 +62,7 @@ export default function AnnouncementsCard({ classId, announcements, onChanged })
             {announcements.length > 0 && <Badge variant="info">{announcements.length}</Badge>}
           </div>
           <Button variant="ghost" className="py-1 px-2 text-xs text-indigo-600 hover:bg-indigo-50" onClick={() => setAnnForm(f => ({ ...f, open: !f.open }))}>
-            <FiBell size={12} /> Thêm
+            <FiPlus size={12} /> Thêm
           </Button>
         </div>
 
