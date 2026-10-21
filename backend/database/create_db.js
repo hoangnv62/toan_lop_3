@@ -40,7 +40,7 @@ async function main() {
   } catch (err) {
     console.error('Lỗi:', err);
   } finally {
-    if (conn) conn.end();
+    if (conn) await conn.end();
   }
 }
 
