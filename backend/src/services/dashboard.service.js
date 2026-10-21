@@ -2,6 +2,16 @@ import {query, queryOne} from '../config/database.js';
 import {generateJSON} from '../utils/llm.utils.js';
 import { ForbiddenError } from '../utils/error.utils.js';
 
+const TOP_STUDENT_COUNT = 5;
+
+// `rows` đã sắp giảm dần theo avgScore. Giữ cả những bạn đồng điểm với người thứ 5 —
+// cắt cứng thì bạn bằng điểm mà đứng sau (chỉ do thứ tự SQL) bị loại oan.
+const pickTopStudents = (rows) => {
+    if (rows.length <= TOP_STUDENT_COUNT) return rows;
+    const cutoffScore = rows[TOP_STUDENT_COUNT - 1].avgScore;
+    return rows.filter(row => row.avgScore >= cutoffScore);
+};
+
 export const getTeacherDashboard = async (teacherId) => {
     const summary = await queryOne(
         `SELECT (SELECT COUNT(*)
@@ -30,7 +40,7 @@ export const getTeacherDashboard = async (teacherId) => {
                   JOIN users u ON u.id = sa.student_id
          WHERE l.teacher_id = :tid
          GROUP BY sa.student_id
-         ORDER BY avgScore DESC`,
+         ORDER BY avgScore DESC, u.full_name ASC`,
         {tid: teacherId}
     );
 
@@ -79,7 +89,7 @@ export const getTeacherDashboard = async (teacherId) => {
         summary,
         scoreDistribution: dist,
         passRate: {pass: passCount, fail: failCount},
-        topStudents: scoreRows.slice(0, 5),
+        topStudents: pickTopStudents(scoreRows),
         classAvgScores,
     };
 };
