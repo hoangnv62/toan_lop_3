@@ -140,6 +140,7 @@ Lưu ý khi sửa phần chat:
 - **Response của chatbot theo giao thức "UI Message Stream" của Vercel AI SDK** (`src/chat/ui-message.js`, header `x-vercel-ai-ui-message-stream: v1`): mỗi chunk là `data: {type: start | text-start | text-delta | text-end | tool-input-available | tool-output-available | data-<tên> | error | finish}`, kết thúc `data: [DONE]`. Request cũng theo chuẩn UIMessage: `{messages: [{role, parts: [{type:'text', text}]}]}`. Dữ liệu riêng của app đi qua part `data-*` (`data-confirmation`, `data-exam-preview`) — đừng tự chế `event:` mới. Frontend dựng tin nhắn từ chunk bằng `applyChunk()` (`src/lib/ui-message-stream.js`) và hiển thị theo `parts`.
 - **`chat_messages.parts` lưu nguyên `UIMessage.parts`** (migration `migrateChatMessageParts`), `content` vẫn giữ chữ thuần để đưa vào ngữ cảnh cho model. Nhờ vậy F5 xong vẫn còn nút "Xem đề thi" và nút xác nhận (ẩn khi quá `expiresAt`). Kết quả tool chỉ lưu tóm tắt `{success, message}`; đề thi trong `data-exam-preview` chỉ lưu `examId` — bấm nút sau F5 mới gọi `GET /api/exams/:id`. `create_exam` trả `ui: { examId }`, agent *gỡ* `ui` trước khi đưa kết quả cho model (nội dung đề không chui vào ngữ cảnh).
 - **Form giao bài dùng A2UI v0.9** (đang làm thử, `@a2ui/react` + `@a2ui/web_core` ghim 0.12.0). Thiếu thời gian/giờ mở/hạn nộp → model gọi `show_assign_exam_form`; backend tự dựng thông điệp A2UI từ dữ liệu thật (không để model sinh JSON) và gửi trong part `data-a2ui`. Frontend dựng bằng catalog riêng `chat-a2ui/catalog.jsx`: dùng nguyên schema của basic catalog nhưng hiển thị bằng shadcn — `catalogId` hai bên phải khớp. Bấm "Giao bài" → `POST /api/chat/a2ui-action` → gọi lại đúng handler `assign_exam_to_class` (chung kiểm tra múi giờ/hạn nộp), `examId` lấy từ `surfaces.js` chứ không từ `context` client gửi. Gửi xong thì part được đánh dấu `status: 'submitted'` trong DB để F5 không hiện lại form.
+- **Lịch sử hội thoại** (`chat_sessions` có `title`, `updated_at`; migration `migrateChatSessionHistory` bỏ `expires_at`). Mỗi lượt chat gửi kèm `sessionId` của hội thoại đang mở; không gửi thì backend tạo hội thoại mới (tiêu đề = câu hỏi đầu, cắt 60 ký tự — không nhờ model đặt tên để khỏi tốn quota) và báo id qua chunk `start` (`messageMetadata.sessionId`). `sessionId` được kiểm tra đúng chủ TRƯỚC khi mở SSE. Nút xác nhận / form A2UI gửi kèm `sessionId` để kết quả ghi vào đúng hội thoại. Giữ 30 ngày từ lần hoạt động cuối — `pruneOldChatSessions` chạy mỗi lần backend khởi động. Dừng ngay câu đầu của hội thoại mới thì xóa luôn hội thoại đó.
 - **Sắp tin nhắn chat phải kèm `id`** (`chat.repository.js`). `created_at` chỉ chính xác tới giây; câu hỏi gửi trong cùng giây với câu trả lời trước có thể xếp lên trước nó → lượt cuối gửi cho Gemini là của trợ lý → 400 `Requests ending with a model turn are not supported`.
 
 ### Key API endpoints (non-obvious ones)
@@ -149,7 +150,8 @@ Lưu ý khi sửa phần chat:
 | GET/PUT | `/api/auth/profile` | View/update profile (fullName, dob, email, phone) |
 | PUT | `/api/auth/password` | Change password (`{currentPassword, newPassword}`) |
 | POST | `/api/chat` | AI chatbot (role-aware: teacher gets tool calling) |
-| DELETE | `/api/chat/history` | Xóa phiên chat của chính mình → bắt đầu cuộc trò chuyện mới |
+| GET | `/api/chat/sessions` | Lịch sử hội thoại của chính mình (mới hoạt động nhất lên đầu, tối đa 100) |
+| GET/PATCH/DELETE | `/api/chat/sessions/:id` | Xem tin nhắn (UIMessage) / đổi tên (`{title}`) / xóa một hội thoại — kiểm tra đúng chủ, sai trả 404 |
 | POST | `/api/chat/a2ui-action` | Thông điệp `action` A2UI khi giáo viên bấm nút trên form chatbot gửi (`{name, surfaceId, context}`) — chạy thẳng tool, không gọi model → `{surfaceId, summary, messages}` |
 | POST | `/api/chat/confirm/:actionId` | Nút Đồng ý / Không của chatbot (`{accept}`) — chạy thẳng hành động đang chờ, không gọi model → `{userText, reply}` |
 | GET | `/api/exams/:id` | Giáo viên: đề của mình, đủ đáp án + giải thích. Học sinh: chỉ đề đã giao cho lớp mình, đã tới giờ mở, chưa quá hạn — **không** có `isCorrected`/`explanation` (trước đây lộ đáp án qua DevTools) |
@@ -193,7 +195,7 @@ Lưu ý khi sửa phần chat:
   - `studentService.js` — student dashboard, teacher dashboard, AI advice, student results, getStudentProgress
   - `classService.js` — class CRUD, getStudentsWithScores, exportStudents, getClassExams, assignExam, updateExamAssignment, unassignExam
   - `lessonService.js` — lesson CRUD
-  - `chatService.js` — getChatHistory, clearChatHistory, confirmChatAction, streamChat (UI Message Stream qua XHR — giữ lại phần dòng dở giữa 2 lần nhận dữ liệu)
+  - `chatService.js` — listChatSessions, getChatSession, renameChatSession, deleteChatSession, confirmChatAction, sendA2uiAction, streamChat (UI Message Stream qua XHR — giữ lại phần dòng dở giữa 2 lần nhận dữ liệu)
   - `announcementService.js` — getAnnouncements, createAnnouncement, deleteAnnouncement
   - `relativeService.js` — getRelatives, addRelative, updateRelative, deleteRelative
 - `src/context/AuthContext.jsx` — chỉ export component `AuthProvider` (giữ được Fast Refresh)
@@ -257,7 +259,7 @@ Quy ước quan trọng:
 - **ClassDetail** (teacher): tabs for exam list, student roster (`StudentRoster`), announcements (`AnnouncementsCard`); `AddStudentCard` for adding students; `ImportCard` for bulk import; "Xem bài" opens `StudentResultsModal` (progress line chart + per-exam detail + teacher comment textarea)
 - **ExamResult** (student): shows teacher comment block if `result.teacherComment` is set
 - **QuestionBank** (teacher): paginated list with search + filter by lesson; supports create, edit, delete, import from Excel. Checkbox mỗi câu + "Chọn tất cả trang này" để xóa nhiều (lựa chọn bị xóa khi đổi trang/tìm kiếm/lọc). Nút "Tạo bằng AI" mở `AiGenerateModal` (2 bước: nhập yêu cầu → xem lại & chọn câu → lưu). **Mọi câu hỏi bắt buộc có chủ đề** — không còn mục "Chưa phân loại"
-- **ChatBot** (cả 2 vai): floating chat panel, role-aware (giáo viên thấy nhãn tool đang chạy như "Đang tìm câu hỏi...", "Đang tạo đề thi..."). Nút `FiPlus` ở header = "Cuộc trò chuyện mới" → AlertDialog xác nhận → `DELETE /api/chat/history`. Cần nút này vì phiên chat sống 24h, không xóa thì hội thoại hôm trước vẫn nằm trong ngữ cảnh gửi cho model
+- **ChatBot** (cả 2 vai): floating chat panel, role-aware (giáo viên thấy nhãn tool đang chạy như "Đang tìm câu hỏi...", "Đang tạo đề thi..."). Có **lịch sử hội thoại**: nút đồng hồ ở header mở danh sách (nhóm Hôm nay / Hôm qua / 7 ngày qua / Cũ hơn, đổi tên, xóa có AlertDialog; khi phóng to là cột bên trái). Nút `FiPlus` = "Cuộc trò chuyện mới" chỉ mở hội thoại mới, KHÔNG xóa gì. Mở chatbot thì tự mở lại hội thoại gần nhất nếu còn hoạt động trong 24h, cũ hơn thì bắt đầu mới — để ngữ cảnh hôm trước không kéo sang
 
 ### Excel import format for questions (`POST /api/questions/import-excel` and `/api/question-bank/import-excel`)
 | Column | Required | Values |

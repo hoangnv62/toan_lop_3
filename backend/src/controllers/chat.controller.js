@@ -1,14 +1,15 @@
-import { runChat, resolveConfirmation, toUiMessage } from '../services/chat.service.js';
+import * as chatService from '../services/chat.service.js';
 import { handleA2uiAction } from '../services/chat-a2ui.service.js';
 import { createUiMessageWriter, textOfParts, UI_MESSAGE_STREAM_HEADER } from '../chat/ui-message.js';
 import { getChatErrorMessage } from '../chat/fallback-messages.js';
-import * as chatRepo from '../repositories/chat.repository.js';
 import { success } from '../utils/response.js';
 
 // Trả lời theo giao thức "UI Message Stream" (Vercel AI SDK) — xem src/chat/ui-message.js.
 export const chat = async (req, res) => {
   const role = req.user.role;
   const newUserContent = textOfParts(req.body.messages.at(-1).parts);
+  // Trước khi mở SSE: sessionId sai / của người khác thì trả 404 JSON như mọi API khác.
+  const session = await chatService.resolveChatSession(req.user, req.body.sessionId, newUserContent);
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -36,9 +37,8 @@ export const chat = async (req, res) => {
     abort.abort();
   });
 
-  writer.start();
   try {
-    await runChat(newUserContent, role, req.user, { signal: abort.signal, writer });
+    await chatService.runChat(newUserContent, role, req.user, { signal: abort.signal, writer, session });
   } catch (err) {
     // Bị hủy thì không còn ai bên kia để nhận lời xin lỗi.
     if (abort.signal.aborted) return;
@@ -54,28 +54,29 @@ export const chat = async (req, res) => {
   res.end();
 };
 
-export const getChatHistory = async (req, res) => {
-  const session = await chatRepo.getActiveSession(req.user.id);
-  if (!session) {
-    return success(res, { messages: [], expiresAt: null });
-  }
-  const rows = await chatRepo.getSessionMessages(session.id);
-  const messages = rows.map(toUiMessage);
-  success(res, { messages, expiresAt: session.expires_at });
+// ── Lịch sử hội thoại ──────────────────────────────────────────────────────
+
+export const listChatSessions = async (req, res) => {
+  success(res, await chatService.listSessions(req.user));
 };
 
-// Bắt đầu cuộc trò chuyện mới: xóa phiên hiện tại để lượt chat kế tiếp không
-// mang theo ngữ cảnh cũ. Phiên sống 24h nên không có việc này thì hội thoại hôm
-// trước vẫn ảnh hưởng tới câu trả lời hôm sau.
-export const clearChatHistory = async (req, res) => {
-  await chatRepo.deleteUserSessions(req.user.id);
-  console.log(`[chat] cleared userId=${req.user.id}`);
-  success(res, null, 'Đã bắt đầu cuộc trò chuyện mới');
+export const getChatSession = async (req, res) => {
+  success(res, await chatService.getSession(req.user, req.params.sessionId));
+};
+
+export const renameChatSession = async (req, res) => {
+  success(res, await chatService.renameSession(req.user, req.params.sessionId, req.body.title));
+};
+
+export const deleteChatSession = async (req, res) => {
+  await chatService.deleteSession(req.user, req.params.sessionId);
+  success(res, null, 'Đã xóa cuộc trò chuyện');
 };
 
 // Giáo viên bấm nút Đồng ý / Không dưới câu hỏi xác nhận của chatbot.
 export const confirmAction = async (req, res) => {
-  success(res, await resolveConfirmation(req.params.actionId, req.body.accept, req.user));
+  const { accept, sessionId } = req.body;
+  success(res, await chatService.resolveConfirmation(req.params.actionId, accept, req.user, sessionId));
 };
 
 // Giáo viên bấm nút trên form A2UI do chatbot gửi (vd. "Giao bài").

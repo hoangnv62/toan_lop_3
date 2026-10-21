@@ -9,7 +9,7 @@ import { shadcnCatalog } from './catalog';
 // Dựng một "surface" A2UI (vd. form giao bài) mà chatbot gửi trong part `data-a2ui`:
 // { surfaceId, messages: [createSurface, updateComponents, updateDataModel], status?, summary? }.
 // Bấm nút trong form → action A2UI gửi về backend, backend chạy thẳng tool (không gọi model).
-export default function ChatA2uiSurface({ surface, onSubmitted }) {
+export default function ChatA2uiSurface({ surface, sessionId, onSubmitted }) {
   const [busy, setBusy] = useState(false);
   // MessageProcessor giữ trạng thái form (giá trị đang nhập) → tạo 1 lần cho mỗi surface.
   // Giữ onSubmitted của lần đầu là đủ: ChatBot chỉ gọi setMessages dạng hàm cập nhật bên trong.
@@ -17,7 +17,7 @@ export default function ChatA2uiSurface({ surface, onSubmitted }) {
     const processor = new MessageProcessor([shadcnCatalog], async (action) => {
       setBusy(true);
       try {
-        onSubmitted(await sendA2uiAction(action));
+        onSubmitted(await sendA2uiAction(action, sessionId));
       } catch (err) {
         // Sai dữ liệu (hạn nộp ở quá khứ, thiếu lớp...) → báo lỗi, form vẫn mở để sửa.
         toast.error(err?.message || 'Không gửi được form');

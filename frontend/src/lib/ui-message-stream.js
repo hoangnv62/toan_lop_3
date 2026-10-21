@@ -1,7 +1,7 @@
 // Dựng tin nhắn từ các chunk của giao thức "UI Message Stream" (Vercel AI SDK) mà backend
 // stream về — cùng việc với readUIMessageStream của AI SDK nhưng không phải thêm thư viện.
 // Tin nhắn có dạng UIMessage: { id, role, parts: [...] }, giống hệt dạng backend lưu trong DB
-// và trả ở GET /api/chat/history, nên lúc stream và sau khi F5 hiển thị y như nhau.
+// và trả ở GET /api/chat/sessions/:id, nên lúc stream và khi mở lại từ lịch sử hiển thị y như nhau.
 
 export const textMessage = (role, text, id = `local_${Date.now()}_${Math.random()}`) =>
   ({ id, role, parts: [{ type: 'text', text }] });

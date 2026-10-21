@@ -151,9 +151,11 @@ export const TABLE_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS chat_sessions (
     id         INT AUTO_INCREMENT PRIMARY KEY,
     user_id    INT NOT NULL,
+    title      VARCHAR(120) NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    expires_at DATETIME NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_chat_sessions_user_id_updated_at (user_id, updated_at)
   )`,
 
   `CREATE TABLE IF NOT EXISTS chat_messages (
@@ -184,6 +186,58 @@ export async function addUserClassForeignKey(conn, dbName) {
     ALTER TABLE users
       ADD CONSTRAINT fk_user_class
       FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL`);
+}
+
+// Lịch sử hội thoại: mỗi chat_sessions là một cuộc trò chuyện xem lại / chat tiếp được, có tiêu
+// đề và updated_at (hội thoại hoạt động gần nhất lên đầu). Bản trước mỗi người chỉ có 1 phiên
+// sống 24h (expires_at) — phiên hết hạn vẫn nằm trong DB nhưng không cách nào xem lại.
+export async function migrateChatSessionHistory(conn, dbName) {
+  const hasColumn = async (name) => Number((await conn.query(
+    `SELECT COUNT(*) AS c FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'chat_sessions' AND COLUMN_NAME = ?`,
+    [dbName, name]
+  ))[0].c) > 0;
+
+  if (!(await hasColumn('title'))) {
+    await conn.query('ALTER TABLE chat_sessions ADD COLUMN title VARCHAR(120) NULL AFTER user_id');
+    // Tiêu đề = câu hỏi đầu tiên, giống cách đặt tên hội thoại mới (chat.service.js).
+    await conn.query(`
+      UPDATE chat_sessions s SET title = (
+        SELECT LEFT(m.content, 60) FROM chat_messages m
+        WHERE m.session_id = s.id AND m.role = 'user' ORDER BY m.id LIMIT 1)`);
+  }
+  if (!(await hasColumn('updated_at'))) {
+    await conn.query(
+      `ALTER TABLE chat_sessions
+         ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP AFTER created_at`
+    );
+    await conn.query(`
+      UPDATE chat_sessions s SET updated_at = COALESCE(
+        (SELECT MAX(m.created_at) FROM chat_messages m WHERE m.session_id = s.id), s.created_at)`);
+    await conn.query(
+      'CREATE INDEX idx_chat_sessions_user_id_updated_at ON chat_sessions (user_id, updated_at)'
+    );
+  }
+  if (await hasColumn('expires_at')) {
+    await conn.query('ALTER TABLE chat_sessions DROP COLUMN expires_at');
+    console.log(
+      '>>> chat_sessions: chuyển sang lịch sử hội thoại (title, updated_at; bỏ expires_at)',
+    );
+  }
+}
+
+// Giữ lịch sử hội thoại 30 ngày kể từ lần hoạt động cuối — chạy mỗi lần backend khởi động.
+export const CHAT_RETENTION_DAYS = 30;
+export async function pruneOldChatSessions(conn) {
+  const result = await conn.query(
+    'DELETE FROM chat_sessions WHERE updated_at < NOW() - INTERVAL ? DAY',
+    [CHAT_RETENTION_DAYS]
+  );
+  if (Number(result.affectedRows) > 0) {
+    console.log(
+      `>>> chat_sessions: đã xóa ${result.affectedRows} hội thoại quá ${CHAT_RETENTION_DAYS} ngày`,
+    );
+  }
 }
 
 // chat_messages.parts: tin nhắn dạng UIMessage.parts (giao thức UI Message Stream — xem

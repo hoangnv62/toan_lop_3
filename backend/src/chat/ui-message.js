@@ -37,7 +37,8 @@ export const createUiMessageWriter = (emit = () => {}) => {
     parts: () => parts,
     text: () => textOfParts(parts),
 
-    start: () => emit({ type: 'start', messageId }),
+    // messageMetadata: dữ liệu kèm tin nhắn theo chuẩn (vd. hội thoại nào — { sessionId, title }).
+    start: (messageMetadata) => emit({ type: 'start', messageId, messageMetadata }),
 
     textDelta(delta) {
       if (!delta) return;

@@ -3,7 +3,7 @@ import * as classRepo from '../repositories/class.repository.js';
 import { executeTool } from '../chat/tools/executor.js';
 import { findSurface, closeSurface } from '../chat/a2ui/surfaces.js';
 import { ASSIGN_EXAM_ACTION } from '../chat/a2ui/assign-exam-form.js';
-import { toUiMessage } from './chat.service.js';
+import { appendExchange } from './chat.service.js';
 import { BadRequestError, NotFoundError } from '../utils/error.utils.js';
 
 const MAX_MINUTES = 300;
@@ -39,7 +39,7 @@ const markSurfaceSubmitted = async (userId, surfaceId, summary) => {
 
 // Giáo viên bấm nút trên form A2UI (action v0.9: { name, surfaceId, context, ... }). Chạy thẳng
 // tool tương ứng — không gọi model — với examId lấy từ form đã lưu ở server, không từ client.
-export const handleA2uiAction = async ({ name, surfaceId, context = {} }, user) => {
+export const handleA2uiAction = async ({ name, surfaceId, context = {}, sessionId }, user) => {
   const surface = findSurface(surfaceId, user.id);
   if (!surface) {
     throw new NotFoundError('Form đã hết hạn — thầy/cô nhờ chatbot mở lại form giúp em nhé');
@@ -64,16 +64,7 @@ export const handleA2uiAction = async ({ name, surfaceId, context = {} }, user) 
   closeSurface(surfaceId);
   await markSurfaceSubmitted(user.id, surfaceId, userText);
 
-  const { id: sessionId } = await chatRepo.getOrCreateSession(user.id);
-  const userRowId = await chatRepo.saveMessage(sessionId, 'user', userText);
-  const replyRowId = await chatRepo.saveMessage(sessionId, 'assistant', result.message);
+  const messages = await appendExchange(user, sessionId, userText, result.message);
   console.log(`[chat] a2ui action userId=${user.id} name=${name} surface=${surfaceId}`);
-  return {
-    surfaceId,
-    summary: userText,
-    messages: [
-      toUiMessage({ id: userRowId, role: 'user', content: userText }),
-      toUiMessage({ id: replyRowId, role: 'assistant', content: result.message }),
-    ],
-  };
+  return { surfaceId, summary: userText, messages };
 };

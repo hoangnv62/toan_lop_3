@@ -1,15 +1,18 @@
 import {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {matchPath, useLocation} from 'react-router-dom';
-import {FiCheck, FiLoader, FiMaximize2, FiMinimize2, FiPlus, FiSend, FiSquare, FiX} from 'react-icons/fi';
+import {FiCheck, FiClock, FiLoader, FiMaximize2, FiMinimize2, FiPlus, FiSend, FiSquare, FiX} from 'react-icons/fi';
 import {IoCheckmarkOutline} from 'react-icons/io5';
 import {LuCopy} from "react-icons/lu";
 import {toast} from 'react-toastify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import {clearChatHistory, confirmChatAction, getChatHistory, streamChat} from '../../api/chatService';
+import {
+    confirmChatAction, deleteChatSession, getChatSession, listChatSessions, renameChatSession, streamChat,
+} from '../../api/chatService';
 import {useAuth} from '../../context/auth-context';
 import ChatExamPreview from './ChatExamPreview';
+import ChatHistoryList from './ChatHistoryList';
 import ChatA2uiSurface from './chat-a2ui/ChatA2uiSurface';
 import {applyChunk, findPart, textMessage, textOf} from '@/lib/ui-message-stream';
 import {runningToolLabel} from '@/lib/chat-tool-labels';
@@ -53,6 +56,11 @@ const OFFLINE_STUDENT = [
     'Ôi, hình như mạng của mình vừa đứt mất rồi. Bạn thử hỏi lại giúp mình nhé!',
     'Mình không kết nối được, chưa nghe thấy câu hỏi của bạn. Bạn gửi lại giúp mình nha!',
 ];
+
+// Mở lại hội thoại gần nhất nếu nó còn hoạt động trong khoảng này; cũ hơn thì bắt đầu hội thoại
+// mới để ngữ cảnh hôm trước không kéo sang (vẫn mở lại được từ lịch sử).
+const RESUME_WINDOW_MS = 24 * 60 * 60 * 1000;
+const startOfToday = () => new Date().setHours(0, 0, 0, 0);
 
 const pickOffline = (isTeacher) => {
     const list = isTeacher ? OFFLINE_TEACHER : OFFLINE_STUDENT;
@@ -139,9 +147,14 @@ export default function ChatBot() {
     const [messages, setMessages] = useState([welcomeMessage]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    const [confirmClear, setConfirmClear] = useState(false);
-    const [clearing, setClearing] = useState(false);
     const [resolving, setResolving] = useState(false);
+    // Lịch sử hội thoại: sessionId = hội thoại đang mở (null = hội thoại mới, chưa có trong DB).
+    const [sessionId, setSessionId] = useState(null);
+    const [sessions, setSessions] = useState([]);
+    const [todayStart, setTodayStart] = useState(startOfToday);
+    const [showHistory, setShowHistory] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleting, setDeleting] = useState(false);
     const bottomRef = useRef(null);
     const inputRef = useRef(null);
     const abortRef = useRef(null);
@@ -151,11 +164,16 @@ export default function ChatBot() {
     useEffect(() => {
         if (!user) return;
         let cancelled = false;
-        getChatHistory().then(data => {
+        listChatSessions().then(async list => {
             if (cancelled) return;
-            // Gán cả khi rỗng: tài khoản chưa có lịch sử thì phải chỉ còn mỗi lời
-            // chào, chứ không giữ nguyên những gì đang hiển thị.
-            setMessages([textMessage('assistant', welcome, 'welcome'), ...(data.messages ?? [])]);
+            setSessions(list);
+            setTodayStart(startOfToday());
+            const latest = list[0];
+            if (!latest || Date.now() - new Date(latest.updatedAt).getTime() > RESUME_WINDOW_MS) return;
+            const data = await getChatSession(latest.id);
+            if (cancelled) return;
+            setSessionId(latest.id);
+            setMessages([textMessage('assistant', welcome, 'welcome'), ...data.messages]);
         }).catch(() => {
         });
         return () => { cancelled = true; };
@@ -212,9 +230,19 @@ export default function ChatBot() {
 
         try {
             await streamChat(userMsg, {
+                sessionId,
                 signal: controller.signal,
-                onChunk: (chunk) => updateLastMessage(m => applyChunk(m, chunk)),
-                onDone: () => setLoading(false),
+                onChunk: (chunk) => {
+                    // Hội thoại mới: backend tạo rồi báo id trong chunk `start` → các lượt sau gửi kèm.
+                    if (chunk.type === 'start' && chunk.messageMetadata?.sessionId) {
+                        setSessionId(chunk.messageMetadata.sessionId);
+                    }
+                    updateLastMessage(m => applyChunk(m, chunk));
+                },
+                onDone: () => {
+                    setLoading(false);
+                    refreshSessions();
+                },
             });
         } catch {
             // Người dùng chủ động dừng: bỏ hẳn cặp câu hỏi + đoạn trả lời dở, khớp
@@ -241,8 +269,9 @@ export default function ChatBot() {
         if (!canConfirm || resolving) return;
         setResolving(true);
         try {
-            const {messages: added} = await confirmChatAction(confirmation.actionId, accept);
+            const {messages: added} = await confirmChatAction(confirmation.actionId, accept, sessionId);
             setMessages(prev => [...prev, ...added]);
+            refreshSessions();
         } catch (err) {
             toast.error(err?.message || 'Không xử lý được yêu cầu xác nhận');
         } finally {
@@ -261,28 +290,63 @@ export default function ChatBot() {
             })),
             ...added,
         ]);
+        refreshSessions();
     }
 
     function handleStop() {
         abortRef.current?.abort();
     }
 
-    // Phiên chat sống 24h nên hội thoại hôm trước vẫn nằm trong ngữ cảnh gửi cho
-    // model. Nút này xóa phiên để bắt đầu lại từ đầu — hữu ích khi mạch hội thoại
-    // đã lệch hoặc trước khi trình bày cho người khác xem.
-    async function handleClear() {
-        setClearing(true);
+    function refreshSessions() {
+        listChatSessions().then(list => {
+            setSessions(list);
+            setTodayStart(startOfToday());
+        }).catch(() => {
+        });
+    }
+
+    // Hội thoại mới: chỉ dọn màn hình — hội thoại cũ vẫn nằm trong lịch sử, không xóa gì.
+    // Hội thoại mới được tạo trong DB ở câu hỏi đầu tiên.
+    function startNewConversation() {
+        setSessionId(null);
+        setMessages([welcomeMessage]);
+        setInput('');
+        if (!expanded) setShowHistory(false);
+        inputRef.current?.focus();
+    }
+
+    async function openSession(id) {
         try {
-            abortRef.current?.abort();
-            await clearChatHistory();
-            setMessages([welcomeMessage]);
-            setInput('');
-            setConfirmClear(false);
-            inputRef.current?.focus();
+            const data = await getChatSession(id);
+            setSessionId(id);
+            setMessages([welcomeMessage, ...data.messages]);
+            if (!expanded) setShowHistory(false);
+        } catch (err) {
+            toast.error(err?.message || 'Không mở được cuộc trò chuyện');
+            refreshSessions();
+        }
+    }
+
+    async function handleRenameSession(id, title) {
+        try {
+            await renameChatSession(id, title);
+            refreshSessions();
+        } catch (err) {
+            toast.error(err?.message || 'Không đổi được tên cuộc trò chuyện');
+        }
+    }
+
+    async function handleDeleteSession() {
+        setDeleting(true);
+        try {
+            await deleteChatSession(deleteTarget.id);
+            if (deleteTarget.id === sessionId) startNewConversation();
+            setDeleteTarget(null);
+            refreshSessions();
         } catch (err) {
             toast.error(err?.message || 'Không xóa được cuộc trò chuyện');
         } finally {
-            setClearing(false);
+            setDeleting(false);
         }
     }
 
@@ -326,11 +390,16 @@ export default function ChatBot() {
                     <p className="text-sm font-semibold text-white">Trợ lý Toán</p>
                     <p className="text-xs text-indigo-200">Toán lớp 3 · Luôn sẵn sàng giúp bạn</p>
                 </div>
-                <Button onClick={() => setConfirmClear(true)} variant="ghost" size="icon-sm"
-                        disabled={loading || clearing}
+                <Button onClick={() => setShowHistory(v => !v)} variant="ghost" size="icon-sm"
+                        title="Lịch sử trò chuyện" aria-label="Lịch sử trò chuyện" aria-pressed={showHistory}
+                        className={cn('ml-auto text-indigo-200 hover:bg-white/15 hover:text-white',
+                            showHistory && 'bg-white/15 text-white')}>
+                    <FiClock size={15}/>
+                </Button>
+                <Button onClick={startNewConversation} variant="ghost" size="icon-sm" disabled={loading}
                         title="Cuộc trò chuyện mới" aria-label="Bắt đầu cuộc trò chuyện mới"
-                        className="ml-auto text-indigo-200 hover:bg-white/15 hover:text-white">
-                    {clearing ? <FiLoader size={15} className="animate-spin"/> : <FiPlus size={16}/>}
+                        className="text-indigo-200 hover:bg-white/15 hover:text-white">
+                    <FiPlus size={16}/>
                 </Button>
                 <Button onClick={() => setExpanded(e => !e)} variant="ghost" size="icon-sm"
                         title={expanded ? 'Thu nhỏ' : 'Phóng to'}
@@ -345,139 +414,153 @@ export default function ChatBot() {
                 </Button>
             </div>
 
-            {/* Messages */}
-            <ScrollArea className="flex-1 min-h-0">
-                <div className="px-4 py-3 space-y-3">
-                    {messages.map((m) => {
-                        const text = textOf(m);
-                        const examPreview = findPart(m, 'data-exam-preview')?.data;
-                        const a2uiSurface = findPart(m, 'data-a2ui')?.data;
-                        // Tin đang stream chưa có chữ: ẩn bong bóng, chỉ báo loading bên dưới thay chỗ.
-                        if (!text && !examPreview && !a2uiSurface) return null;
-                        const isUser = m.role === 'user';
-                        return (
-                            // Cột: hàng [avatar + bong bóng] ở trên, nút copy ở dưới.
-                            <div key={m.id} className={`flex flex-col gap-0.5 ${isUser ? 'items-end' : 'items-start'}`}>
-                                <div className={`flex gap-2 max-w-[80%] ${isUser ? 'justify-end' : 'justify-start'}`}>
-                                    {!isUser && <BotAvatar/>}
-                                    <div className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                                        isUser
-                                            ? 'bg-indigo-600 text-white rounded-br-sm whitespace-pre-wrap'
-                                            : 'bg-slate-100 text-slate-700 rounded-bl-sm'
-                                    }`}>
-                                        {isUser ? text : (
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
-                                                {text}
-                                            </ReactMarkdown>
-                                        )}
-                                    </div>
-                                </div>
-                                {/* ml-9 = bề rộng avatar (28px) + gap (8px), để nút thẳng mép bong bóng */}
-                                <CopyButton text={text} className={isUser ? '' : 'ml-9'}/>
-                                {/* Lúc stream có kèm toàn bộ đề; sau F5 chỉ còn examId → bấm mới gọi API */}
-                                {examPreview && (
-                                    <ChatExamPreview examId={examPreview.examId}
-                                                     initialExam={examPreview.questions ? examPreview : undefined}/>
+            <div className="flex min-h-0 flex-1">
+                {showHistory && (
+                    <aside className={cn('flex min-h-0 flex-col bg-white',
+                        expanded ? 'w-64 shrink-0 border-r border-slate-100' : 'w-full')}>
+                        <p className="shrink-0 px-4 pt-3 pb-1 text-xs font-semibold text-slate-500">Lịch sử trò chuyện</p>
+                        <ChatHistoryList sessions={sessions} currentId={sessionId} todayStart={todayStart}
+                                         disabled={loading} onSelect={openSession}
+                                         onRename={handleRenameSession} onDelete={setDeleteTarget}/>
+                    </aside>
+                )}
+                {(!showHistory || expanded) && (
+                    <div className="flex min-w-0 flex-1 flex-col">
+                        {/* Messages */}
+                        <ScrollArea className="flex-1 min-h-0">
+                            <div className="px-4 py-3 space-y-3">
+                                {messages.map((m) => {
+                                    const text = textOf(m);
+                                    const examPreview = findPart(m, 'data-exam-preview')?.data;
+                                    const a2uiSurface = findPart(m, 'data-a2ui')?.data;
+                                    // Tin đang stream chưa có chữ: ẩn bong bóng, chỉ báo loading bên dưới thay chỗ.
+                                    if (!text && !examPreview && !a2uiSurface) return null;
+                                    const isUser = m.role === 'user';
+                                    return (
+                                        // Cột: hàng [avatar + bong bóng] ở trên, nút copy ở dưới.
+                                        <div key={m.id} className={`flex flex-col gap-0.5 ${isUser ? 'items-end' : 'items-start'}`}>
+                                            <div className={`flex gap-2 max-w-[80%] ${isUser ? 'justify-end' : 'justify-start'}`}>
+                                                {!isUser && <BotAvatar/>}
+                                                <div className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                                                    isUser
+                                                        ? 'bg-indigo-600 text-white rounded-br-sm whitespace-pre-wrap'
+                                                        : 'bg-slate-100 text-slate-700 rounded-bl-sm'
+                                                }`}>
+                                                    {isUser ? text : (
+                                                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+                                                            {text}
+                                                        </ReactMarkdown>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {/* ml-9 = bề rộng avatar (28px) + gap (8px), để nút thẳng mép bong bóng */}
+                                            <CopyButton text={text} className={isUser ? '' : 'ml-9'}/>
+                                            {/* Lúc stream có kèm toàn bộ đề; sau F5 chỉ còn examId → bấm mới gọi API */}
+                                            {examPreview && (
+                                                <ChatExamPreview examId={examPreview.examId}
+                                                                 initialExam={examPreview.questions ? examPreview : undefined}/>
+                                            )}
+                                            {a2uiSurface && (
+                                                <div className="ml-9 w-[calc(100%-2.25rem)] max-w-[80%]">
+                                                    <ChatA2uiSurface key={a2uiSurface.surfaceId} surface={a2uiSurface}
+                                                                     sessionId={sessionId} onSubmitted={handleA2uiSubmitted}/>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                                {loading && !textOf(lastMessage) && (
+                                    toolLabel ? (
+                                        <div className="flex gap-2 justify-start">
+                                            <BotAvatar/>
+                                            <div
+                                                className="bg-indigo-50 border border-indigo-100 rounded-2xl rounded-bl-sm px-4 py-2.5 flex items-center gap-2 text-sm text-indigo-600">
+                                                <FiLoader size={13} className="animate-spin shrink-0"/>
+                                                <span>{toolLabel}</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex gap-2 justify-start">
+                                            <BotAvatar/>
+                                            <div
+                                                className="bg-slate-100 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
+                                                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"
+                                                      style={{animationDelay: '0ms'}}/>
+                                                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"
+                                                      style={{animationDelay: '150ms'}}/>
+                                                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"
+                                                      style={{animationDelay: '300ms'}}/>
+                                            </div>
+                                        </div>
+                                    )
                                 )}
-                                {a2uiSurface && (
-                                    <div className="ml-9 w-[calc(100%-2.25rem)] max-w-[80%]">
-                                        <ChatA2uiSurface key={a2uiSurface.surfaceId} surface={a2uiSurface}
-                                                         onSubmitted={handleA2uiSubmitted}/>
+                                {canConfirm && (
+                                    <div className="ml-9 flex flex-wrap gap-2">
+                                        <Button variant="gradient" size="sm" disabled={resolving}
+                                                onClick={() => handleConfirm(true)}>
+                                            {resolving ? <FiLoader size={13} className="animate-spin"/> : <FiCheck size={13}/>}
+                                            Đồng ý
+                                        </Button>
+                                        <Button variant="outline" size="sm" disabled={resolving}
+                                                onClick={() => handleConfirm(false)}>
+                                            <FiX size={13}/> Không
+                                        </Button>
                                     </div>
                                 )}
+                                <div ref={bottomRef}/>
                             </div>
-                        );
-                    })}
-                    {loading && !textOf(lastMessage) && (
-                        toolLabel ? (
-                            <div className="flex gap-2 justify-start">
-                                <BotAvatar/>
-                                <div
-                                    className="bg-indigo-50 border border-indigo-100 rounded-2xl rounded-bl-sm px-4 py-2.5 flex items-center gap-2 text-sm text-indigo-600">
-                                    <FiLoader size={13} className="animate-spin shrink-0"/>
-                                    <span>{toolLabel}</span>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex gap-2 justify-start">
-                                <BotAvatar/>
-                                <div
-                                    className="bg-slate-100 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
-                                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"
-                                          style={{animationDelay: '0ms'}}/>
-                                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"
-                                          style={{animationDelay: '150ms'}}/>
-                                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"
-                                          style={{animationDelay: '300ms'}}/>
-                                </div>
-                            </div>
-                        )
-                    )}
-                    {canConfirm && (
-                        <div className="ml-9 flex flex-wrap gap-2">
-                            <Button variant="gradient" size="sm" disabled={resolving}
-                                    onClick={() => handleConfirm(true)}>
-                                {resolving ? <FiLoader size={13} className="animate-spin"/> : <FiCheck size={13}/>}
-                                Đồng ý
-                            </Button>
-                            <Button variant="outline" size="sm" disabled={resolving}
-                                    onClick={() => handleConfirm(false)}>
-                                <FiX size={13}/> Không
-                            </Button>
-                        </div>
-                    )}
-                    <div ref={bottomRef}/>
-                </div>
-            </ScrollArea>
+                        </ScrollArea>
 
-            {/* Input */}
-            <div className="border-t border-slate-100 shrink-0">
-                <div className="px-3 py-3 flex items-end gap-2">
-                    <Textarea ref={inputRef} rows={1} className="flex-1 resize-none rounded-xl max-h-20"
-                              placeholder="Nhập câu hỏi Toán..." value={input} onChange={e => setInput(e.target.value)}
-                              onKeyDown={handleKey}/>
-                    {loading ? (
-                        <Button
-                            onClick={handleStop}
-                            size="icon"
-                            title="Dừng trả lời"
-                            aria-label="Dừng trả lời"
-                            className="rounded-xl bg-slate-200 text-slate-700 hover:bg-slate-300 shrink-0"
-                        >
-                            <FiSquare size={12} className="fill-current"/>
-                        </Button>
-                    ) : (
-                        <Button
-                            onClick={handleSend}
-                            disabled={!input.trim()}
-                            size="icon"
-                            title="Gửi"
-                            aria-label="Gửi câu hỏi"
-                            className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shrink-0"
-                        >
-                            <FiSend size={15}/>
-                        </Button>
-                    )}
-                </div>
+                        {/* Input */}
+                        <div className="border-t border-slate-100 shrink-0">
+                            <div className="px-3 py-3 flex items-end gap-2">
+                                <Textarea ref={inputRef} rows={1} className="flex-1 resize-none rounded-xl max-h-20"
+                                          placeholder="Nhập câu hỏi Toán..." value={input} onChange={e => setInput(e.target.value)}
+                                          onKeyDown={handleKey}/>
+                                {loading ? (
+                                    <Button
+                                        onClick={handleStop}
+                                        size="icon"
+                                        title="Dừng trả lời"
+                                        aria-label="Dừng trả lời"
+                                        className="rounded-xl bg-slate-200 text-slate-700 hover:bg-slate-300 shrink-0"
+                                    >
+                                        <FiSquare size={12} className="fill-current"/>
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        onClick={handleSend}
+                                        disabled={!input.trim()}
+                                        size="icon"
+                                        title="Gửi"
+                                        aria-label="Gửi câu hỏi"
+                                        className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shrink-0"
+                                    >
+                                        <FiSend size={15}/>
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </Card>
     );
 
-    const clearDialog = (
-        <AlertDialog open={confirmClear} onOpenChange={setConfirmClear}>
+    const deleteDialog = (
+        <AlertDialog open={!!deleteTarget} onOpenChange={o => !o && setDeleteTarget(null)}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Bắt đầu cuộc trò chuyện mới?</AlertDialogTitle>
+                    <AlertDialogTitle>Xóa cuộc trò chuyện?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Toàn bộ tin nhắn trong cuộc trò chuyện hiện tại sẽ bị xóa và không thể
-                        khôi phục. Trợ lý cũng sẽ không còn nhớ những gì đã nói trước đó.
+                        "{deleteTarget?.title}" và toàn bộ tin nhắn trong đó sẽ bị xóa, không thể khôi phục.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel disabled={clearing}>Hủy</AlertDialogCancel>
-                    <AlertDialogAction onClick={(e) => { e.preventDefault(); handleClear(); }}
-                                       disabled={clearing}>
-                        {clearing ? 'Đang xóa...' : 'Xóa và bắt đầu lại'}
+                    <AlertDialogCancel disabled={deleting}>Hủy</AlertDialogCancel>
+                    <AlertDialogAction onClick={(e) => { e.preventDefault(); handleDeleteSession(); }}
+                                       disabled={deleting}>
+                        {deleting ? 'Đang xóa...' : 'Xóa'}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
@@ -485,7 +568,7 @@ export default function ChatBot() {
     );
 
     return createPortal(
-        <>{button}{panel}{clearDialog}</>,
+        <>{button}{panel}{deleteDialog}</>,
         document.body
     );
 }

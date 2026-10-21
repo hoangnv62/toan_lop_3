@@ -1,17 +1,51 @@
 import { query, queryOne, insert } from '../config/database.js';
 
-export const getOrCreateSession = async (userId) => {
-  const existing = await queryOne(
-    'SELECT id, expires_at FROM chat_sessions WHERE user_id = :userId AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
+// Mỗi chat_sessions là một cuộc trò chuyện trong lịch sử (schema.js, migrateChatSessionHistory).
+export const createSession = (userId, title) =>
+  insert('INSERT INTO chat_sessions (user_id, title) VALUES (:userId, :title)', { userId, title });
+
+// null khi không có hoặc là hội thoại của người khác.
+export const findUserSession = (sessionId, userId) =>
+  queryOne(
+    `SELECT id, title, created_at, updated_at FROM chat_sessions
+     WHERE id = :sessionId AND user_id = :userId`,
+    { sessionId, userId }
+  );
+
+export const findLatestUserSession = (userId) =>
+  queryOne(
+    `SELECT id, title, created_at, updated_at FROM chat_sessions
+     WHERE user_id = :userId ORDER BY updated_at DESC, id DESC LIMIT 1`,
     { userId }
   );
-  if (existing) return existing;
-  const id = await insert(
-    'INSERT INTO chat_sessions (user_id, expires_at) VALUES (:userId, DATE_ADD(NOW(), INTERVAL 24 HOUR))',
-    { userId }
+
+export const listUserSessions = (userId, limit) =>
+  query(
+    `SELECT s.id, s.title, s.created_at, s.updated_at,
+       (SELECT COUNT(*) FROM chat_messages m WHERE m.session_id = s.id) AS message_count
+     FROM chat_sessions s
+     WHERE s.user_id = :userId
+     ORDER BY s.updated_at DESC, s.id DESC
+     LIMIT :limit`,
+    { userId, limit }
   );
-  return { id };
-};
+
+// Có tin nhắn mới → đưa hội thoại lên đầu lịch sử.
+export const touchSession = (sessionId) =>
+  query('UPDATE chat_sessions SET updated_at = NOW() WHERE id = :sessionId', { sessionId });
+
+export const renameUserSession = (sessionId, userId, title) =>
+  query(
+    'UPDATE chat_sessions SET title = :title WHERE id = :sessionId AND user_id = :userId',
+    { sessionId, userId, title }
+  );
+
+// chat_messages có FK ON DELETE CASCADE theo session_id → tin nhắn đi theo.
+export const deleteUserSession = (sessionId, userId) =>
+  query(
+    'DELETE FROM chat_sessions WHERE id = :sessionId AND user_id = :userId',
+    { sessionId, userId },
+  );
 
 // content: chữ thuần — đưa vào ngữ cảnh cho model. parts: UIMessage.parts — dựng lại giao diện
 // (nút xác nhận, "Xem đề thi"...) sau khi tải lại trang. Bỏ trống thì coi như chỉ có chữ.
@@ -66,23 +100,4 @@ export const getSessionMessages = (sessionId, limit = null) => {
      ORDER BY created_at ASC, id ASC`,
     { sessionId, limit }
   );
-};
-
-export const getActiveSession = (userId) =>
-  queryOne(
-    'SELECT id, expires_at FROM chat_sessions WHERE user_id = :userId AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
-    { userId }
-  );
-
-// Xóa hẳn mọi phiên chat của người dùng (kể cả phiên đã hết hạn còn sót lại),
-// để lượt chat kế tiếp bắt đầu bằng ngữ cảnh trắng. Xóa message trước rồi mới
-// xóa session — chat_messages tham chiếu session_id.
-export const deleteUserSessions = async (userId) => {
-  await query(
-    `DELETE FROM chat_messages
-     WHERE session_id IN (SELECT id FROM chat_sessions WHERE user_id = :userId)`,
-    { userId }
-  );
-  const result = await query('DELETE FROM chat_sessions WHERE user_id = :userId', { userId });
-  return Number(result?.affectedRows ?? 0);
 };
