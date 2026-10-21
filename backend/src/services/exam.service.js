@@ -233,9 +233,16 @@ export const getClassResultsForStudent = async (examId, studentId) => {
     return {examName: exam.name, rows};
 };
 
-export const exportResults = async (examId) => {
+// Giáo viên phải sở hữu đề (qua bài học); có classId thì lớp cũng phải của mình và chỉ lấy
+// học sinh lớp đó — đề giao cho nhiều lớp mà không lọc thì trang chi tiết lớp trộn cả lớp khác.
+export const getResultsForTeacher = async (examId, teacherId, classId = null) => {
     const exam = await examRepo.findById(examId);
     if (!exam) throw new NotFoundError('Bài tập không tồn tại');
-    const rows = await examRepo.getExportData(examId);
+    const lesson = await lessonRepo.findById(exam.lesson_id);
+    if (lesson?.teacher_id !== teacherId) throw new ForbiddenError('Bài tập không thuộc quyền quản lý của bạn');
+    if (classId != null && !(await classRepo.findByIdAndTeacher(classId, teacherId))) {
+        throw new ForbiddenError('Lớp không thuộc quyền quản lý của bạn');
+    }
+    const rows = await examRepo.getExportData(examId, classId);
     return {examName: exam.name, rows};
 };

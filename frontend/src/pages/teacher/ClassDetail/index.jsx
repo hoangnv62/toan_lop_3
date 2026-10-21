@@ -64,7 +64,7 @@ export default function ClassDetail() {
   async function handleExport(examId, examName) {
     setExportingId(examId);
     try {
-      await exportExam(examId, `${examName}.xlsx`);
+      await exportExam(examId, `${examName}.xlsx`, classId);
     } catch (err) {
       toast.error(err.message || 'Xuất file thất bại');
     } finally { setExportingId(null); }
@@ -139,6 +139,7 @@ export default function ClassDetail() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
           <div className="xl:col-span-2 space-y-5">
             <ExamList
+              classId={classId}
               exams={assignedExams}
               exportingId={exportingId}
               onExport={handleExport}

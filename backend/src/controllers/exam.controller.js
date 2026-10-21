@@ -51,9 +51,14 @@ export const getStudentSubmission = async (req, res) => {
   success(res, await svc.getResult(parseInt(req.params.id), parseInt(req.params.studentId)));
 };
 
+// ?classId= tuỳ chọn — trang chi tiết lớp gửi kèm để chỉ lấy học sinh lớp đó.
+const parseClassIdQuery = (query) => (query.classId ? parseInt(query.classId) : null);
+
 export const exportExamResults = async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ success: false, message: 'Không có quyền' });
-  const { examName, rows } = await svc.exportResults(parseInt(req.params.id));
+  const { examName, rows } = await svc.getResultsForTeacher(
+    parseInt(req.params.id), req.user.id, parseClassIdQuery(req.query),
+  );
   const wsData = [['STT', 'Họ tên', 'Username', 'Điểm', 'Số câu đúng', 'Tổng câu', 'Thời gian (giây)', 'Thời gian nộp']];
   rows.forEach((row, i) => {
     wsData.push([i + 1, row.full_name, row.username,
@@ -89,7 +94,7 @@ export const getClassResults = async (req, res) => {
   const examId = parseInt(req.params.id);
   const { examName, rows } = req.user.role === 'student'
     ? await svc.getClassResultsForStudent(examId, req.user.id)
-    : await svc.exportResults(examId);
+    : await svc.getResultsForTeacher(examId, req.user.id, parseClassIdQuery(req.query));
   const data = rows.map(r => ({
     studentId: r.student_id,
     fullName: r.full_name,

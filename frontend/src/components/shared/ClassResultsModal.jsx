@@ -19,18 +19,19 @@ function fmtTime(seconds) {
   return m > 0 ? `${m}p ${s}s` : `${s}s`;
 }
 
-export default function ClassResultsModal({ exam, onClose }) {
+// classId: giáo viên ở trang chi tiết lớp truyền vào để chỉ xem lớp đó; học sinh bỏ trống.
+export default function ClassResultsModal({ exam, classId, onClose }) {
   const { user } = useAuth();
   const isTeacher = user?.role === 'teacher';
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getClassResults(exam.examId)
+    getClassResults(exam.examId, classId)
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, [exam.examId]);
+  }, [exam.examId, classId]);
 
   const results = data?.results ?? [];
   const ranks   = rankByScore(results, r => r.score);

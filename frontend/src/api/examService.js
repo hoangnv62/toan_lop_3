@@ -9,7 +9,7 @@ export const saveExam = (lessonId, examId, payload) => {
 export const submitExam          = (examId, payload)          => api.post(`/api/exams/${examId}/submit`, payload);
 export const getExamResult       = (examId)                   => api.get(`/api/exams/${examId}/result`);
 export const getExamStats        = (examId)                   => api.get(`/api/exams/${examId}/stats`);
-export const getClassResults     = (examId)                   => api.get(`/api/exams/${examId}/class-results`);
+export const getClassResults     = (examId, classId)          => api.get(`/api/exams/${examId}/class-results`, { params: { classId } });
 export const getAiExamFeedback   = (examId)                   => api.post(`/api/exams/${examId}/ai-feedback`);
 export const getAiStatsAnalysis  = (examId)                   => api.post(`/api/exams/${examId}/ai-analysis`);
 export const getStudentSubmission = (examId, studentId)       => api.get(`/api/exams/${examId}/submissions/${studentId}`);
@@ -26,7 +26,7 @@ export async function exportExamPdf(examId, { variants = 1, duration = 45 } = {}
   downloadBlob(blob, `de-thi-${examId}.pdf`);
 }
 
-export async function exportExam(examId, filename) {
-  const blob = await api.get(`/api/exams/${examId}/export`, { responseType: 'blob' });
+export async function exportExam(examId, filename, classId) {
+  const blob = await api.get(`/api/exams/${examId}/export`, { params: { classId }, responseType: 'blob' });
   downloadBlob(blob, filename || `ket-qua-${examId}.xlsx`);
 }

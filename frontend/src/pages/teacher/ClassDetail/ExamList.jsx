@@ -24,7 +24,7 @@ function deadlineInfo(deadlineStr) {
   return               { label: deadlineStr, cls: 'text-slate-400',   bg: 'bg-slate-50',  icon: <FiClock size={11} />,       note: null };
 }
 
-export default function ExamList({ exams, exportingId, onExport, onUnassign }) {
+export default function ExamList({ classId, exams, exportingId, onExport, onUnassign }) {
   const [page, setPage]           = useState(1);
   const [classModal, setClassModal] = useState(null);
 
@@ -39,7 +39,7 @@ export default function ExamList({ exams, exportingId, onExport, onUnassign }) {
   return (
     <Card className="p-5 gap-0">
       {classModal && (
-        <ClassResultsModal exam={classModal} onClose={() => setClassModal(null)} />
+        <ClassResultsModal exam={classModal} classId={classId} onClose={() => setClassModal(null)} />
       )}
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
