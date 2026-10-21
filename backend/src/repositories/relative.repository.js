@@ -1,18 +1,10 @@
-import { query, queryOne, insert } from '../config/database.js';
+import { query, queryOne, transaction } from '../config/database.js';
 
 export const findByStudent = (studentId) =>
   query(
     'SELECT id, name, phone, email, relationship, created_at FROM student_relatives WHERE student_id = :sid ORDER BY created_at ASC',
     { sid: studentId }
   );
-
-export const countByStudent = async (studentId) => {
-  const row = await queryOne(
-    'SELECT COUNT(*) AS cnt FROM student_relatives WHERE student_id = :sid',
-    { sid: studentId }
-  );
-  return row?.cnt || 0;
-};
 
 export const isStudentOfTeacher = async (studentId, teacherId) => {
   const row = await queryOne(
@@ -27,16 +19,29 @@ export const isStudentOfTeacher = async (studentId, teacherId) => {
 export const findById = (id) =>
   queryOne('SELECT * FROM student_relatives WHERE id = :id', { id });
 
-export const createRelative = (studentId, name, phone, email, relationship) =>
-  insert(
-    'INSERT INTO student_relatives (student_id, name, phone, email, relationship) VALUES (:studentId, :name, :phone, :email, :relationship)',
-    { studentId, name, phone, email: email || null, relationship: relationship || null }
-  );
+// Khoá dòng users của học sinh để các lần thêm đồng thời phải xếp hàng — không khoá thì
+// hai request cùng đếm được 4 rồi cùng insert, vượt giới hạn. Trả null khi đã đủ số lượng.
+export const createRelativeWithinLimit = (studentId, relative, maxRelatives) => {
+  const { name, phone, email, relationship } = relative;
+  return transaction(async (conn) => {
+    await conn.query('SELECT id FROM users WHERE id = :sid FOR UPDATE', { sid: studentId });
+    const [{ cnt }] = await conn.query(
+      'SELECT COUNT(*) AS cnt FROM student_relatives WHERE student_id = :sid',
+      { sid: studentId }
+    );
+    if (cnt >= maxRelatives) return null;
+    const result = await conn.query(
+      'INSERT INTO student_relatives (student_id, name, phone, email, relationship) VALUES (:studentId, :name, :phone, :email, :relationship)',
+      { studentId, name, phone, email, relationship }
+    );
+    return result.insertId;
+  });
+};
 
-export const updateRelative = (id, name, phone, email, relationship) =>
+export const updateRelative = (id, { name, phone, email, relationship }) =>
   query(
     'UPDATE student_relatives SET name = :name, phone = :phone, email = :email, relationship = :relationship WHERE id = :id',
-    { name, phone, email: email || null, relationship: relationship || null, id }
+    { name, phone, email, relationship, id }
   );
 
 export const deleteRelative = (id) =>

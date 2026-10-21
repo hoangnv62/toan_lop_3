@@ -42,6 +42,9 @@ export const useRelativeMutations = () => {
       );
       callback?.(data);
       return data;
+    } catch {
+      // toastPromise đã hiện lỗi cho người dùng; trả null để nơi gọi không dính unhandled rejection.
+      return null;
     } finally {
       setLoading(false);
     }
@@ -60,6 +63,9 @@ export const useRelativeMutations = () => {
       );
       callback?.(data);
       return data;
+    } catch {
+      // toastPromise đã hiện lỗi cho người dùng; trả null để nơi gọi không dính unhandled rejection.
+      return null;
     } finally {
       setLoading(false);
     }
@@ -78,6 +84,9 @@ export const useRelativeMutations = () => {
       );
       callback?.(data);
       return data;
+    } catch {
+      // toastPromise đã hiện lỗi cho người dùng; trả null để nơi gọi không dính unhandled rejection.
+      return null;
     } finally {
       setLoading(false);
     }

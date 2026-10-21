@@ -25,19 +25,18 @@ export const getRelatives = async (studentId, user) => {
   return rels.map(toRelative);
 };
 
-export const addRelative = async (studentId, userId, name, phone, email, relationship) => {
+export const addRelative = async (studentId, userId, relative) => {
   if (studentId !== userId) throw new ForbiddenError('Không có quyền truy cập');
-  const count = await relativeRepo.countByStudent(studentId);
-  if (count >= MAX_RELATIVES) throw new AppError(`Tối đa ${MAX_RELATIVES} người thân`, 400);
-  const id = await relativeRepo.createRelative(studentId, name, phone, email, relationship);
+  const id = await relativeRepo.createRelativeWithinLimit(studentId, relative, MAX_RELATIVES);
+  if (!id) throw new AppError(`Tối đa ${MAX_RELATIVES} người thân`, 400);
   return toRelative(await relativeRepo.findById(id));
 };
 
-export const updateRelative = async (relativeId, studentId, name, phone, email, relationship) => {
+export const updateRelative = async (relativeId, studentId, relative) => {
   const rel = await relativeRepo.findById(relativeId);
   if (!rel) throw new NotFoundError('Không tìm thấy người thân');
   if (rel.student_id !== studentId) throw new ForbiddenError('Không có quyền truy cập');
-  await relativeRepo.updateRelative(relativeId, name, phone, email, relationship);
+  await relativeRepo.updateRelative(relativeId, relative);
   return toRelative(await relativeRepo.findById(relativeId));
 };
 

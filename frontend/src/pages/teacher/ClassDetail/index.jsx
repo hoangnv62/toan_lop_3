@@ -94,8 +94,10 @@ export default function ClassDetail() {
     setRelLoading(true);
     try {
       setRelList(await getRelatives(student.id));
-    } catch {
-      setRelList([]);
+    } catch (err) {
+      // Đóng modal thay vì hiện danh sách rỗng — rỗng sẽ bị hiểu là "chưa có người thân".
+      toast.error(err.message || 'Không tải được danh sách người thân');
+      setRelModal(null);
     } finally {
       setRelLoading(false);
     }
