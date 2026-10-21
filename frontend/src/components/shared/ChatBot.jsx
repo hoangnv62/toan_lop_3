@@ -140,7 +140,7 @@ export default function ChatBot() {
     const inputRef = useRef(null);
     const abortRef = useRef(null);
 
-    // App gắn key={user.id} cho ChatBot nên đổi tài khoản là component remount
+    // App gắn key={user.userId} cho ChatBot nên đổi tài khoản là component remount
     // sạch state — chỗ này chỉ còn lo nạp lịch sử của đúng người đang đăng nhập.
     useEffect(() => {
         if (!user) return;

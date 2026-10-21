@@ -65,7 +65,7 @@ export default function App() {
       {/* key theo user: ChatBot nằm ngoài Routes nên không tự unmount khi đổi
           tài khoản. Không có key thì hội thoại của giáo viên còn nguyên trên
           màn hình học sinh cho tới khi tải lại trang. */}
-      <ChatBot key={user?.id ?? 'anon'} />
+      <ChatBot key={user?.userId ?? 'anon'} />
     </BrowserRouter>
   );
 }

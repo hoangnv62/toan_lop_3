@@ -14,6 +14,16 @@ export const countByStudent = async (studentId) => {
   return row?.cnt || 0;
 };
 
+export const isStudentOfTeacher = async (studentId, teacherId) => {
+  const row = await queryOne(
+    `SELECT 1 AS ok FROM users u
+     JOIN classes c ON c.id = u.class_id
+     WHERE u.id = :sid AND u.role = 'student' AND c.teacher_id = :tid`,
+    { sid: studentId, tid: teacherId }
+  );
+  return !!row;
+};
+
 export const findById = (id) =>
   queryOne('SELECT * FROM student_relatives WHERE id = :id', { id });
 

@@ -52,5 +52,5 @@ export const isTeacher = (user) => {
 }
 
 export const isStudent = (user) => {
-    return user.role === Authority.TEACHER;
+    return user.role === Authority.STUDENT;
 }

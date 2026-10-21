@@ -21,8 +21,10 @@ export const login = async (req, res) => {
 
 export const logout = (req, res) => successMsg(res, 'Logged out');
 
+// Cùng dạng `user` với login/register — frontend đọc `user.userId` ở mọi nơi.
 export const me = (req, res) => {
-  success(res, { loggedIn: true, ...req.user });
+  const { id, role, name } = req.user;
+  success(res, { loggedIn: true, userId: id, role, name });
 };
 
 export const getProfile = async (req, res) => {
