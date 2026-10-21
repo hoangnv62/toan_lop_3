@@ -2,7 +2,7 @@ export const definition = {
   type: 'function',
   function: {
     name: 'unassign_exam',
-    description: 'Hủy giao một đề thi khỏi một lớp học. Cần biết exam_id và class_id (dùng get_lessons/get_classes nếu chưa biết).',
+    description: 'Hủy giao một đề thi khỏi một lớp học. Cần biết exam_id và class_id (dùng get_exams/get_classes nếu chưa biết).',
     parameters: {
       type: 'object',
       properties: {

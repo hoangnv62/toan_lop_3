@@ -2,6 +2,10 @@ import { z } from 'zod';
 import * as examService from '../../../services/exam.service.js';
 import * as classService from '../../../services/class.service.js';
 import * as examRepo from '../../../repositories/exam.repository.js';
+import * as classRepo from '../../../repositories/class.repository.js';
+import {
+  NO_DEADLINE, OPEN_NOW, parseScheduleTime, toLocalSqlDateTime, validateSchedule,
+} from '../schedule.js';
 
 const answerSchema = z.object({
   content:   z.string().min(1),
@@ -24,6 +28,33 @@ const schema = z.object({
   deadline:    z.string().optional().nullable(),
   open_time:   z.string().optional().nullable(),
 });
+
+// Trường nào model không truyền thì GIỮ NGUYÊN giá trị đang lưu. updateAssignment ghi đè cả
+// 3 cột, nên trước đây chỉ đổi hạn nộp là time_limit thành NULL (cột NOT NULL → lỗi) và
+// open_time bị xóa. Thời điểm mới cũng chuẩn hoá múi giờ + kiểm tra như lúc giao đề.
+const mergeAssignmentUpdate = async ({ class_id, exam_id, time_limit, deadline, open_time }) => {
+  const current = await classRepo.findClassExamByClassAndExam(class_id, exam_id);
+  if (!current) return { error: 'Đề này chưa được giao cho lớp đó nên chưa có gì để sửa.' };
+
+  const open = open_time === undefined
+    ? { value: current.open_time && toLocalSqlDateTime(current.open_time), date: current.open_time }
+    : parseScheduleTime(open_time, OPEN_NOW, 'Thời điểm mở đề');
+  const due = deadline === undefined
+    ? { value: current.deadline && toLocalSqlDateTime(current.deadline), date: current.deadline }
+    : parseScheduleTime(deadline, NO_DEADLINE, 'Hạn nộp');
+  const error = open.error || due.error || validateSchedule({
+    openDate: open.date,
+    deadlineDate: due.date,
+    checkPast: deadline !== undefined,
+  });
+  if (error) return { error };
+
+  return {
+    timeLimit: time_limit ?? current.time_limit,
+    openTime: open.value ?? null,
+    deadline: due.value ?? null,
+  };
+};
 
 export const handler = async (args, user) => {
   const parsed = schema.safeParse(args);
@@ -114,8 +145,12 @@ export const handler = async (args, user) => {
   }
 
   if (hasAssignmentUpdate) {
+    const schedule = await mergeAssignmentUpdate({ class_id, exam_id, time_limit, deadline, open_time });
+    if (schedule.error) return { success: false, data: null, message: schedule.error, metadata: {} };
     try {
-      await classService.updateAssignment(class_id, user.id, exam_id, deadline, open_time, time_limit);
+      await classService.updateAssignment(
+        class_id, user.id, exam_id, schedule.deadline, schedule.openTime, schedule.timeLimit,
+      );
     } catch (err) {
       return { success: false, data: null, message: err.message, metadata: {} };
     }

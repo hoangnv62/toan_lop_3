@@ -4,7 +4,8 @@ export const definition = {
     name: 'update_exam',
     description: `Cập nhật đề thi. Hỗ trợ 2 loại thay đổi (có thể kết hợp cùng lúc):
 - Nội dung đề (name, description, questions): chỉ cần exam_id
-- Thông tin giao đề (time_limit, deadline, open_time): cần thêm class_id`,
+- Thông tin giao đề (time_limit, deadline, open_time): cần thêm class_id. Chỉ truyền trường
+  muốn đổi — trường không truyền giữ nguyên giá trị cũ`,
     parameters: {
       type: 'object',
       properties: {
@@ -53,11 +54,13 @@ export const definition = {
         },
         deadline: {
           type: 'string',
-          description: 'Thời hạn nộp mới, định dạng ISO 8601. Null để bỏ giới hạn.',
+          description: 'Hạn nộp mới, ISO 8601 theo giờ Việt Nam (vd 2026-08-12T23:00:00). ' +
+            'Truyền "none" để bỏ giới hạn. Không đổi thì đừng truyền.',
         },
         open_time: {
           type: 'string',
-          description: 'Thời điểm mở đề mới, định dạng ISO 8601. Null để mở ngay.',
+          description: 'Thời điểm mở đề mới, ISO 8601 theo giờ Việt Nam (vd 2026-08-11T07:00:00). ' +
+            'Truyền "now" để mở ngay. Không đổi thì đừng truyền.',
         },
       },
       required: ['exam_id'],

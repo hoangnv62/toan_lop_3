@@ -2,7 +2,9 @@ export const definition = {
   type: 'function',
   function: {
     name: 'assign_exam_to_class',
-    description: 'Giao đề thi cho một lớp học. Cần biết exam_id và class_id (dùng get_lessons/get_classes nếu chưa biết).',
+    description:
+      'Giao đề thi cho một lớp học. Cần exam_id và class_id (dùng get_exams/get_classes nếu chưa ' +
+      'biết). Phải hỏi giáo viên thời gian làm bài, thời điểm mở đề và hạn nộp trước khi gọi.',
     parameters: {
       type: 'object',
       properties: {
@@ -20,14 +22,16 @@ export const definition = {
         },
         open_time: {
           type: 'string',
-          description: 'Thời điểm mở đề, định dạng ISO 8601. Để null nếu mở ngay.',
+          description: 'Thời điểm mở đề, ISO 8601 theo giờ Việt Nam (vd 2026-08-11T07:00:00). ' +
+            'BẮT BUỘC — hỏi giáo viên; giáo viên chọn mở ngay thì truyền "now".',
         },
         deadline: {
           type: 'string',
-          description: 'Thời hạn nộp bài, định dạng ISO 8601. Để null nếu không giới hạn.',
+          description: 'Hạn nộp bài, ISO 8601 theo giờ Việt Nam (vd 2026-08-12T23:00:00). ' +
+            'BẮT BUỘC — hỏi giáo viên; giáo viên chọn không giới hạn thì truyền "none".',
         },
       },
-      required: ['exam_id', 'class_id'],
+      required: ['exam_id', 'class_id', 'open_time', 'deadline'],
     },
   },
 };

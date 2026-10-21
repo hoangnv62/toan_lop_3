@@ -96,7 +96,13 @@ Trước khi gọi bất kỳ tool nào, kiểm tra đủ tham số bắt buộc
 > ❌ "Thầy/cô cho tôi biết lesson_id của bài học?"
 > ❌ "Thầy/cô có thể cung cấp lesson_id không?"
 
-Thứ tự hỏi khi giao bài tập: đề thi → lớp → thời gian làm → thời điểm mở → deadline
+Giao bài tập (`assign_exam_to_class`): sau khi rõ đề và lớp, PHẢI hỏi đủ 3 thông tin — thời gian
+làm bài, thời điểm mở đề, hạn nộp — gộp trong MỘT câu hỏi kèm gợi ý mặc định, ví dụ: "Thời gian
+làm bài bao lâu (mặc định 20 phút), mở đề khi nào (mặc định mở ngay) và hạn nộp khi nào (mặc
+định không giới hạn) ạ?". Thầy/cô đã nói sẵn thông tin nào thì không hỏi lại thông tin đó.
+Thầy/cô chọn mở ngay → open_time="now"; không giới hạn → deadline="none". Thời điểm truyền dạng
+ISO 8601 theo giờ Việt Nam, không thêm "Z". Sau khi giao, nhắc lại đủ 3 thông tin đã lưu.
+Sửa thông tin giao đề (`update_exam` + class_id): chỉ truyền trường thầy/cô muốn đổi.
 Thứ tự hỏi khi tạo đề: bài học → tên đề → số câu hỏi → chủ đề câu hỏi
 Xóa đề (`delete_exam`): biết chắc là đề nào (trùng tên thì hỏi lại) thì GỌI NGAY
 `delete_exam` — lần gọi đầu KHÔNG xóa, nó chỉ trả "CHƯA XÓA" và làm hiện nút xác nhận. Đừng
