@@ -2,7 +2,10 @@ export const definition = {
   type: 'function',
   function: {
     name: 'delete_exam',
-    description: 'Xóa một đề thi thuộc quyền quản lý của giáo viên. Cần biết exam_id (dùng get_lessons để tìm nếu chưa biết).',
+    description:
+      'Xóa vĩnh viễn một đề thi của giáo viên. Cần exam_id (dùng get_exams để tìm). ' +
+      'Lần gọi đầu KHÔNG xóa mà trả về thông tin đề để hỏi giáo viên xác nhận; chỉ gọi lại ' +
+      'ở lượt sau khi giáo viên đã đồng ý rõ ràng.',
     parameters: {
       type: 'object',
       properties: {

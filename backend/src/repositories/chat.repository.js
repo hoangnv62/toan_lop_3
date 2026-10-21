@@ -24,6 +24,10 @@ export const saveMessage = (sessionId, role, content) =>
 export const deleteMessage = (id) =>
   query('DELETE FROM chat_messages WHERE id = :id', { id });
 
+// created_at chỉ chính xác tới giây nên luôn sắp phụ theo id: câu hỏi gửi ngay trong giây
+// trợ lý vừa trả lời xong mà xếp lên trước câu trả lời thì lượt cuối gửi cho model là của
+// trợ lý → Gemini trả 400 "Requests ending with a model turn are not supported".
+//
 // limit = null: lấy hết, dùng cho việc hiển thị lại lịch sử trong giao diện.
 // limit = N: chỉ lấy N tin mới nhất (vẫn trả về theo thứ tự cũ → mới) để dựng
 // ngữ cảnh gửi cho model. Phiên sống 24h nên không giới hạn thì mỗi lượt chat
@@ -31,7 +35,7 @@ export const deleteMessage = (id) =>
 export const getSessionMessages = (sessionId, limit = null) => {
   if (!limit) {
     return query(
-      'SELECT role, content, created_at FROM chat_messages WHERE session_id = :sessionId ORDER BY created_at ASC',
+      'SELECT role, content, created_at FROM chat_messages WHERE session_id = :sessionId ORDER BY created_at ASC, id ASC',
       { sessionId }
     );
   }
@@ -39,12 +43,12 @@ export const getSessionMessages = (sessionId, limit = null) => {
   // ngược chiều ngay trong cùng một câu SELECT có LIMIT.
   return query(
     `SELECT role, content, created_at FROM (
-       SELECT role, content, created_at FROM chat_messages
+       SELECT id, role, content, created_at FROM chat_messages
        WHERE session_id = :sessionId
        ORDER BY created_at DESC, id DESC
        LIMIT :limit
      ) AS recent
-     ORDER BY created_at ASC`,
+     ORDER BY created_at ASC, id ASC`,
     { sessionId, limit }
   );
 };

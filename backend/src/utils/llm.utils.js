@@ -85,7 +85,18 @@ const suggestedRetryMs = (err) => {
   return Number.isFinite(seconds) ? Math.ceil(seconds * 1000) : null;
 };
 
-// Any non-429 error is thrown immediately.
+// Lỗi thoáng qua phía đường truyền: proxy công ty (Squid) thỉnh thoảng trả 503
+// ERR_CONNECT_FAIL chỉ sau vài ms — đo được 3/12 lượt gọi. Không thử lại thì giáo
+// viên nhận câu xin lỗi, kể cả khi lỗi rơi vào giữa một chuỗi tool đã chạy dở.
+const TRANSIENT_STATUSES = new Set([500, 502, 503, 504]);
+
+// Không thử lại khi hết giờ chờ (đã đợi 60s, thử nữa chỉ làm người dùng đợi gấp đôi)
+// hay lỗi 4xx khác 429 (gửi lại y nguyên thì vẫn sai y nguyên).
+const isTransientError = (err) =>
+  TRANSIENT_STATUSES.has(err?.status)
+  || (err instanceof OpenAI.APIConnectionError && !(err instanceof OpenAI.APIConnectionTimeoutError));
+
+// 429 và lỗi thoáng qua được thử lại; mọi lỗi khác ném ra ngay.
 async function createCompletion(baseParams, signal, label) {
   let lastError;
   const startedAt = Date.now();
@@ -115,14 +126,15 @@ async function createCompletion(baseParams, signal, label) {
       );
       // Người dùng bấm hủy → dừng ngay, đừng retry.
       if (signal?.aborted) throw err;
-      if (err?.status !== 429) throw err;
+      const rateLimited = err?.status === 429;
+      if (!rateLimited && !isTransientError(err)) throw err;
       if (attempt === MAX_ATTEMPTS - 1) break;
 
       const suggested = suggestedRetryMs(err);
       // Jitter: sinh câu hỏi bắn nhiều chunk song song, cùng 429 rồi cùng thử
       // lại đúng một thời điểm thì lại 429 tiếp — phải làm chúng lệch nhau.
       const jitterMs = Math.floor(Math.random() * 1000);
-      // Không có RetryInfo (nhà cung cấp khác) thì quay về backoff 1s, 2s, 4s.
+      // Không có RetryInfo (lỗi thoáng qua, hoặc nhà cung cấp khác) thì backoff 1s, 2s, 4s.
       const waitMs = Math.min((suggested ?? 1000 * 2 ** attempt) + jitterMs, MAX_SLEEP_MS);
 
       // Hết ngân sách chờ thì dừng luôn — ngủ thêm rồi vẫn hỏng chỉ làm người
@@ -135,7 +147,7 @@ async function createCompletion(baseParams, signal, label) {
       }
 
       console.warn(
-        `[llm] ${label} rate_limited retry_in=${waitMs}ms source=${suggested ? 'server' : 'backoff'} waited=${waitedMs + waitMs}/${RETRY_BUDGET_MS}ms`
+        `[llm] ${label} ${rateLimited ? 'rate_limited' : 'transient_error'} retry_in=${waitMs}ms source=${suggested ? 'server' : 'backoff'} waited=${waitedMs + waitMs}/${RETRY_BUDGET_MS}ms`
       );
       await sleep(waitMs, signal);
       waitedMs += waitMs;

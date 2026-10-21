@@ -86,8 +86,9 @@ Giới hạn lượt gọi (bậc miễn phí Gemini) — **quota tính theo pro
 
 Chi phí mỗi lượt: chat giáo viên câu thường **1 request**, có dùng tool **2–4** (1 lượt đầu + tối đa `MAX_LOOPS` vòng), chat học sinh 1, sinh 50 câu hỏi 5. Nên đụng 429 là bình thường, không phải sự cố.
 
-`llm.utils.js` xử lý việc đó, có 2 chỗ dễ làm hỏng nếu sửa:
+`llm.utils.js` xử lý việc đó, có mấy chỗ dễ làm hỏng nếu sửa:
 - **`maxRetries: 0` khi khởi tạo client là cố ý.** Lần thử lại của SDK bắn lại gần như tức thì và không đọc `RetryInfo`, nên ở mức 5 RPM nó chỉ đốt thêm một lượt gọi rồi vẫn 429. Việc thử lại do `createCompletion()` lo.
+- **`createCompletion()` thử lại cả 429 lẫn lỗi thoáng qua** (500/502/503/504, lỗi kết nối — trừ hết giờ chờ). Proxy công ty thỉnh thoảng trả `503 ERR_CONNECT_FAIL` sau vài ms (đo được ~1/4 lượt gọi); chỉ thử lại 429 thì giáo viên nhận câu xin lỗi ngay giữa chuỗi tool. 4xx khác 429 thì ném ra luôn.
 - **Vòng lặp agent gọi `streamChatWithTools`, không gọi 2 lượt như trước.** Lượt đầu đã là stream *có kèm tool*: model tự trả lời được thì token chạy ra ngay trong lượt đó, chọn tool thì không phát token nào. Đừng quay lại kiểu "dò tool trước rồi stream lại" — kiểu đó tốn 2 request cho mọi câu thường và bỏ đi đúng câu trả lời vừa sinh.
 - **`mergeToolCallDeltas` phải giữ `extra_content`.** Gemini 3.x đính `thought_signature` trong đó và bắt buộc nhận lại nguyên vẹn ở lượt sau; làm rơi field này thì vòng tool thứ hai trả 400 `Function call is missing a thought_signature`. Hàm này cũng phải chịu được cả hai kiểu delta: Gemini gửi trọn tool call trong một delta không có `index`, còn OpenRouter chẻ `arguments` ra nhiều delta và đánh dấu bằng `index`.
 - **`client.fetch` bị bọc lại để gỡ vỏ mảng của body lỗi.** Gemini trả `[{ "error": ... }]`, còn SDK openai chỉ đọc `{ "error": ... }` nên `err.error` thành `undefined` và log chỉ còn `429 status code (no body)` — mất luôn `RetryInfo.retryDelay`. Wrapper phải lấy `fetch` từ chính client (là `node-fetch`, hiểu option `agent`); dùng `fetch` global của Node thì `httpAgent` bị bỏ qua và request chết ở proxy công ty.
@@ -126,6 +127,8 @@ Lưu ý khi sửa phần chat:
 - Prompt hệ thống ở `src/prompts/teacher-system.md`; bảng "Khi nào dùng Tool" phải ghi rõ tool nào cần ID và phải gọi `get_lessons`/`get_classes`/`get_exams` trước.
 - **`get_exams` là tool duy nhất trả về `exam_id`.** `get_lessons` chỉ trả `id/title/examCount` của *bài học*. Ngữ cảnh giữa các lượt chat chỉ giữ `{role, content}` (`chat.service.js`) — tool call và kết quả tool bị bỏ — nên nếu bỏ `get_exams` khỏi registry thì `update_exam`/`delete_exam`/`assign_exam_to_class`/`get_exam_stats` mất đường lấy ID, và model sẽ lặng lẽ `create_exam` một đề trùng thay vì sửa đề cũ.
 - **`MAX_LOOPS` trong `teacher-agent.js` phải đủ cho chuỗi tool dài nhất.** "Giao cho lớp 3A một bài kiểm tra 5 câu" cần 4 vòng tuần tự (`get_classes` → `get_lessons` → `create_exam` → `assign_exam_to_class`). Đặt trần 3 thì đề được tạo mà không được giao, đồng thời vòng lặp thoát lúc model vẫn đòi gọi tool nên không có chữ nào → chatbot im lặng, và `chat.service` không lưu message rỗng nên lượt sau mất luôn ngữ cảnh. Hết vòng lặp thì phải `history.pop()` lượt đòi-gọi-tool (mỗi `tool_call` bắt buộc có kết quả đi kèm ngay sau) rồi gọi lại **không kèm tool** để buộc ra câu trả lời.
+- **`delete_exam` phải qua 2 lượt chat.** Lần gọi đầu chỉ trả "CHƯA XÓA" + tên/ID đề; chỉ lần gọi ở lượt *sau* (tính theo `turnStartedAt` mà agent truyền qua `executeTool`) mới xóa. Prompt dặn hỏi xác nhận nhưng model từng bỏ qua: được bảo "xóa đề vừa tạo" khi đề đó chưa được tạo, nó tự chọn một đề cũ trùng tên rồi xóa cứng — mất luôn câu hỏi.
+- **Sắp tin nhắn chat phải kèm `id`** (`chat.repository.js`). `created_at` chỉ chính xác tới giây; câu hỏi gửi trong cùng giây với câu trả lời trước có thể xếp lên trước nó → lượt cuối gửi cho Gemini là của trợ lý → 400 `Requests ending with a model turn are not supported`.
 
 ### Key API endpoints (non-obvious ones)
 

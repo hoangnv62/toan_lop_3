@@ -40,6 +40,7 @@ không bao giờ làm được bài.`;
 };
 
 export const runTeacherAgent = async (messages, user, { onToken, onToolStart, onToolDone, signal }) => {
+  const turnStartedAt = Date.now();
   const systemPrompt = await buildSystemPrompt();
   const history = [
     { role: 'system', content: systemPrompt },
@@ -56,10 +57,9 @@ export const runTeacherAgent = async (messages, user, { onToken, onToolStart, on
     history, TEACHER_TOOLS, signal, 'teacher:answer', onToken
   );
 
-  if (!assistantMsg.tool_calls?.length) return;
-
-  // Agentic loop: execute tools, feed results back, repeat
-  history.push(assistantMsg);
+  // Không gọi tool mà cũng rỗng thì KHÔNG return ở đây — để rơi xuống phần buộc
+  // trả lời ở cuối hàm, kẻo chatbot im lặng.
+  if (assistantMsg.tool_calls?.length) history.push(assistantMsg);
 
   let loops = 0;
   while (assistantMsg.tool_calls?.length > 0 && loops < MAX_LOOPS) {
@@ -77,7 +77,7 @@ export const runTeacherAgent = async (messages, user, { onToken, onToolStart, on
       let args = {};
       try { args = JSON.parse(tc.function.arguments); } catch {}
 
-      const result = await executeTool(name, args, user);
+      const result = await executeTool(name, args, user, { turnStartedAt });
       onToolDone({ tool: name });
 
       history.push({
