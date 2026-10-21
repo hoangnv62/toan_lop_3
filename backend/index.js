@@ -3,6 +3,7 @@ import cors from 'cors';
 import express from 'express';
 import { env } from './src/config/env.js';
 import { initializeDatabase } from './database/init-db.js';
+import { finalizeExpiredAttempts } from './src/services/exam-attempt.service.js';
 import { errorHandler } from './src/middleware/error-handler.middleware.js';
 import { camelCaseResponse } from './src/middleware/camelcase-response.middleware.js';
 
@@ -17,6 +18,8 @@ import questionBankRouter from './src/routes/question-bank.route.js';
 import relativeRouter from './src/routes/relative.route.js';
 import studentRouter from './src/routes/student.route.js';
 import chatRouter from './src/routes/chat.route.js';
+
+const ATTEMPT_SWEEP_MS = 60 * 1000;
 
 const app = express();
 
@@ -73,6 +76,14 @@ async function start() {
   app.listen(env.PORT, () => {
     console.log(`Server is running at http://localhost:${env.PORT}`);
   });
+
+  // Chấm các lượt làm bài đã quá giờ mà học sinh không nộp (đóng tab, mất mạng) — để thống kê,
+  // kết quả, Excel của giáo viên có điểm mà không cần học sinh quay lại.
+  setInterval(() => {
+    finalizeExpiredAttempts()
+      .then(n => n && console.log(`[exam] tự chấm ${n} lượt làm bài quá giờ`))
+      .catch(err => console.error('[exam] tự chấm thất bại:', err.message));
+  }, ATTEMPT_SWEEP_MS);
 }
 
 start();

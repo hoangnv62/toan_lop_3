@@ -7,6 +7,9 @@ export const saveExam = (lessonId, examId, payload) => {
   return examId ? api.put(url, payload) : api.post(url, payload);
 };
 export const submitExam          = (examId, payload)          => api.post(`/api/exams/${examId}/submit`, payload);
+// Tự lưu một đáp án trong lúc làm bài (vào lại đề thì hiện lại; hết giờ thì chấm theo đây).
+export const saveAttemptAnswer   = (examId, questionId, answerId) =>
+  api.put(`/api/exams/${examId}/attempt/answers`, { questionId, answerId });
 export const getExamResult       = (examId)                   => api.get(`/api/exams/${examId}/result`);
 export const getExamStats        = (examId)                   => api.get(`/api/exams/${examId}/stats`);
 export const getClassResults     = (examId, classId)          => api.get(`/api/exams/${examId}/class-results`, { params: { classId } });

@@ -368,38 +368,6 @@ export const hasSubmitted = async (studentId, examId) => {
   return row != null;
 };
 
-export const submitExam = async (studentId, examId, answersData, timeSpent) => {
-  return transaction(async (conn) => {
-    const correctIds = await conn.query(
-      `SELECT a.id FROM answers a
-       JOIN questions q ON a.question_id = q.id
-       WHERE q.exam_id = :eid AND a.is_correct = 1`,
-      { eid: examId }
-    );
-    const correctSet = new Set(correctIds.map(r => r.id));
-
-    const totalRow = await conn.query(
-      'SELECT COUNT(*) AS cnt FROM questions WHERE exam_id = :eid',
-      { eid: examId }
-    );
-    const total = totalRow[0]?.cnt || 0;
-
-    let scoreCount = 0;
-    for (const item of answersData) {
-      if (correctSet.has(Number(item.answerId))) scoreCount++;
-      await conn.query(
-        'INSERT INTO student_answers (student_id, exam_id, answer_id, time_spent) VALUES (:sid, :eid, :aid, :ts)',
-        { sid: studentId, eid: examId, aid: item.answerId, ts: timeSpent }
-      );
-    }
-    return {
-      score: total ? parseFloat((scoreCount / total * 10).toFixed(1)) : 0,
-      correct: scoreCount,
-      total,
-    };
-  });
-};
-
 export const upsertComment = async (examId, studentId, teacherId, comment) => {
   const existing = await queryOne(
     'SELECT id FROM student_exam_comments WHERE exam_id = :eid AND student_id = :sid',

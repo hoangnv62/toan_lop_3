@@ -2,7 +2,9 @@ import { Router } from 'express';
 import { asyncHandler } from '../middleware/async-handler.middleware.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import * as ctrl from '../controllers/exam.controller.js';
-import { validateSubmitExam, validateSaveComment } from '../validation/exam.validation.js';
+import {
+  validateSubmitExam, validateSaveComment, validateSaveAttemptAnswer,
+} from '../validation/exam.validation.js';
 
 const router = Router();
 router.use(authenticate);
@@ -12,6 +14,7 @@ router.delete('/:id', asyncHandler(ctrl.deleteExam));
 router.get('/:id/assignments', asyncHandler(ctrl.getExamAssignments));
 router.post('/:id/clone', asyncHandler(ctrl.cloneExam));
 router.post('/:id/submit', validateSubmitExam, asyncHandler(ctrl.submitExam));
+router.put('/:id/attempt/answers', validateSaveAttemptAnswer, asyncHandler(ctrl.saveAttemptAnswer));
 router.get('/:id/result', asyncHandler(ctrl.getExamResult));
 router.get('/:id/stats', asyncHandler(ctrl.getExamStats));
 router.get('/:id/class-results', asyncHandler(ctrl.getClassResults));

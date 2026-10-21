@@ -2,7 +2,7 @@ import * as examRepo from '../repositories/exam.repository.js';
 import * as classRepo from '../repositories/class.repository.js';
 import * as lessonRepo from '../repositories/lesson.repository.js';
 import * as userRepo from '../repositories/user.repository.js';
-import {NotFoundError, ConflictError, ForbiddenError, BadRequestError} from '../utils/error.utils.js';
+import {NotFoundError, ForbiddenError, BadRequestError} from '../utils/error.utils.js';
 import {generateJSON} from '../utils/llm.utils.js';
 import {buildExamPdf} from './pdf.service.js';
 import {formatDate, formatDateTime} from '../utils/date.utils.js';
@@ -37,31 +37,12 @@ const getExam = async (examId) => {
     };
 };
 
-// Cho tới giờ mở đề và nộp tới hạn nộp + thời gian làm bài (+1 phút cho mạng chậm): học sinh
-// bắt đầu sát hạn vẫn được nộp đủ thời gian, nhưng không ai mở đề sau hạn rồi làm tiếp được.
-const SUBMIT_GRACE_MS = 60 * 1000;
-
-const findStudentAssignment = async (examId, studentId) => {
-    const assignment = await classRepo.findClassExamForStudent(studentId, examId);
-    if (!assignment) throw new ForbiddenError('Bài tập không được giao cho lớp của bạn');
-    if (assignment.open_time && new Date(assignment.open_time) > new Date()) {
-        throw new ForbiddenError('Chưa đến giờ mở đề');
-    }
-    return assignment;
-};
-
-const deadlineMs = (assignment) =>
-    assignment.deadline ? new Date(assignment.deadline).getTime() : Infinity;
-
-// Học sinh làm bài: BỎ đáp án đúng và giải thích — trước đây trả nguyên, mở DevTools là thấy
-// đáp án (giải thích kiểu "25 + 23 = 48" cũng lộ luôn).
-export const getExamForStudent = async (examId, studentId) => {
-    const assignment = await findStudentAssignment(examId, studentId);
-    if (deadlineMs(assignment) < Date.now()) throw new ForbiddenError('Bài tập đã hết hạn nộp');
+// Đề cho học sinh làm: BỎ đáp án đúng và giải thích — trước đây trả nguyên, mở DevTools là thấy
+// đáp án (giải thích kiểu "25 + 23 = 48" cũng lộ luôn). Lượt làm bài: exam-attempt.service.js.
+export const getStudentExamView = async (examId) => {
     const exam = await getExam(examId);
     return {
         ...exam,
-        timeLimit: parseInt(assignment.time_limit),
         questions: exam.questions.map(q => ({
             questionId: q.questionId,
             questionContent: q.questionContent,
@@ -140,7 +121,7 @@ export const cloneExam = async (examId) => {
 
 // Mỗi câu đúng 1 đáp án, và đáp án phải thuộc đúng câu của đề này. Trước đây chấm bằng cách
 // đếm mọi đáp án đúng gửi lên: gửi cả 4 đáp án mỗi câu là chắc 10/10, gửi lặp thì vượt 10.
-const validateSubmittedAnswers = async (examId, answers) => {
+export const validateSubmittedAnswers = async (examId, answers) => {
     const questionOf = new Map(
         (await examRepo.findAnswerQuestionPairs(examId)).map(r => [Number(r.answer_id), Number(r.question_id)])
     );
@@ -152,15 +133,6 @@ const validateSubmittedAnswers = async (examId, answers) => {
         if (seenQuestions.has(questionId)) throw new BadRequestError('Mỗi câu chỉ được chọn một đáp án');
         seenQuestions.add(questionId);
     }
-};
-
-export const submitExam = async (examId, studentId, answers, timeSpent) => {
-    const assignment = await findStudentAssignment(examId, studentId);
-    const submitUntil = deadlineMs(assignment) + Number(assignment.time_limit) * 1000 + SUBMIT_GRACE_MS;
-    if (submitUntil < Date.now()) throw new ForbiddenError('Bài tập đã hết hạn nộp');
-    if (await examRepo.hasSubmitted(studentId, examId)) throw new ConflictError('Bạn đã nộp bài rồi!');
-    await validateSubmittedAnswers(examId, answers);
-    return examRepo.submitExam(studentId, examId, answers, timeSpent);
 };
 
 export const getResult = async (examId, studentId) => {

@@ -167,6 +167,33 @@ export const TABLE_STATEMENTS = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
   )`,
+
+  // Lượt làm bài: server ghi lúc học sinh mở đề lần đầu để giờ làm bài không reset khi thoát ra
+  // vào lại. time_limit chụp lúc bắt đầu (giáo viên đổi sau cũng không ảnh hưởng người đang làm).
+  // submitted_at NULL = đang làm. Bảng mới nên IF NOT EXISTS tự tạo được trên DB cũ.
+  `CREATE TABLE IF NOT EXISTS exam_attempts (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    student_id   INT NOT NULL,
+    exam_id      INT NOT NULL,
+    started_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    time_limit   INT NOT NULL,
+    submitted_at DATETIME NULL,
+    UNIQUE KEY uniq_exam_attempts_student_id_exam_id (student_id, exam_id),
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (exam_id)    REFERENCES exams(id) ON DELETE CASCADE
+  )`,
+
+  // Đáp án tự lưu trong lúc làm — vào lại thì hiện lại; hết giờ chưa nộp thì chấm theo đây.
+  `CREATE TABLE IF NOT EXISTS exam_attempt_answers (
+    attempt_id  INT NOT NULL,
+    question_id INT NOT NULL,
+    answer_id   INT NOT NULL,
+    updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (attempt_id, question_id),
+    FOREIGN KEY (attempt_id)  REFERENCES exam_attempts(id) ON DELETE CASCADE,
+    FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
+    FOREIGN KEY (answer_id)   REFERENCES answers(id) ON DELETE CASCADE
+  )`,
 ];
 
 // users.class_id ↔ classes(id) is a circular FK, so it can't be inline in the

@@ -1,11 +1,17 @@
 import { z } from 'zod';
 
 export const submitExamSchema = z.object({
+  // Có thể rỗng: hết giờ thì frontend tự nộp kể cả khi chưa chọn câu nào. Thời gian làm bài do
+  // server tính từ lượt làm bài — không nhận timeSpent từ client nữa.
   answers: z.array(z.object({
     questionId: z.number().int().positive(),
     answerId: z.number().int().positive(),
-  })).min(1, 'Thiếu dữ liệu câu trả lời'),
-  timeSpent: z.coerce.number().int().min(0).default(0),
+  })),
+});
+
+export const saveAttemptAnswerSchema = z.object({
+  questionId: z.number().int().positive(),
+  answerId: z.number().int().positive(),
 });
 
 export const saveCommentSchema = z.object({

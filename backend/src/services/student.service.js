@@ -4,6 +4,7 @@ import * as classRepo from '../repositories/class.repository.js';
 import * as studentRepo from '../repositories/student.repository.js';
 import { NotFoundError, ConflictError, BadRequestError } from '../utils/error.utils.js';
 import { formatDate, formatDateTime } from '../utils/date.utils.js';
+import { finalizeExpiredAttempts } from './exam-attempt.service.js';
 
 export const searchStudents = async (q, classId = null) => {
   const students = await userRepo.searchStudents(q);
@@ -111,6 +112,8 @@ export const getStudentProgress = async (studentId) => {
 };
 
 export const getStudentDashboard = async (studentId, showAll, dateFrom = null, dateTo = null) => {
+  // Bài quá giờ mà chưa nộp thì chấm trước, để trang chủ hiện "Xem kết quả" thay vì "Làm bài".
+  await finalizeExpiredAttempts({ studentId });
   const teacherInfo = await studentRepo.getTeacherInfoForStudent(studentId);
   if (!teacherInfo) {
     return {

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchExam, submitExam } from '../../api/examService';
+import { fetchExam, submitExam, saveAttemptAnswer } from '../../api/examService';
 import { toast } from 'react-toastify';
 import { FiAlertCircle, FiLoader } from 'react-icons/fi';
 import { Button } from '@/components/ui/button';
@@ -50,55 +50,88 @@ export default function StudentExam() {
   const [timeLeft, setTimeLeft]       = useState(null);
   const [submitting, setSubmitting]   = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const timerRef        = useRef(null);
-  const timerStartedRef = useRef(false);
-  const examDurationRef = useRef(20 * 60);
+  const timerRef         = useRef(null);
+  const submittedRef     = useRef(false);
+  const saveWarnedRef    = useRef(false);
+  const handleSubmitRef  = useRef(null);
+  const resultPath       = `/exam-result/${examId}`;
 
+  // Bộ đếm theo giờ hết hạn do SERVER ghi lúc mở đề lần đầu — thoát ra vào lại không được thêm giờ.
+  // offset bù chênh lệch đồng hồ máy học sinh so với server.
   useEffect(() => {
     fetchExam(examId).then(data => {
       setExam(data);
-      const duration = data.timeLimit || 20 * 60;
-      examDurationRef.current = duration;
-      setTimeLeft(duration);
-    }).catch(err => toast.error(err?.message || 'Không tải được bài tập'));
-  }, [examId]);
-
-  useEffect(() => {
-    if (timeLeft === null || timerStartedRef.current) return;
-    timerStartedRef.current = true;
-    timerRef.current = setInterval(() => {
-      setTimeLeft(t => {
-        if (t <= 1) { clearInterval(timerRef.current); handleSubmit(true); return 0; }
-        return t - 1;
-      });
-    }, 1000);
+      setAnswers(data.attempt.savedAnswers ?? {});
+      const offset = new Date(data.attempt.serverNow).getTime() - Date.now();
+      const endsAt = new Date(data.attempt.endsAt).getTime();
+      const tick = () => {
+        const left = Math.max(0, Math.round((endsAt - (Date.now() + offset)) / 1000));
+        setTimeLeft(left);
+        if (left === 0) {
+          clearInterval(timerRef.current);
+          handleSubmitRef.current?.(true);
+        }
+      };
+      tick();
+      timerRef.current = setInterval(tick, 1000);
+    }).catch(err => {
+      toast.error(err?.message || 'Không tải được bài tập');
+      // Đã nộp, hoặc đã hết giờ và vừa được chấm tự động → sang trang kết quả.
+      if (err?.status === 409) navigate(resultPath, { replace: true });
+    });
     return () => clearInterval(timerRef.current);
-  }, [timeLeft]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [examId, navigate, resultPath]);
 
+  // Chọn đáp án là lưu lên server ngay — F5 / mất mạng / đóng tab không mất bài.
   function selectAnswer(questionId, answerId) {
     setAnswers(prev => ({ ...prev, [questionId]: answerId }));
+    saveAttemptAnswer(Number(examId), Number(questionId), Number(answerId)).catch(err => {
+      if (err?.status === 409) {
+        toast.info(err.message);
+        navigate(resultPath, { replace: true });
+        return;
+      }
+      // Báo 1 lần thôi; đáp án vẫn được gửi kèm khi nộp bài.
+      if (!saveWarnedRef.current) {
+        saveWarnedRef.current = true;
+        toast.warning(
+          'Chưa lưu được đáp án lên máy chủ — kiểm tra mạng. Đáp án vẫn được gửi khi nộp bài.'
+        );
+      }
+    });
   }
 
   async function handleSubmit(auto = false) {
     if (!auto) { setShowConfirm(true); return; }
+    if (submittedRef.current) return;
+    submittedRef.current = true;
     setShowConfirm(false);
     clearInterval(timerRef.current);
     setSubmitting(true);
     try {
-      const timeSpent = examDurationRef.current - (timeLeft ?? examDurationRef.current);
-      await submitExam(Number(examId), {
+      const result = await submitExam(Number(examId), {
         answers: Object.entries(answers).map(([qId, aId]) => ({
           questionId: Number(qId), answerId: Number(aId),
         })),
-        timeSpent,
       });
-      toast.success('Nộp bài thành công');
-      setTimeout(() => navigate(`/exam-result/${examId}`), 800);
+      toast.success(result?.autoSubmitted
+        ? 'Đã hết giờ — bài được chấm theo các đáp án đã lưu'
+        : 'Nộp bài thành công');
+      setTimeout(() => navigate(resultPath), 800);
     } catch (err) {
+      if (err?.status === 409) {
+        toast.info(err.message);
+        navigate(resultPath, { replace: true });
+        return;
+      }
       toast.error(err.message || 'Nộp bài thất bại');
+      submittedRef.current = false;
       setSubmitting(false);
     }
   }
+
+  // Bộ đếm (tạo 1 lần lúc mở đề) gọi bản handleSubmit mới nhất — có đủ đáp án đã chọn.
+  useEffect(() => { handleSubmitRef.current = handleSubmit; });
 
   const safeTimeLeft = timeLeft ?? 0;
   const mm       = String(Math.floor(safeTimeLeft / 60)).padStart(2, '0');

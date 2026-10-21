@@ -1,12 +1,13 @@
 import XLSX from 'xlsx';
 import * as svc from '../services/exam.service.js';
+import * as attemptSvc from '../services/exam-attempt.service.js';
 import { formatDateTime } from '../utils/date.utils.js';
 import { success, successMsg } from '../utils/response.js';
 
 export const getExam = async (req, res) => {
   const examId = parseInt(req.params.id);
   if (req.user.role === 'teacher') return success(res, await svc.getExamForTeacher(examId, req.user.id));
-  success(res, await svc.getExamForStudent(examId, req.user.id));
+  success(res, await attemptSvc.startOrResumeExam(examId, req.user.id));
 };
 
 export const getExamAssignments = async (req, res) => {
@@ -38,9 +39,15 @@ export const cloneExam = async (req, res) => {
 };
 
 export const submitExam = async (req, res) => {
-  const { answers, timeSpent } = req.body;
-  const result = await svc.submitExam(parseInt(req.params.id), req.user.id, answers, timeSpent);
-  success(res, result);
+  if (req.user.role !== 'student') return res.status(403).json({ success: false, message: 'Không có quyền' });
+  success(res, await attemptSvc.submitAttempt(parseInt(req.params.id), req.user.id, req.body.answers));
+};
+
+// Tự lưu một đáp án trong lúc làm bài.
+export const saveAttemptAnswer = async (req, res) => {
+  if (req.user.role !== 'student') return res.status(403).json({ success: false, message: 'Không có quyền' });
+  await attemptSvc.saveAttemptAnswer(parseInt(req.params.id), req.user.id, req.body);
+  successMsg(res, 'Đã lưu');
 };
 
 export const getExamResult = async (req, res) => {
