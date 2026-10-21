@@ -31,7 +31,9 @@ toan_lop_3/                  ← Repo root
 │   ├── index.js             # Entry point
 │   ├── package.json         # ESM, no TypeScript
 │   ├── database/
-│   │   └── create_db.js     # Schema DDL
+│   │   ├── schema.js        # Schema DDL + migration functions
+│   │   ├── init-db.js       # Auto-run on startup: create DB/tables, migrate, seed if empty
+│   │   └── create_db.js     # DESTRUCTIVE reset: DROP DATABASE + demo data
 │   └── src/
 │       ├── config/          # env.js, database.js
 │       ├── constants/       # authority.js (roles)

@@ -16,11 +16,28 @@ Two user roles: **teacher** (manages classes/lessons/exams/question bank, views 
 ```bash
 cd backend
 npm install
-node database/create_db.js   # initialize schema (run once)
 npm run dev                  # nodemon dev server on http://localhost:5000
 npm start                    # production
 ```
-Requires a MariaDB/MySQL database and a `.env` file — see `.env.example`. Database schema is in `database/create_db.js`.
+Requires a MariaDB/MySQL server and a `.env` file — see `.env.example`. **Không cần lệnh khởi tạo DB riêng**: mỗi lần khởi động, `index.js` gọi `initializeDatabase()` (`database/init-db.js`) — chưa có database thì tạo, rồi tạo bảng còn thiếu (`CREATE TABLE IF NOT EXISTS` trong `database/schema.js`), chạy các hàm migration, và nạp dữ liệu mẫu (gv1/hs1/hs2, mật khẩu `123`) khi bảng `users` còn trống. Chạy lại bao nhiêu lần cũng KHÔNG reset dữ liệu; chỉ xóa hội thoại chatbot không hoạt động quá 30 ngày.
+
+> ⚠️ `node database/create_db.js` **XÓA SẠCH database** (`DROP DATABASE`) rồi tạo lại kèm dữ liệu mẫu. Chỉ chạy khi muốn làm lại từ đầu — KHÔNG phải bước cài đặt.
+
+### Sau khi kéo code mới (`git pull`)
+```bash
+cd frontend && npm install   # khi package.json frontend đổi (vd. thêm @a2ui/*)
+cd backend  && npm install   # khi package.json backend đổi
+# rồi KHỞI ĐỘNG LẠI backend — migration DB chỉ chạy lúc khởi động
+```
+- Migration tự chạy, không quay lui được (đã từng bỏ cột `chat_sessions.expires_at`, `chat_messages.exam_id`). Nhiều backend dùng chung một DB thì phải cập nhật code cùng lúc — backend còn chạy code cũ sẽ lỗi `Unknown column`.
+- `npm start` / `node index.js` không tự nạp code mới; `npm run dev` (nodemon) thì có, nhưng nên tắt rồi chạy lại cho chắc migration đã chạy.
+
+### Đổi cấu trúc bảng
+DB không tự đồng bộ theo code: `CREATE TABLE IF NOT EXISTS` bỏ qua bảng đã tồn tại. Mỗi thay đổi phải làm **2 chỗ** trong `database/schema.js`:
+1. Sửa câu `CREATE TABLE` trong `TABLE_STATEMENTS` — cho DB tạo mới.
+2. Viết một hàm migration tự kiểm tra `information_schema` rồi mới `ALTER` (chạy lại không sao), và gọi nó trong `init-db.js` — cho DB đang có dữ liệu. Xem `migrateChatSessionHistory`, `migrateChatMessageParts`.
+
+Không có bảng ghi phiên bản migration hay lệnh rollback — muốn khôi phục cột đã bỏ thì phải tự viết SQL.
 
 ### Frontend
 ```bash

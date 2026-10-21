@@ -116,9 +116,10 @@ The `camelcase-response.middleware.js` middleware auto-converts snake_case DB co
 
 ## Migrations
 
-- Schema lives in `database/create_db.js` — run once to initialize
-- For schema changes: modify `create_db.js` and document the change
-- No migration framework is set up — coordinate schema changes manually
+- Schema lives in `database/schema.js` (`TABLE_STATEMENTS` + migration functions); `database/init-db.js` applies it automatically on every backend startup — non-destructive, safe to re-run
+- For schema changes: edit the `CREATE TABLE` in `schema.js` (new databases) **and** add an idempotent migration function there that checks `information_schema` before `ALTER`, called from `init-db.js` (existing databases). Editing only the `CREATE TABLE` leaves existing databases unchanged
+- `database/create_db.js` is a **destructive reset** (`DROP DATABASE` + demo data) — never run it on a database with real data
+- No migration framework (no version table, no rollback) — coordinate schema changes manually
 
 ---
 
