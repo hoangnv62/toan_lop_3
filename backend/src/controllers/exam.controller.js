@@ -4,8 +4,9 @@ import { formatDateTime } from '../utils/date.utils.js';
 import { success, successMsg } from '../utils/response.js';
 
 export const getExam = async (req, res) => {
-  const studentId = req.user.role === 'student' ? req.user.id : null;
-  success(res, await svc.getExam(parseInt(req.params.id), studentId));
+  const examId = parseInt(req.params.id);
+  if (req.user.role === 'teacher') return success(res, await svc.getExamForTeacher(examId, req.user.id));
+  success(res, await svc.getExamForStudent(examId, req.user.id));
 };
 
 export const getExamAssignments = async (req, res) => {

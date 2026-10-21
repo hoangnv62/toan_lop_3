@@ -34,11 +34,16 @@ export const runChat = async (newUserContent, role, user, callbacks) => {
     .map(m => ({ role: m.role, content: m.content }));
 
   let fullResponse = '';
+  let createdExamId = null;
   const wrappedCallbacks = {
     ...callbacks,
     onToken: (token) => {
       fullResponse += token;
       callbacks.onToken?.(token);
+    },
+    onExamPreview: (preview) => {
+      createdExamId = preview.examId;
+      callbacks.onExamPreview?.(preview);
     },
   };
 
@@ -54,7 +59,7 @@ export const runChat = async (newUserContent, role, user, callbacks) => {
       // lời dở, để lượt hỏi kế tiếp không mang theo ngữ cảnh đã bị bỏ.
       await chatRepo.deleteMessage(userMessageId);
     } else if (fullResponse) {
-      await chatRepo.saveMessage(sessionId, 'assistant', fullResponse);
+      await chatRepo.saveMessage(sessionId, 'assistant', fullResponse, createdExamId);
     }
   }
 };

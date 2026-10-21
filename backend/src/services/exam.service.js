@@ -2,24 +2,28 @@ import * as examRepo from '../repositories/exam.repository.js';
 import * as classRepo from '../repositories/class.repository.js';
 import * as lessonRepo from '../repositories/lesson.repository.js';
 import * as userRepo from '../repositories/user.repository.js';
-import {NotFoundError, ConflictError, ForbiddenError} from '../utils/error.utils.js';
+import {NotFoundError, ConflictError, ForbiddenError, BadRequestError} from '../utils/error.utils.js';
 import {generateJSON} from '../utils/llm.utils.js';
 import {buildExamPdf} from './pdf.service.js';
 import {formatDate, formatDateTime} from '../utils/date.utils.js';
 
-export const getExam = async (examId, studentId = null) => {
+// Giáo viên chỉ xem được đề của mình — trước đây ai đăng nhập là giáo viên cũng đọc được đề
+// (kèm đáp án) của giáo viên khác qua GET /api/exams/:id.
+export const getExamForTeacher = async (examId, teacherId) => {
+    const exam = await examRepo.findByIdWithTeacher(examId, teacherId);
+    if (!exam) throw new NotFoundError('Đề thi không tồn tại hoặc không thuộc quyền quản lý của bạn');
+    return getExam(examId);
+};
+
+// Dạng đầy đủ (kèm đáp án đúng + giải thích) — CHỈ dành cho giáo viên sở hữu đề.
+const getExam = async (examId) => {
     const exam = await examRepo.findWithQuestions(examId);
     if (!exam) throw new NotFoundError('Bài tập không tồn tại');
-    let timeLimit = null;
-    if (studentId) {
-        const row = await classRepo.findClassExamForStudent(studentId, examId);
-        timeLimit = row ? parseInt(row.time_limit) : 20 * 60;
-    }
     return {
         name: exam.name,
         description: exam.description,
         dateCreated: formatDate(exam.date_created),
-        timeLimit,
+        timeLimit: null,
         questions: exam.questions.map(q => ({
             questionId: q.id,
             questionContent: q.content,
@@ -29,6 +33,39 @@ export const getExam = async (examId, studentId = null) => {
                 content: a.content,
                 isCorrected: a.is_correct,
             })),
+        })),
+    };
+};
+
+// Cho tới giờ mở đề và nộp tới hạn nộp + thời gian làm bài (+1 phút cho mạng chậm): học sinh
+// bắt đầu sát hạn vẫn được nộp đủ thời gian, nhưng không ai mở đề sau hạn rồi làm tiếp được.
+const SUBMIT_GRACE_MS = 60 * 1000;
+
+const findStudentAssignment = async (examId, studentId) => {
+    const assignment = await classRepo.findClassExamForStudent(studentId, examId);
+    if (!assignment) throw new ForbiddenError('Bài tập không được giao cho lớp của bạn');
+    if (assignment.open_time && new Date(assignment.open_time) > new Date()) {
+        throw new ForbiddenError('Chưa đến giờ mở đề');
+    }
+    return assignment;
+};
+
+const deadlineMs = (assignment) =>
+    assignment.deadline ? new Date(assignment.deadline).getTime() : Infinity;
+
+// Học sinh làm bài: BỎ đáp án đúng và giải thích — trước đây trả nguyên, mở DevTools là thấy
+// đáp án (giải thích kiểu "25 + 23 = 48" cũng lộ luôn).
+export const getExamForStudent = async (examId, studentId) => {
+    const assignment = await findStudentAssignment(examId, studentId);
+    if (deadlineMs(assignment) < Date.now()) throw new ForbiddenError('Bài tập đã hết hạn nộp');
+    const exam = await getExam(examId);
+    return {
+        ...exam,
+        timeLimit: parseInt(assignment.time_limit),
+        questions: exam.questions.map(q => ({
+            questionId: q.questionId,
+            questionContent: q.questionContent,
+            answers: q.answers.map(({ answerId, content }) => ({ answerId, content })),
         })),
     };
 };
@@ -101,8 +138,28 @@ export const cloneExam = async (examId) => {
     return examRepo.cloneExam(examId);
 };
 
+// Mỗi câu đúng 1 đáp án, và đáp án phải thuộc đúng câu của đề này. Trước đây chấm bằng cách
+// đếm mọi đáp án đúng gửi lên: gửi cả 4 đáp án mỗi câu là chắc 10/10, gửi lặp thì vượt 10.
+const validateSubmittedAnswers = async (examId, answers) => {
+    const questionOf = new Map(
+        (await examRepo.findAnswerQuestionPairs(examId)).map(r => [Number(r.answer_id), Number(r.question_id)])
+    );
+    const seenQuestions = new Set();
+    for (const { questionId, answerId } of answers) {
+        if (questionOf.get(answerId) !== questionId) {
+            throw new BadRequestError('Có câu trả lời không thuộc đề thi này');
+        }
+        if (seenQuestions.has(questionId)) throw new BadRequestError('Mỗi câu chỉ được chọn một đáp án');
+        seenQuestions.add(questionId);
+    }
+};
+
 export const submitExam = async (examId, studentId, answers, timeSpent) => {
+    const assignment = await findStudentAssignment(examId, studentId);
+    const submitUntil = deadlineMs(assignment) + Number(assignment.time_limit) * 1000 + SUBMIT_GRACE_MS;
+    if (submitUntil < Date.now()) throw new ForbiddenError('Bài tập đã hết hạn nộp');
     if (await examRepo.hasSubmitted(studentId, examId)) throw new ConflictError('Bạn đã nộp bài rồi!');
+    await validateSubmittedAnswers(examId, answers);
     return examRepo.submitExam(studentId, examId, answers, timeSpent);
 };
 

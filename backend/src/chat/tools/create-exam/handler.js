@@ -54,5 +54,7 @@ export const handler = async (args, user) => {
     data: { examId, name, questionsCount: questions.length },
     message: `Đã tạo đề thi "${name}" với ${questions.length} câu hỏi thành công.`,
     metadata: { tool: 'create_exam', userId: user.id },
+    // Dành cho giao diện (nút "Xem đề thi"), agent gỡ ra trước khi đưa kết quả cho model.
+    ui: { examId },
   };
 };

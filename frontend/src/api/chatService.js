@@ -18,10 +18,11 @@ export const confirmChatAction = (actionId, accept) =>
  * @param {(data: object) => void} [handlers.onToolStart]
  * @param {(data: object) => void} [handlers.onToolDone]
  * @param {(data: {actionId: string, label: string}) => void} [handlers.onConfirmRequired]
+ * @param {(exam: object) => void} [handlers.onExamPreview] - nội dung đề chatbot vừa tạo
  * @param {AbortSignal} [handlers.signal] - hủy giữa chừng khi người dùng bấm Dừng
  */
 export async function streamChat(
-  messages, { onToken, onDone, onToolStart, onToolDone, onConfirmRequired, signal },
+  messages, { onToken, onDone, onToolStart, onToolDone, onConfirmRequired, onExamPreview, signal },
 ) {
   let processed = 0;
   let done = false;
@@ -59,6 +60,8 @@ export async function streamChat(
                 onToolDone?.(parsed);
               } else if (currentEvent === 'confirm_required') {
                 onConfirmRequired?.(parsed);
+              } else if (currentEvent === 'exam_preview') {
+                onExamPreview?.(parsed);
               } else if (parsed.token) {
                 onToken(parsed.token);
               }

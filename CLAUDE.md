@@ -130,6 +130,7 @@ Lưu ý khi sửa phần chat:
 - **`delete_exam` và `create_announcement` phải được xác nhận** (`src/chat/tools/confirmation.js`). Lần gọi đầu chỉ trả "CHƯA XÓA"/"CHƯA GỬI" kèm `data.confirmation.actionId`; agent phát SSE `confirm_required` để `ChatBot.jsx` hiện nút **Đồng ý / Không**. Bấm nút → `POST /api/chat/confirm/:actionId` chạy thẳng hành động đã lưu (không gọi model, chạy đúng bản đã xem trước) và ghi cả lựa chọn lẫn kết quả vào lịch sử chat. Gõ chữ "đồng ý" thì model gọi lại tool ở lượt *sau* (tính theo `turnStartedAt`). Hai đường dùng chung một lần hỏi nên không thể chạy 2 lần. Lý do phải chặn ở code: model từng được bảo "xóa đề vừa tạo" khi đề đó chưa được tạo, rồi tự chọn một đề cũ trùng tên mà xóa cứng.
 - **Prompt phải bảo model GỌI TOOL NGAY để tạo bản xem trước**, không tự hỏi xác nhận bằng chữ trước. Câu cũ "xác nhận với thầy/cô trước khi gọi tool" khiến model tự viết bản xem trước — không có nút, và nó bịa luôn số phụ huynh nhận email. Thông báo kèm email nên khóa xác nhận gồm cả tiêu đề + nội dung; tool phải nói rõ email có thật sự đi không.
 - **Thời điểm mở đề / hạn nộp đi qua `src/chat/tools/schedule.js`.** Cột DATETIME của MariaDB *bỏ qua* hậu tố múi giờ: model gửi `...T16:00:00Z` (23:00 giờ VN) thì DB lưu 16:00 — sớm 7 tiếng. `parseScheduleTime()` parse bằng `Date` rồi ghi lại giờ địa phương. `assign_exam_to_class` bắt buộc có `open_time` + `deadline` (`"now"`/`"none"` khi mở ngay / không giới hạn) — để tuỳ chọn thì model chỉ hỏi thời gian làm bài rồi giao luôn. `update_exam` sửa giao đề phải giữ nguyên trường không truyền: `updateAssignment()` ghi đè cả 3 cột, thiếu `time_limit` (NOT NULL) là lỗi SQL.
+- **Nút "Xem đề thi" sau khi chatbot tạo đề.** `create_exam` trả thêm `ui: { examId }`; agent *gỡ* `ui` khỏi kết quả trước khi đưa cho model (nội dung đề không chui vào ngữ cảnh, đỡ token), đọc lại đề từ DB rồi phát SSE `exam_preview` kèm toàn bộ câu hỏi — bấm nút là hiện, không gọi thêm model. `chat_messages.exam_id` (FK `ON DELETE SET NULL`, migration `addChatMessageExamColumn`) giữ nút sau khi tải lại trang; lúc đó bấm lần đầu mới gọi `GET /api/exams/:id`.
 - **Sắp tin nhắn chat phải kèm `id`** (`chat.repository.js`). `created_at` chỉ chính xác tới giây; câu hỏi gửi trong cùng giây với câu trả lời trước có thể xếp lên trước nó → lượt cuối gửi cho Gemini là của trợ lý → 400 `Requests ending with a model turn are not supported`.
 
 ### Key API endpoints (non-obvious ones)
@@ -141,7 +142,9 @@ Lưu ý khi sửa phần chat:
 | POST | `/api/chat` | AI chatbot (role-aware: teacher gets tool calling) |
 | DELETE | `/api/chat/history` | Xóa phiên chat của chính mình → bắt đầu cuộc trò chuyện mới |
 | POST | `/api/chat/confirm/:actionId` | Nút Đồng ý / Không của chatbot (`{accept}`) — chạy thẳng hành động đang chờ, không gọi model → `{userText, reply}` |
+| GET | `/api/exams/:id` | Giáo viên: đề của mình, đủ đáp án + giải thích. Học sinh: chỉ đề đã giao cho lớp mình, đã tới giờ mở, chưa quá hạn — **không** có `isCorrected`/`explanation` (trước đây lộ đáp án qua DevTools) |
 | POST | `/api/exams/:id/clone` | Deep-copy exam + questions + answers |
+| POST | `/api/exams/:id/submit` | Mỗi câu đúng 1 đáp án thuộc đúng câu của đề (gửi cả 4 đáp án từng là 10/10); nộp được tới hạn nộp + thời gian làm bài + 1 phút |
 | POST | `/api/exams/:id/submissions/:studentId/comment` | Upsert teacher comment on student submission |
 | GET | `/api/exams/:id/export` | Download Excel of all results (teacher only) |
 | GET | `/api/exams/:id/export-pdf` | Download PDF exam paper (`?variants=1&duration=45`) |

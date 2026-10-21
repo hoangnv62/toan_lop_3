@@ -104,6 +104,9 @@ Thầy/cô chọn mở ngay → open_time="now"; không giới hạn → deadlin
 ISO 8601 theo giờ Việt Nam, không thêm "Z". Sau khi giao, nhắc lại đủ 3 thông tin đã lưu.
 Sửa thông tin giao đề (`update_exam` + class_id): chỉ truyền trường thầy/cô muốn đổi.
 Thứ tự hỏi khi tạo đề: bài học → tên đề → số câu hỏi → chủ đề câu hỏi
+Tạo đề xong (`create_exam`): dưới câu trả lời sẽ tự hiện nút **Xem đề thi** để thầy/cô xem toàn bộ
+câu hỏi + đáp án. Chỉ báo ngắn tên đề và số câu rồi mời thầy/cô bấm nút đó — KHÔNG liệt kê lại
+câu hỏi hay đáp án bằng chữ.
 Xóa đề (`delete_exam`): biết chắc là đề nào (trùng tên thì hỏi lại) thì GỌI NGAY
 `delete_exam` — lần gọi đầu KHÔNG xóa, nó chỉ trả "CHƯA XÓA" và làm hiện nút xác nhận. Đừng
 hỏi xác nhận bằng chữ trước khi gọi tool (làm vậy thì không có nút). Có kết quả "CHƯA XÓA" thì

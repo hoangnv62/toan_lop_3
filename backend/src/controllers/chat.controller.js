@@ -44,6 +44,7 @@ export const chat = async (req, res) => {
       onToolDone: (data) => res.write(`event: tool_done\ndata: ${JSON.stringify(data)}\n\n`),
       onConfirmRequired: (data) =>
         res.write(`event: confirm_required\ndata: ${JSON.stringify(data)}\n\n`),
+      onExamPreview: (data) => res.write(`event: exam_preview\ndata: ${JSON.stringify(data)}\n\n`),
     });
   } catch (err) {
     // Bị hủy thì không còn ai bên kia để nhận lời xin lỗi.
@@ -73,6 +74,7 @@ export const getChatHistory = async (req, res) => {
   const messages = rows.map(r => ({
     role: r.role,
     content: r.content,
+    examId: r.exam_id,
     createdAt: r.created_at,
   }));
   success(res, { messages, expiresAt: session.expires_at });

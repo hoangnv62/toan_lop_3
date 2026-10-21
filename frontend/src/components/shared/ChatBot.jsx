@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {clearChatHistory, confirmChatAction, getChatHistory, streamChat} from '../../api/chatService';
 import {useAuth} from '../../context/auth-context';
+import ChatExamPreview from './ChatExamPreview';
 import chatbotIcon from '../../assets/chatbot.png';
 import {Textarea} from '@/components/ui/textarea';
 import {Button} from '@/components/ui/button';
@@ -211,6 +212,13 @@ export default function ChatBot() {
                 onToolStart: (data) => setToolLabel(data.label),
                 onToolDone: () => setToolLabel(null),
                 onConfirmRequired: (data) => setPendingConfirm(data),
+                // Gắn đề vừa tạo vào tin nhắn đang stream → hiện nút "Xem đề thi" dưới nó.
+                onExamPreview: (exam) => setMessages(prev => {
+                    const updated = [...prev];
+                    const last = updated[updated.length - 1];
+                    updated[updated.length - 1] = {...last, examId: exam.examId, exam};
+                    return updated;
+                }),
             });
         } catch {
             // Người dùng chủ động dừng: bỏ hẳn cặp câu hỏi + đoạn trả lời dở, khớp
@@ -370,6 +378,9 @@ export default function ChatBot() {
                                 </div>
                                 {/* ml-9 = bề rộng avatar (28px) + gap (8px), để nút thẳng mép bong bóng */}
                                 <CopyButton text={m.content} className={isUser ? '' : 'ml-9'}/>
+                                {!isUser && m.examId && (
+                                    <ChatExamPreview examId={m.examId} initialExam={m.exam}/>
+                                )}
                             </div>
                         );
                     })}

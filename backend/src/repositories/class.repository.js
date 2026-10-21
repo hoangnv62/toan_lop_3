@@ -156,7 +156,7 @@ export const findClassExamsByExamAndTeacher = (examId, teacherId) =>
 
 export const findClassExamForStudent = (studentId, examId) =>
   queryOne(
-    `SELECT ce.time_limit FROM class_exams ce
+    `SELECT ce.time_limit, ce.open_time, ce.deadline FROM class_exams ce
      JOIN users u ON u.class_id = ce.class_id
      WHERE ce.exam_id = :eid AND u.id = :sid`,
     { eid: examId, sid: studentId }

@@ -60,7 +60,7 @@ export default function StudentExam() {
       const duration = data.timeLimit || 20 * 60;
       examDurationRef.current = duration;
       setTimeLeft(duration);
-    }).catch(() => toast.error('Không tải được bài tập'));
+    }).catch(err => toast.error(err?.message || 'Không tải được bài tập'));
   }, [examId]);
 
   useEffect(() => {

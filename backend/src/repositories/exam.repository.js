@@ -352,6 +352,14 @@ export const getExportData = (examId, classId = null) =>
     { eid: examId, classId }
   );
 
+export const findAnswerQuestionPairs = (examId) =>
+  query(
+    `SELECT a.id AS answer_id, a.question_id FROM answers a
+     JOIN questions q ON q.id = a.question_id
+     WHERE q.exam_id = :examId`,
+    { examId }
+  );
+
 export const hasSubmitted = async (studentId, examId) => {
   const row = await queryOne(
     'SELECT id FROM student_answers WHERE student_id = :sid AND exam_id = :eid LIMIT 1',

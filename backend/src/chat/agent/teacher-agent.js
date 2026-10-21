@@ -5,6 +5,7 @@ import { streamChatWithTools } from '../../utils/llm.utils.js';
 import { executeTool } from '../tools/executor.js';
 import { TEACHER_TOOLS, TOOL_LABELS } from '../tools/registry.js';
 import { describeNow } from '../../utils/date.utils.js';
+import * as examService from '../../services/exam.service.js';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 
@@ -39,8 +40,19 @@ Mọi mốc thời gian tương đối trong yêu cầu của giáo viên ("hôm
 không bao giờ làm được bài.`;
 };
 
+// Gửi kèm nội dung đề vừa tạo để nút "Xem đề thi" mở ra ngay, không tốn thêm lượt gọi model.
+// Đọc lại từ DB nên chắc chắn khớp đề đã lưu. Lỗi ở đây không được làm hỏng lượt chat.
+const emitExamPreview = async (examId, user, onExamPreview) => {
+  try {
+    const exam = await examService.getExamForTeacher(examId, user.id);
+    onExamPreview?.({ examId, ...exam });
+  } catch (err) {
+    console.error(`[agent] exam preview failed examId=${examId}`, err.message);
+  }
+};
+
 export const runTeacherAgent = async (
-  messages, user, { onToken, onToolStart, onToolDone, onConfirmRequired, signal },
+  messages, user, { onToken, onToolStart, onToolDone, onConfirmRequired, onExamPreview, signal },
 ) => {
   const turnStartedAt = Date.now();
   const systemPrompt = await buildSystemPrompt();
@@ -79,10 +91,12 @@ export const runTeacherAgent = async (
       let args = {};
       try { args = JSON.parse(tc.function.arguments); } catch {}
 
-      const result = await executeTool(name, args, user, { turnStartedAt });
+      // `ui` chỉ dành cho giao diện — không đưa cho model, đỡ tốn token.
+      const { ui, ...result } = await executeTool(name, args, user, { turnStartedAt });
       onToolDone({ tool: name });
       // Tool cần giáo viên xác nhận → frontend hiện nút Đồng ý / Không dưới câu trả lời.
       if (result?.data?.confirmation) onConfirmRequired?.(result.data.confirmation);
+      if (ui?.examId) await emitExamPreview(ui.examId, user, onExamPreview);
 
       history.push({
         role: 'tool',

@@ -13,10 +13,11 @@ export const getOrCreateSession = async (userId) => {
   return { id };
 };
 
-export const saveMessage = (sessionId, role, content) =>
+// examId: đề chatbot vừa tạo trong lượt này — để nút "Xem đề thi" còn sau khi tải lại trang.
+export const saveMessage = (sessionId, role, content, examId = null) =>
   insert(
-    'INSERT INTO chat_messages (session_id, role, content) VALUES (:sessionId, :role, :content)',
-    { sessionId, role, content }
+    'INSERT INTO chat_messages (session_id, role, content, exam_id) VALUES (:sessionId, :role, :content, :examId)',
+    { sessionId, role, content, examId }
   );
 
 // Dùng khi người dùng hủy giữa chừng: câu hỏi đã lưu trước khi gọi model nên
@@ -35,15 +36,15 @@ export const deleteMessage = (id) =>
 export const getSessionMessages = (sessionId, limit = null) => {
   if (!limit) {
     return query(
-      'SELECT role, content, created_at FROM chat_messages WHERE session_id = :sessionId ORDER BY created_at ASC, id ASC',
+      'SELECT role, content, exam_id, created_at FROM chat_messages WHERE session_id = :sessionId ORDER BY created_at ASC, id ASC',
       { sessionId }
     );
   }
   // Lấy N tin cuối bằng DESC rồi đảo lại ở ngoài — MySQL không cho ORDER BY
   // ngược chiều ngay trong cùng một câu SELECT có LIMIT.
   return query(
-    `SELECT role, content, created_at FROM (
-       SELECT id, role, content, created_at FROM chat_messages
+    `SELECT role, content, exam_id, created_at FROM (
+       SELECT id, role, content, exam_id, created_at FROM chat_messages
        WHERE session_id = :sessionId
        ORDER BY created_at DESC, id DESC
        LIMIT :limit

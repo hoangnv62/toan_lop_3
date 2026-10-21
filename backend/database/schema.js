@@ -161,8 +161,10 @@ export const TABLE_STATEMENTS = [
     session_id INT NOT NULL,
     role       ENUM('user','assistant') NOT NULL,
     content    TEXT NOT NULL,
+    exam_id    INT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
+    FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE,
+    CONSTRAINT fk_chat_messages_exams FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE SET NULL
   )`,
 ];
 
@@ -183,6 +185,25 @@ export async function addUserClassForeignKey(conn, dbName) {
     ALTER TABLE users
       ADD CONSTRAINT fk_user_class
       FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL`);
+}
+
+// Tin nhắn chatbot báo "đã tạo đề" lưu kèm exam_id để nút "Xem đề thi" còn dùng được sau
+// khi tải lại trang. Database tạo trước bản này chưa có cột — thêm vào nếu thiếu. Đề bị xóa
+// thì SET NULL: tin nhắn vẫn còn, chỉ mất nút.
+export async function addChatMessageExamColumn(conn, dbName) {
+  const [{ c }] = await conn.query(
+    `SELECT COUNT(*) AS c FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'chat_messages' AND COLUMN_NAME = 'exam_id'`,
+    [dbName]
+  );
+  if (Number(c) > 0) return;
+
+  await conn.query(`
+    ALTER TABLE chat_messages
+      ADD COLUMN exam_id INT NULL AFTER content,
+      ADD CONSTRAINT fk_chat_messages_exams
+      FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE SET NULL`);
+  console.log('>>> chat_messages: đã thêm cột exam_id');
 }
 
 // Database tạo trước bản này có question_bank.lesson_id cho phép NULL ("chưa phân
