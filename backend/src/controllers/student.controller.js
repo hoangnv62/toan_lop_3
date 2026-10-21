@@ -23,10 +23,12 @@ export const addToClass = async (req, res) => {
 
 export const uploadStudents = async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'Không tìm thấy file' });
-  const result = await svc.uploadStudents(parseInt(req.params.classId), req.user.id, req.file.buffer);
-  let msg = `Thêm thành công ${result.count} học sinh.`;
-  if (result.errors.length) msg += ` Có ${result.errors.length} lỗi: ` + result.errors.slice(0, 3).join('; ');
-  successMsg(res, msg);
+  const { count, errors } = await svc.uploadStudents(
+    parseInt(req.params.classId), req.user.id, req.file.buffer,
+  );
+  // Tách riêng phần bị bỏ qua để frontend hiện thành cảnh báo, không lẫn vào toast thành công.
+  const skippedSummary = errors.length ? svc.summarizeImportErrors(errors) : null;
+  success(res, { count, skipped: errors.length, skippedSummary }, `Đã thêm ${count} học sinh vào lớp`);
 };
 
 export const removeFromClass = async (req, res) => {

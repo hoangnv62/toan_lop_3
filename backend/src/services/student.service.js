@@ -2,7 +2,7 @@ import XLSX from 'xlsx';
 import * as userRepo from '../repositories/user.repository.js';
 import * as classRepo from '../repositories/class.repository.js';
 import * as studentRepo from '../repositories/student.repository.js';
-import { NotFoundError, ConflictError } from '../utils/error.utils.js';
+import { NotFoundError, ConflictError, BadRequestError } from '../utils/error.utils.js';
 import { formatDate, formatDateTime } from '../utils/date.utils.js';
 
 export const searchStudents = async (q, classId = null) => {
@@ -24,6 +24,14 @@ export const addToClass = async (classId, teacherId, username) => {
   return student.full_name;
 };
 
+const MAX_LISTED_IMPORT_ERRORS = 5;
+
+export const summarizeImportErrors = (errors) => {
+  const listed = errors.slice(0, MAX_LISTED_IMPORT_ERRORS).join('; ');
+  const more = errors.length - MAX_LISTED_IMPORT_ERRORS;
+  return more > 0 ? `${listed}; và ${more} lỗi khác` : listed;
+};
+
 export const uploadStudents = async (classId, teacherId, fileBuffer) => {
   if (!await classRepo.findByIdAndTeacher(classId, teacherId)) throw new NotFoundError('Lớp không tồn tại');
 
@@ -36,7 +44,10 @@ export const uploadStudents = async (classId, teacherId, fileBuffer) => {
     return n;
   });
 
-  if (!rows.length || !('username' in rows[0])) throw new Error('File thiếu cột: username');
+  // BadRequestError chứ không phải Error thường: Error thường rơi vào nhánh 500 của
+  // errorHandler và giáo viên chỉ thấy "Lỗi server", không biết file sai ở đâu.
+  if (!rows.length) throw new BadRequestError('File không có dòng dữ liệu nào');
+  if (!('username' in rows[0])) throw new BadRequestError('File thiếu cột: username');
 
   let successCount = 0;
   const errors = [];
@@ -50,7 +61,11 @@ export const uploadStudents = async (classId, teacherId, fileBuffer) => {
     successCount++;
   }
 
-  if (successCount === 0) throw new NotFoundError('Không tìm thấy học sinh');
+  // Nói đúng lý do từng dòng — trước đây luôn báo "Không tìm thấy học sinh" kể cả khi
+  // học sinh có thật nhưng đã ở sẵn trong lớp.
+  if (successCount === 0) {
+    throw new BadRequestError(`Không thêm được học sinh nào. ${summarizeImportErrors(errors)}`);
+  }
   return { count: successCount, errors };
 };
 

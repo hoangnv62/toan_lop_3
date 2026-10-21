@@ -169,7 +169,7 @@ export const useClassStudentMutations = () => {
         uploadStudents(classId, file),
         {
           loading: 'Đang import danh sách học sinh...',
-          success: 'Import học sinh thành công',
+          success: (data) => `Đã thêm ${data?.count ?? 0} học sinh vào lớp`,
           error: (err) => err?.message || 'Import thất bại',
         }
       );

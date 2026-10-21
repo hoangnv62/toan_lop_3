@@ -1,23 +1,31 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { downloadSampleStudentsExcel } from '../../../api/classService';
 import { toast } from 'react-toastify';
-import { FiUpload, FiDownload } from 'react-icons/fi';
+import { FiUpload, FiDownload, FiLoader } from 'react-icons/fi';
 import { useClassStudentMutations } from '../../../hooks/useClass';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
 export default function ImportCard({ classId, onUploaded }) {
-  const [file, setFile] = useState(null);
-  const fileRef         = useRef();
-  const { upload } = useClassStudentMutations();
+  const fileRef = useRef();
+  const { upload, loading } = useClassStudentMutations();
 
-  async function handleUpload() {
-    if (!file) return toast.error('Chưa chọn file');
-    await upload(classId, file, () => {
-      setFile(null);
-      if (fileRef.current) fileRef.current.value = '';
-      onUploaded();
-    });
+  // Chọn file xong là tải lên luôn — không bắt giáo viên chọn file rồi bấm thêm nút nữa.
+  async function handleFileChosen(e) {
+    const file = e.target.files?.[0];
+    // Xóa giá trị ngay để chọn lại đúng file cũ (sau khi sửa) vẫn bắn onChange.
+    e.target.value = '';
+    if (!file) return;
+    try {
+      await upload(classId, file, (result) => {
+        if (result?.skipped) {
+          toast.warning(`Bỏ qua ${result.skipped} dòng: ${result.skippedSummary}`, { autoClose: 8000 });
+        }
+        onUploaded();
+      });
+    } catch {
+      // toastPromise trong upload() đã báo lỗi cho giáo viên.
+    }
   }
 
   return (
@@ -36,20 +44,14 @@ export default function ImportCard({ classId, onUploaded }) {
       >
         <FiDownload size={12} /> Tải file mẫu
       </Button>
-      <div className="space-y-2">
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".xlsx,.xls"
-          className="text-sm text-slate-600 w-full file:mr-3 file:py-1 file:px-2.5 file:rounded-lg
-                     file:border-0 file:bg-slate-100 file:text-xs file:font-medium file:text-slate-700
-                     hover:file:bg-slate-200 cursor-pointer"
-          onChange={e => setFile(e.target.files[0])}
-        />
-        <Button variant="gradient" className="w-full py-1.5 text-sm" onClick={handleUpload}>
-          <FiUpload size={14} /> Upload
-        </Button>
-      </div>
+      <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChosen} />
+      <Button
+        variant="gradient" className="w-full py-1.5 text-sm"
+        onClick={() => fileRef.current?.click()} disabled={loading}
+      >
+        {loading ? <FiLoader size={14} className="animate-spin" /> : <FiUpload size={14} />}
+        {loading ? 'Đang import...' : 'Chọn file Excel để import'}
+      </Button>
     </Card>
   );
 }
