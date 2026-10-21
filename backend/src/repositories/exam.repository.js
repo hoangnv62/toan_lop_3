@@ -346,7 +346,7 @@ export const getExportData = (examId) =>
      JOIN users u ON u.id=sa.student_id
      JOIN answers a ON sa.answer_id=a.id
      JOIN questions q ON a.question_id=q.id
-     WHERE sa.exam_id=:eid GROUP BY sa.student_id ORDER BY score DESC`,
+     WHERE sa.exam_id=:eid GROUP BY sa.student_id ORDER BY score DESC, u.full_name ASC`,
     { eid: examId }
   );
 

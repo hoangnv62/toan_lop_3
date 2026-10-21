@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { FiLoader, FiAward, FiClock, FiCheckCircle } from 'react-icons/fi';
 import { getClassResults } from '../../api/examService';
 import { useAuth } from '../../context/auth-context';
+import { rankByScore } from '@/lib/ranking';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -32,7 +33,9 @@ export default function ClassResultsModal({ exam, onClose }) {
   }, [exam.examId]);
 
   const results = data?.results ?? [];
-  const myRank  = !isTeacher ? results.findIndex(r => r.studentId === user?.userId) + 1 : 0;
+  const ranks   = rankByScore(results, r => r.score);
+  const myIndex = isTeacher ? -1 : results.findIndex(r => r.studentId === user?.userId);
+  const myRank  = myIndex >= 0 ? ranks[myIndex] : 0;
   const topScore = results.length ? results[0].score : null;
 
   return (
@@ -98,7 +101,7 @@ export default function ClassResultsModal({ exam, onClose }) {
                 <TableBody>
                   {results.map((r, i) => {
                     const isMe  = !isTeacher && r.studentId === user?.userId;
-                    const rank  = i + 1;
+                    const rank  = ranks[i];
                     const medalCls = rank === 1 ? 'text-yellow-500' : rank === 2 ? 'text-slate-400' : rank === 3 ? 'text-amber-600' : 'text-slate-300';
                     return (
                       <TableRow key={r.studentId}

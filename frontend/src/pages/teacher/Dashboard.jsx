@@ -9,6 +9,7 @@ import { FiUsers, FiLayers, FiBook, FiFileText, FiRefreshCw, FiZap, FiAward, FiT
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { rankByScore } from '@/lib/ranking';
 
 // Các khoảng điểm là thang có thứ tự → ordinal ramp một hue, nhạt→đậm theo
 // khoảng điểm tăng dần. Đã chạy scripts/validate_palette.js --ordinal trên nền
@@ -52,6 +53,7 @@ export default function Dashboard() {
   const dist           = data?.scoreDistribution ?? {};
   const passRate       = data?.passRate ?? {};
   const topStudents    = data?.topStudents ?? [];
+  const topRanks       = rankByScore(topStudents, s => s.avgScore);
   const classAvgScores = data?.classAvgScores ?? [];
   const passTotal      = (passRate.pass ?? 0) + (passRate.fail ?? 0);
   const passPct        = passTotal > 0 ? Math.round((passRate.pass / passTotal) * 100) : 0;
@@ -253,7 +255,9 @@ export default function Dashboard() {
                     <div key={s.studentId}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors">
                       <span className="w-6 text-center text-base shrink-0 select-none">
-                        {i < 3 ? RANK_MEDAL[i] : <span className="text-xs font-bold text-slate-300">{i + 1}</span>}
+                        {topRanks[i] <= 3
+                          ? RANK_MEDAL[topRanks[i] - 1]
+                          : <span className="text-xs font-bold text-slate-300">{topRanks[i]}</span>}
                       </span>
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 select-none ${avatarCls}`}>
                         {(s.studentName ?? '?').trim().split(' ').pop().charAt(0).toUpperCase()}

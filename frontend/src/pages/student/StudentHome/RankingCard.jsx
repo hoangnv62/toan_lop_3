@@ -1,9 +1,12 @@
-
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';const rankBadge = ['bg-yellow-400', 'bg-slate-300', 'bg-orange-400'];
+import { Badge } from '@/components/ui/badge';
+import { rankByScore } from '@/lib/ranking';
+
+const rankBadge = ['bg-yellow-400', 'bg-slate-300', 'bg-orange-400'];
 
 export default function RankingCard({ ranking, userId }) {
   if (ranking.length === 0) return null;
+  const ranks = rankByScore(ranking, r => (+r.avg).toFixed(1));
 
   return (
     <Card className="p-5 gap-0">
@@ -17,9 +20,9 @@ export default function RankingCard({ ranking, userId }) {
                 : 'hover:bg-slate-50'
             }`}>
             <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ${
-              rankBadge[i] || 'bg-slate-200 !text-slate-600'
+              rankBadge[ranks[i] - 1] || 'bg-slate-200 !text-slate-600'
             }`}>
-              {i + 1}
+              {ranks[i]}
             </span>
             <span className="flex-1 text-sm font-medium text-slate-800">{r.name}</span>
             {r.studentId === userId && (
