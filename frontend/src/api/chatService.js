@@ -5,6 +5,10 @@ export const getChatHistory = () => api.get('/api/chat/history');
 /** Xóa phiên chat hiện tại để lượt hỏi kế tiếp bắt đầu với ngữ cảnh trắng. */
 export const clearChatHistory = () => api.delete('/api/chat/history');
 
+/** Bấm nút Đồng ý / Không cho hành động chatbot đang chờ xác nhận → `{ userText, reply }`. */
+export const confirmChatAction = (actionId, accept) =>
+  api.post(`/api/chat/confirm/${actionId}`, { accept });
+
 /**
  * Gửi câu hỏi và nhận câu trả lời dạng stream (SSE qua XHR).
  * @param {Array} messages
@@ -13,9 +17,12 @@ export const clearChatHistory = () => api.delete('/api/chat/history');
  * @param {() => void} [handlers.onDone]
  * @param {(data: object) => void} [handlers.onToolStart]
  * @param {(data: object) => void} [handlers.onToolDone]
+ * @param {(data: {actionId: string, label: string}) => void} [handlers.onConfirmRequired]
  * @param {AbortSignal} [handlers.signal] - hủy giữa chừng khi người dùng bấm Dừng
  */
-export async function streamChat(messages, { onToken, onDone, onToolStart, onToolDone, signal }) {
+export async function streamChat(
+  messages, { onToken, onDone, onToolStart, onToolDone, onConfirmRequired, signal },
+) {
   let processed = 0;
   let done = false;
   let currentEvent = null;
@@ -50,6 +57,8 @@ export async function streamChat(messages, { onToken, onDone, onToolStart, onToo
                 onToolStart?.(parsed);
               } else if (currentEvent === 'tool_done') {
                 onToolDone?.(parsed);
+              } else if (currentEvent === 'confirm_required') {
+                onConfirmRequired?.(parsed);
               } else if (parsed.token) {
                 onToken(parsed.token);
               }

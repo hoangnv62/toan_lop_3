@@ -39,7 +39,9 @@ Mọi mốc thời gian tương đối trong yêu cầu của giáo viên ("hôm
 không bao giờ làm được bài.`;
 };
 
-export const runTeacherAgent = async (messages, user, { onToken, onToolStart, onToolDone, signal }) => {
+export const runTeacherAgent = async (
+  messages, user, { onToken, onToolStart, onToolDone, onConfirmRequired, signal },
+) => {
   const turnStartedAt = Date.now();
   const systemPrompt = await buildSystemPrompt();
   const history = [
@@ -79,6 +81,8 @@ export const runTeacherAgent = async (messages, user, { onToken, onToolStart, on
 
       const result = await executeTool(name, args, user, { turnStartedAt });
       onToolDone({ tool: name });
+      // Tool cần giáo viên xác nhận → frontend hiện nút Đồng ý / Không dưới câu trả lời.
+      if (result?.data?.confirmation) onConfirmRequired?.(result.data.confirmation);
 
       history.push({
         role: 'tool',

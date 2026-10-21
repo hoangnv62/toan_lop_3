@@ -1,4 +1,4 @@
-import { runChat } from '../services/chat.service.js';
+import { runChat, resolveConfirmation } from '../services/chat.service.js';
 import { getChatErrorMessage } from '../chat/fallback-messages.js';
 import * as chatRepo from '../repositories/chat.repository.js';
 import { success } from '../utils/response.js';
@@ -42,6 +42,8 @@ export const chat = async (req, res) => {
       },
       onToolStart: (data) => res.write(`event: tool_start\ndata: ${JSON.stringify(data)}\n\n`),
       onToolDone: (data) => res.write(`event: tool_done\ndata: ${JSON.stringify(data)}\n\n`),
+      onConfirmRequired: (data) =>
+        res.write(`event: confirm_required\ndata: ${JSON.stringify(data)}\n\n`),
     });
   } catch (err) {
     // Bị hủy thì không còn ai bên kia để nhận lời xin lỗi.
@@ -83,4 +85,9 @@ export const clearChatHistory = async (req, res) => {
   await chatRepo.deleteUserSessions(req.user.id);
   console.log(`[chat] cleared userId=${req.user.id}`);
   success(res, null, 'Đã bắt đầu cuộc trò chuyện mới');
+};
+
+// Giáo viên bấm nút Đồng ý / Không dưới câu hỏi xác nhận của chatbot.
+export const confirmAction = async (req, res) => {
+  success(res, await resolveConfirmation(req.params.actionId, req.body.accept, req.user));
 };

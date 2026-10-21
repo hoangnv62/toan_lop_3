@@ -1,13 +1,13 @@
 import {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {matchPath, useLocation} from 'react-router-dom';
-import {FiLoader, FiMaximize2, FiMinimize2, FiPlus, FiSend, FiSquare, FiX} from 'react-icons/fi';
+import {FiCheck, FiLoader, FiMaximize2, FiMinimize2, FiPlus, FiSend, FiSquare, FiX} from 'react-icons/fi';
 import {IoCheckmarkOutline} from 'react-icons/io5';
 import {LuCopy} from "react-icons/lu";
 import {toast} from 'react-toastify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import {clearChatHistory, getChatHistory, streamChat} from '../../api/chatService';
+import {clearChatHistory, confirmChatAction, getChatHistory, streamChat} from '../../api/chatService';
 import {useAuth} from '../../context/auth-context';
 import chatbotIcon from '../../assets/chatbot.png';
 import {Textarea} from '@/components/ui/textarea';
@@ -136,6 +136,9 @@ export default function ChatBot() {
     const [toolLabel, setToolLabel] = useState(null);
     const [confirmClear, setConfirmClear] = useState(false);
     const [clearing, setClearing] = useState(false);
+    // Hành động chatbot đang chờ giáo viên xác nhận (xóa đề, gửi thông báo) → nút Đồng ý / Không.
+    const [pendingConfirm, setPendingConfirm] = useState(null);
+    const [resolving, setResolving] = useState(false);
     const bottomRef = useRef(null);
     const inputRef = useRef(null);
     const abortRef = useRef(null);
@@ -164,7 +167,7 @@ export default function ChatBot() {
             bottomRef.current?.scrollIntoView({behavior: 'smooth'});
             inputRef.current?.focus();
         }
-    }, [open, messages]);
+    }, [open, messages, pendingConfirm]);
 
     if (!user) return null;
     if (HIDDEN_ROUTES.some(route => matchPath(route, pathname))) return null;
@@ -175,6 +178,8 @@ export default function ChatBot() {
 
         const userMsg = {role: 'user', content: text};
         const history = [...messages, userMsg];
+        // Gửi tin khác thì nút xác nhận cũ hết ý nghĩa; gõ "đồng ý" vẫn xác nhận được qua model.
+        setPendingConfirm(null);
         setMessages(history);
         setInput('');
         setLoading(true);
@@ -205,6 +210,7 @@ export default function ChatBot() {
                 },
                 onToolStart: (data) => setToolLabel(data.label),
                 onToolDone: () => setToolLabel(null),
+                onConfirmRequired: (data) => setPendingConfirm(data),
             });
         } catch {
             // Người dùng chủ động dừng: bỏ hẳn cặp câu hỏi + đoạn trả lời dở, khớp
@@ -212,6 +218,7 @@ export default function ChatBot() {
             // việc khác, không phải để hỏi lại câu cũ.
             if (controller.signal.aborted) {
                 setMessages(history.slice(0, -1));
+                setPendingConfirm(null);
                 setLoading(false);
                 setToolLabel(null);
                 return;
@@ -234,6 +241,26 @@ export default function ChatBot() {
         }
     }
 
+    // Bấm nút thì backend chạy thẳng hành động đã lưu (không gọi model) và trả câu kết quả;
+    // ghi cả lựa chọn lẫn kết quả vào khung chat giống như giáo viên vừa gõ.
+    async function handleConfirm(accept) {
+        if (!pendingConfirm || resolving) return;
+        setResolving(true);
+        try {
+            const {userText, reply} = await confirmChatAction(pendingConfirm.actionId, accept);
+            setMessages(prev => [
+                ...prev,
+                {role: 'user', content: userText},
+                {role: 'assistant', content: reply},
+            ]);
+        } catch (err) {
+            toast.error(err?.message || 'Không xử lý được yêu cầu xác nhận');
+        } finally {
+            setPendingConfirm(null);
+            setResolving(false);
+        }
+    }
+
     function handleStop() {
         abortRef.current?.abort();
     }
@@ -249,6 +276,7 @@ export default function ChatBot() {
             setMessages([{role: 'assistant', content: welcome}]);
             setInput('');
             setToolLabel(null);
+            setPendingConfirm(null);
             setConfirmClear(false);
             inputRef.current?.focus();
         } catch (err) {
@@ -369,6 +397,19 @@ export default function ChatBot() {
                                 </div>
                             </div>
                         )
+                    )}
+                    {pendingConfirm && !loading && (
+                        <div className="ml-9 flex flex-wrap gap-2">
+                            <Button variant="gradient" size="sm" disabled={resolving}
+                                    onClick={() => handleConfirm(true)}>
+                                {resolving ? <FiLoader size={13} className="animate-spin"/> : <FiCheck size={13}/>}
+                                Đồng ý
+                            </Button>
+                            <Button variant="outline" size="sm" disabled={resolving}
+                                    onClick={() => handleConfirm(false)}>
+                                <FiX size={13}/> Không
+                            </Button>
+                        </div>
                     )}
                     <div ref={bottomRef}/>
                 </div>

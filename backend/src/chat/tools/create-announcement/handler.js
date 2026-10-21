@@ -3,7 +3,7 @@ import * as classService from '../../../services/class.service.js';
 import * as classRepo from '../../../repositories/class.repository.js';
 import * as relativeRepo from '../../../repositories/relative.repository.js';
 import { isEmailConfigured } from '../../../utils/email.utils.js';
-import { consumeConfirmation } from '../confirmation.js';
+import { consumeConfirmation, requestConfirmation } from '../confirmation.js';
 
 const schema = z.object({
   title:     z.string().trim().min(1).max(255),
@@ -46,6 +46,25 @@ const postToClasses = async (classIds, teacherId, title, content) => {
   return { sentClassIds, failedDetails };
 };
 
+// Gửi thật — dùng chung cho đường gõ "đồng ý" (model gọi lại tool) và nút bấm "Đồng ý".
+const sendAnnouncement = async ({ classIds, teacherId, title, content, emailDelivery }) => {
+  const { sentClassIds, failedDetails } = await postToClasses(classIds, teacherId, title, content);
+  const sent = sentClassIds.length;
+  const failed = failedDetails.length;
+
+  const message = (failed === 0
+    ? `Đã đăng thông báo "${title}" lên ${sent} lớp thành công`
+    : `Đã đăng thông báo "${title}" lên ${sent}/${classIds.length} lớp, ${failed} lớp thất bại`)
+    + `; ${emailDelivery}.`;
+
+  return {
+    success: failed === 0,
+    data: { sent, failed, sentClassIds, failedDetails, emailDelivery },
+    message,
+    metadata: { tool: 'create_announcement', userId: teacherId },
+  };
+};
+
 export const handler = async (args, user, { turnStartedAt = Date.now() } = {}) => {
   const parsed = schema.safeParse(args);
   if (!parsed.success) {
@@ -70,11 +89,22 @@ export const handler = async (args, user, { turnStartedAt = Date.now() } = {}) =
   // hồi được, mà nội dung lại do model soạn. Phải để giáo viên đọc đúng bản sẽ gửi.
   const recipients = await countRecipients(classIds);
   const emailDelivery = describeEmailDelivery(recipients);
-  if (!consumeConfirmation(confirmationKey(user.id, parsed.data), turnStartedAt)) {
+  const announcement = { classIds, teacherId: user.id, title, content, emailDelivery };
+  const key = confirmationKey(user.id, parsed.data);
+  if (!consumeConfirmation(key, turnStartedAt)) {
     const classNames = classes.map(c => c.class_name).join(', ');
+    const actionId = requestConfirmation({
+      key,
+      userId: user.id,
+      label: `Gửi thông báo "${title}" tới lớp ${classNames}`,
+      run: async () => (await sendAnnouncement(announcement)).message,
+    }, turnStartedAt);
     return {
       success: false,
-      data: { title, content, classIds, classNames, emailDelivery, requiresConfirmation: true },
+      data: {
+        title, content, classIds, classNames, emailDelivery, requiresConfirmation: true,
+        confirmation: { actionId, label: `Gửi thông báo "${title}"` },
+      },
       message:
         `CHƯA GỬI. Hãy cho thầy/cô xem NGUYÊN VĂN tiêu đề và nội dung dưới đây, nêu lớp nhận ` +
         `(${classNames}) và việc email (${emailDelivery}), rồi hỏi xác nhận. ` +
@@ -85,20 +115,5 @@ export const handler = async (args, user, { turnStartedAt = Date.now() } = {}) =
     };
   }
 
-  const { sentClassIds, failedDetails } = await postToClasses(classIds, user.id, title, content);
-  const sent = sentClassIds.length;
-  const failed = failedDetails.length;
-  const success = failed === 0;
-
-  const message = (failed === 0
-    ? `Đã đăng thông báo "${title}" lên ${sent} lớp thành công`
-    : `Đã đăng thông báo "${title}" lên ${sent}/${classIds.length} lớp, ${failed} lớp thất bại`)
-    + `; ${emailDelivery}.`;
-
-  return {
-    success,
-    data: { sent, failed, sentClassIds, failedDetails, emailDelivery },
-    message,
-    metadata: { tool: 'create_announcement', userId: user.id },
-  };
+  return sendAnnouncement(announcement);
 };

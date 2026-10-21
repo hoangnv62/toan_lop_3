@@ -2,6 +2,8 @@ import { runTeacherAgent } from '../chat/agent/teacher-agent.js';
 import { runStudentAgent } from '../chat/agent/student-agent.js';
 import { Authority } from '../constants/authority.js';
 import * as chatRepo from '../repositories/chat.repository.js';
+import { takePendingAction } from '../chat/tools/confirmation.js';
+import { NotFoundError } from '../utils/error.utils.js';
 
 // Số tin nhắn gần nhất được đưa vào ngữ cảnh. Đủ để nhớ mạch hội thoại nhưng
 // không kéo theo cả ngày làm việc trước đó.
@@ -55,4 +57,29 @@ export const runChat = async (newUserContent, role, user, callbacks) => {
       await chatRepo.saveMessage(sessionId, 'assistant', fullResponse);
     }
   }
+};
+
+// Chạy (hoặc hủy) hành động đang chờ xác nhận mà không gọi model — chạy đúng bản giáo viên
+// đã xem trước. Ghi cả lựa chọn lẫn kết quả vào lịch sử chat để lượt sau model vẫn biết việc
+// đã làm; lỗi khi chạy cũng thành câu trả lời, vì nút đã bấm thì phải có hồi âm.
+export const resolveConfirmation = async (actionId, accept, user) => {
+  const action = takePendingAction(actionId, user.id);
+  if (!action) throw new NotFoundError('Yêu cầu xác nhận đã hết hạn hoặc đã được xử lý');
+
+  let reply = `Đã hủy: ${action.label}.`;
+  if (accept) {
+    try {
+      reply = await action.run();
+    } catch (err) {
+      console.error(`[chat] confirm failed userId=${user.id} action="${action.label}"`, err);
+      reply = `Không thực hiện được: ${action.label}. Thầy/cô thử lại giúp em nhé.`;
+    }
+  }
+
+  const userText = accept ? 'Đồng ý' : 'Không, hủy';
+  const { id: sessionId } = await chatRepo.getOrCreateSession(user.id);
+  await chatRepo.saveMessage(sessionId, 'user', userText);
+  await chatRepo.saveMessage(sessionId, 'assistant', reply);
+  console.log(`[chat] confirm userId=${user.id} accept=${accept} action="${action.label}"`);
+  return { userText, reply };
 };
