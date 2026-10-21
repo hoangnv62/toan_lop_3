@@ -241,7 +241,7 @@ export default function Dashboard() {
 
           {topStudents.length > 0 && (
             <Card className="p-5 gap-0">
-              <SectionTitle icon={FiAward} title="Top 5 học sinh" iconColor="text-amber-500" />
+              <SectionTitle icon={FiAward} title="Học sinh dẫn đầu" iconColor="text-amber-500" />
               <div className="space-y-1">
                 {topStudents.map((s, i) => {
                   const score = s.avgScore ?? 0;
