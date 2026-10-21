@@ -2,10 +2,12 @@ import nodemailer from 'nodemailer';
 
 let transporter = null;
 
+export const isEmailConfigured = () => Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
+
 function getTransporter() {
   if (transporter) return transporter;
 
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  if (!isEmailConfigured()) {
     console.warn('[Email] SMTP_USER/SMTP_PASS chưa cấu hình — bỏ qua gửi email');
     return null;
   }
@@ -38,9 +40,23 @@ export async function sendAnnouncementEmail(to, relativeName, studentName, class
   }
 }
 
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+
+// Tên người thân/học sinh do học sinh tự nhập, nội dung có thể do chatbot soạn — chèn
+// thẳng vào HTML thì ai cũng nhét được thẻ <a>, <img> hay form giả vào email gửi phụ huynh.
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch]);
+
 function buildEmailHtml(relativeName, studentName, className, teacherName, title, content) {
   const now = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
-  const contentHtml = content.replace(/\n/g, '<br>');
+  const safe = {
+    relativeName: escapeHtml(relativeName),
+    studentName: escapeHtml(studentName),
+    className: escapeHtml(className),
+    teacherName: escapeHtml(teacherName),
+    title: escapeHtml(title),
+  };
+  // Escape trước rồi mới đổi xuống dòng thành <br>, kẻo <br> cũng bị escape theo.
+  const contentHtml = escapeHtml(content).replace(/\n/g, '<br>');
 
   return `<!DOCTYPE html>
 <html lang="vi">
@@ -59,16 +75,16 @@ function buildEmailHtml(relativeName, studentName, className, teacherName, title
         <!-- Body -->
         <tr>
           <td style="padding:28px 32px">
-            <p style="margin:0 0 16px;color:#374151">Kính gửi <strong>${relativeName}</strong>,</p>
+            <p style="margin:0 0 16px;color:#374151">Kính gửi <strong>${safe.relativeName}</strong>,</p>
             <p style="margin:0 0 20px;color:#374151">
-              Giáo viên <strong>${teacherName}</strong> vừa gửi thông báo tới lớp <strong>${className}</strong>
-              liên quan đến học sinh <strong>${studentName}</strong>:
+              Giáo viên <strong>${safe.teacherName}</strong> vừa gửi thông báo tới lớp <strong>${safe.className}</strong>
+              liên quan đến học sinh <strong>${safe.studentName}</strong>:
             </p>
             <!-- Announcement box -->
             <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9ff;border-left:4px solid #4F46E5;border-radius:4px;margin-bottom:20px">
               <tr>
                 <td style="padding:16px 20px">
-                  <p style="margin:0 0 8px;color:#1e1b4b;font-size:16px;font-weight:700">${title}</p>
+                  <p style="margin:0 0 8px;color:#1e1b4b;font-size:16px;font-weight:700">${safe.title}</p>
                   <p style="margin:0;color:#374151;line-height:1.6">${contentHtml}</p>
                 </td>
               </tr>

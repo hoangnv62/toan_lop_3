@@ -1,23 +1,11 @@
 import { z } from 'zod';
 import * as examService from '../../../services/exam.service.js';
 import * as examRepo from '../../../repositories/exam.repository.js';
-
-// Xóa đề là xóa cứng, kéo theo câu hỏi, đáp án và bài làm — không khôi phục được.
-// Prompt có dặn hỏi lại trước khi xóa nhưng model từng bỏ qua: được bảo "xóa đề vừa
-// tạo" trong khi đề đó chưa hề được tạo, nó tự chọn một đề cũ trùng tên rồi xóa luôn.
-//
-// Nên chặn ở code: lần gọi đầu chỉ ghi nhận và trả thông tin đề để hỏi giáo viên; chỉ
-// lần gọi ở một LƯỢT CHAT SAU (giáo viên đã trả lời) mới xóa thật. Gọi 2 lần trong
-// cùng một lượt không lách được vì lượt chờ xác nhận được tạo trong chính lượt đó.
-const CONFIRM_WINDOW_MS = 10 * 60 * 1000;
-const pendingDeletes = new Map(); // `${teacherId}:${examId}` → thời điểm hỏi xác nhận
+import { consumeConfirmation } from '../confirmation.js';
 
 const schema = z.object({
   exam_id: z.number().int().positive(),
 });
-
-const isConfirmedInLaterTurn = (askedAt, turnStartedAt) =>
-  askedAt != null && askedAt < turnStartedAt && Date.now() - askedAt < CONFIRM_WINDOW_MS;
 
 export const handler = async (args, user, { turnStartedAt = Date.now() } = {}) => {
   const parsed = schema.safeParse(args);
@@ -37,11 +25,9 @@ export const handler = async (args, user, { turnStartedAt = Date.now() } = {}) =
     };
   }
 
-  const key = `${user.id}:${exam_id}`;
-  const askedAt = pendingDeletes.get(key);
-  if (!isConfirmedInLaterTurn(askedAt, turnStartedAt)) {
-    // Giữ mốc đã hỏi trong chính lượt này; mốc cũ đã hết hạn thì hỏi lại từ đầu.
-    if (askedAt == null || askedAt < turnStartedAt) pendingDeletes.set(key, Date.now());
+  // Xóa cứng, kéo theo câu hỏi, đáp án và bài làm — không khôi phục được. Model từng được
+  // bảo "xóa đề vừa tạo" khi đề đó chưa hề được tạo, rồi tự chọn một đề cũ trùng tên mà xóa.
+  if (!consumeConfirmation(`delete_exam:${user.id}:${exam_id}`, turnStartedAt)) {
     return {
       success: false,
       data: { examId: exam_id, name: exam.name, requiresConfirmation: true },
@@ -52,7 +38,6 @@ export const handler = async (args, user, { turnStartedAt = Date.now() } = {}) =
       metadata: { tool: 'delete_exam', userId: user.id },
     };
   }
-  pendingDeletes.delete(key);
 
   try {
     await examService.deleteExam(exam_id);
