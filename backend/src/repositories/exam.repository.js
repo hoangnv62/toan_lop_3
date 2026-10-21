@@ -335,7 +335,8 @@ export const getStats = async (examId) => {
   };
 };
 
-export const getExportData = (examId) =>
+// classId = null → mọi lớp được giao đề (xuất Excel của giáo viên).
+export const getExportData = (examId, classId = null) =>
   query(
     `SELECT sa.student_id, u.full_name, u.username,
        ROUND(SUM(CASE WHEN a.is_correct=1 THEN 1 ELSE 0 END)*10.0/NULLIF(COUNT(DISTINCT q.id),0),1) AS score,
@@ -346,8 +347,9 @@ export const getExportData = (examId) =>
      JOIN users u ON u.id=sa.student_id
      JOIN answers a ON sa.answer_id=a.id
      JOIN questions q ON a.question_id=q.id
-     WHERE sa.exam_id=:eid GROUP BY sa.student_id ORDER BY score DESC, u.full_name ASC`,
-    { eid: examId }
+     WHERE sa.exam_id=:eid AND (:classId IS NULL OR u.class_id=:classId)
+     GROUP BY sa.student_id ORDER BY score DESC, u.full_name ASC`,
+    { eid: examId, classId }
   );
 
 export const hasSubmitted = async (studentId, examId) => {

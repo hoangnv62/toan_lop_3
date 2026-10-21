@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiClock } from 'react-icons/fi';
+import { FiClock, FiUsers } from 'react-icons/fi';
 import { parseDateTime } from '../../../utils/date';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import ClassResultsModal from './ClassResultsModal';
 
 export default function ExamList({ exams, viewAll = false }) {
   const navigate = useNavigate();
+  const [classResultsExam, setClassResultsExam] = useState(null);
 
   return (
     <Card className="p-5 gap-0">
@@ -39,9 +42,16 @@ export default function ExamList({ exams, viewAll = false }) {
                     </span>
                   )}
                   {exam.done ? (
-                    <Button variant="outline" className="py-1.5 px-3 text-xs" onClick={() => navigate(`/exam-result/${exam.examId}`)}>
-                      Xem kết quả
-                    </Button>
+                    <>
+                      <Button variant="ghost" size="icon-sm" title="Xem kết quả cả lớp"
+                        className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                        onClick={() => setClassResultsExam(exam)}>
+                        <FiUsers size={14} />
+                      </Button>
+                      <Button variant="outline" className="py-1.5 px-3 text-xs" onClick={() => navigate(`/exam-result/${exam.examId}`)}>
+                        Xem kết quả
+                      </Button>
+                    </>
                   ) : (
                     <Button variant="gradient" className="py-1.5 px-3 text-xs disabled:opacity-50 disabled:pointer-events-none" disabled={isPastDeadline} onClick={() => navigate(`/student/exam/${exam.examId}`)}>
                       {isPastDeadline ? 'Hết hạn' : 'Làm bài'}
@@ -52,6 +62,9 @@ export default function ExamList({ exams, viewAll = false }) {
             );
           })}
         </div>
+      )}
+      {classResultsExam && (
+        <ClassResultsModal exam={classResultsExam} onClose={() => setClassResultsExam(null)} />
       )}
     </Card>
   );

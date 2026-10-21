@@ -1,6 +1,7 @@
 import * as examRepo from '../repositories/exam.repository.js';
 import * as classRepo from '../repositories/class.repository.js';
 import * as lessonRepo from '../repositories/lesson.repository.js';
+import * as userRepo from '../repositories/user.repository.js';
 import {NotFoundError, ConflictError, ForbiddenError} from '../utils/error.utils.js';
 import {generateJSON} from '../utils/llm.utils.js';
 import {buildExamPdf} from './pdf.service.js';
@@ -218,6 +219,18 @@ export const exportPdf = async (examId, variantsCount, duration) => {
         })),
     }));
     return buildExamPdf(exam.name, duration, questions, variantsCount);
+};
+
+// Học sinh chỉ xem được đề đã giao cho lớp mình, và chỉ thấy bạn cùng lớp.
+export const getClassResultsForStudent = async (examId, studentId) => {
+    const exam = await examRepo.findById(examId);
+    if (!exam) throw new NotFoundError('Bài tập không tồn tại');
+    const student = await userRepo.findById(studentId);
+    const assignment = student?.class_id
+        && await classRepo.findClassExamByClassAndExam(student.class_id, examId);
+    if (!assignment) throw new ForbiddenError('Bài tập không được giao cho lớp của bạn');
+    const rows = await examRepo.getExportData(examId, student.class_id);
+    return {examName: exam.name, rows};
 };
 
 export const exportResults = async (examId) => {
