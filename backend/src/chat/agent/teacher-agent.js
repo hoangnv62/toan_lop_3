@@ -53,7 +53,8 @@ const emitExamPreview = async (examId, user, onExamPreview) => {
 };
 
 export const runTeacherAgent = async (
-  messages, user, { onToken, onToolStart, onToolDone, onConfirmRequired, onExamPreview, signal },
+  messages, user,
+  { onToken, onToolStart, onToolDone, onConfirmRequired, onExamPreview, onA2ui, signal },
 ) => {
   const turnStartedAt = Date.now();
   const systemPrompt = await buildSystemPrompt();
@@ -99,6 +100,8 @@ export const runTeacherAgent = async (
       // Tool cần giáo viên xác nhận → frontend hiện nút Đồng ý / Không dưới câu trả lời.
       if (result?.data?.confirmation) onConfirmRequired?.(result.data.confirmation);
       if (ui?.examId) await emitExamPreview(ui.examId, user, onExamPreview);
+      // Form A2UI (vd. form giao bài) → frontend dựng bằng @a2ui/react.
+      if (ui?.a2ui) onA2ui?.(ui.a2ui);
 
       history.push({
         role: 'tool',

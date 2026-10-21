@@ -40,6 +40,9 @@ import { handler as getExamsHandler } from './get-exams/handler.js';
 import { definition as updateExamDef } from './update-exam/definition.js';
 import { handler as updateExamHandler } from './update-exam/handler.js';
 
+import { definition as showAssignFormDef } from './show-assign-form/definition.js';
+import { handler as showAssignFormHandler } from './show-assign-form/handler.js';
+
 export const TEACHER_TOOLS = [
   searchDef,
   saveDef,
@@ -55,6 +58,7 @@ export const TEACHER_TOOLS = [
   createAnnouncementDef,
   studentProgressDef,
   updateExamDef,
+  showAssignFormDef,
 ];
 
 export const toolRegistry = {
@@ -72,4 +76,5 @@ export const toolRegistry = {
   create_announcement:    createAnnouncementHandler,
   get_student_progress:   studentProgressHandler,
   update_exam:            updateExamHandler,
+  show_assign_exam_form:  showAssignFormHandler,
 };

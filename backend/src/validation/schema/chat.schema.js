@@ -4,6 +4,15 @@ export const confirmActionParamsSchema = z.object({
   actionId: z.string().uuid('Mã xác nhận không hợp lệ'),
 });
 
+// Thông điệp `action` của A2UI v0.9 (client → server).
+export const a2uiActionSchema = z.object({
+  name: z.string().min(1),
+  surfaceId: z.string().min(1).max(100),
+  sourceComponentId: z.string().optional(),
+  timestamp: z.string().optional(),
+  context: z.record(z.string(), z.unknown()).default({}),
+});
+
 export const confirmActionBodySchema = z.object({
   accept: z.boolean(),
 });

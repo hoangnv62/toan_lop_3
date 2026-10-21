@@ -52,6 +52,7 @@
 | **Icons** | react-icons/fi | Feather icons only |
 | **Notifications** | react-toastify | `toast.success()`, `toast.error()` etc. |
 | **Markdown** | react-markdown + remark-gfm | Used in chatbot responses |
+| **Agent UI (làm thử)** | `@a2ui/react` + `@a2ui/web_core` 0.12.0 (A2UI v0.9), `zod` 3 (peer) | Chỉ cho form giao bài trong chatbot; catalog riêng hiển thị bằng shadcn |
 | **Routing** | React Router v7 | |
 | **Testing** | None set up | |
 | **Deploy** | TBD | |
@@ -112,3 +113,5 @@
 | 2026-08-10 | Chọn `gemini-3.5-flash-lite`, không phải `gemini-3.6-flash` | Đo thực tế: lite được 15 RPM so với 5 RPM, nhanh hơn ~3.7x (4.8s vs 17.7s cho 3 nhóm 10 câu), mà chất lượng không tụt (30/30 câu hợp lệ, chọn tool giống hệt trên 4 ca thử) |
 | 2026-08-10 | Chat giáo viên: stream kèm tool ngay lượt đầu | Bỏ lượt "dò tool" riêng — câu thường từ 2 request xuống 1 (nửa ngân sách 15 RPM), câu chốt sau tool giờ cũng chạy chữ dần thay vì đổ ra một cục |
 | 2026-08-10 | Tự thử lại theo `RetryInfo.retryDelay`, tắt retry của SDK | Ở 5–15 RPM thì backoff cứng 0.5s/1s không đủ (Google đòi chờ 5–45s), còn retry của SDK bắn lại ngay và đốt thêm quota |
+| 2026-10-21 | Response chatbot theo giao thức UI Message Stream (Vercel AI SDK), lưu `parts` vào DB | Chuẩn mở có chỗ cho dữ liệu riêng (`data-*`); tự parse, không thêm thư viện |
+| 2026-10-21 | Làm thử A2UI v0.9 cho form giao bài, ghim `@a2ui/*` 0.12.0 | Thay hỏi đáp bằng chữ (dễ sai ngày giờ) bằng form; spec còn "public preview", ra bản gần như mỗi tuần → ghim phiên bản, chỉ dùng 1 chỗ. Kéo theo `dompurify` qua `@a2ui/markdown-it` có 3 advisory (1 moderate) — catalog riêng không dùng Markdown |

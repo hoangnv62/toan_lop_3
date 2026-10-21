@@ -10,6 +10,7 @@ import remarkGfm from 'remark-gfm';
 import {clearChatHistory, confirmChatAction, getChatHistory, streamChat} from '../../api/chatService';
 import {useAuth} from '../../context/auth-context';
 import ChatExamPreview from './ChatExamPreview';
+import ChatA2uiSurface from './chat-a2ui/ChatA2uiSurface';
 import {applyChunk, findPart, textMessage, textOf} from '@/lib/ui-message-stream';
 import {runningToolLabel} from '@/lib/chat-tool-labels';
 import chatbotIcon from '../../assets/chatbot.png';
@@ -249,6 +250,19 @@ export default function ChatBot() {
         }
     }
 
+    // Form A2UI đã gửi xong: đánh dấu form (hiện dòng tóm tắt thay cho form) rồi nối 2 tin nhắn
+    // backend trả về — lựa chọn của giáo viên + kết quả.
+    function handleA2uiSubmitted({surfaceId, summary, messages: added}) {
+        setMessages(prev => [
+            ...prev.map(m => ({
+                ...m,
+                parts: m.parts.map(p => (p.type === 'data-a2ui' && p.data.surfaceId === surfaceId
+                    ? {...p, data: {...p.data, status: 'submitted', summary}} : p)),
+            })),
+            ...added,
+        ]);
+    }
+
     function handleStop() {
         abortRef.current?.abort();
     }
@@ -337,8 +351,9 @@ export default function ChatBot() {
                     {messages.map((m) => {
                         const text = textOf(m);
                         const examPreview = findPart(m, 'data-exam-preview')?.data;
+                        const a2uiSurface = findPart(m, 'data-a2ui')?.data;
                         // Tin đang stream chưa có chữ: ẩn bong bóng, chỉ báo loading bên dưới thay chỗ.
-                        if (!text && !examPreview) return null;
+                        if (!text && !examPreview && !a2uiSurface) return null;
                         const isUser = m.role === 'user';
                         return (
                             // Cột: hàng [avatar + bong bóng] ở trên, nút copy ở dưới.
@@ -363,6 +378,12 @@ export default function ChatBot() {
                                 {examPreview && (
                                     <ChatExamPreview examId={examPreview.examId}
                                                      initialExam={examPreview.questions ? examPreview : undefined}/>
+                                )}
+                                {a2uiSurface && (
+                                    <div className="ml-9 w-[calc(100%-2.25rem)] max-w-[80%]">
+                                        <ChatA2uiSurface key={a2uiSurface.surfaceId} surface={a2uiSurface}
+                                                         onSubmitted={handleA2uiSubmitted}/>
+                                    </div>
                                 )}
                             </div>
                         );

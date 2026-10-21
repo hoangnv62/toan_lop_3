@@ -112,6 +112,10 @@ src/chat/
     get-exams/             → get_exams
     create-exam/           → create_exam
     update-exam/           → update_exam
+    show-assign-form/      → show_assign_exam_form (form giao bài A2UI)
+  a2ui/
+    assign-exam-form.js → dựng thông điệp A2UI v0.9 cho form giao bài
+    surfaces.js         → form đang mở (examId/userId lưu ở server, không tin client)
     delete-exam/           → delete_exam
     assign-exam/           → assign_exam_to_class
     unassign-exam/         → unassign_exam
@@ -119,7 +123,7 @@ src/chat/
     create-announcement/   → create_announcement
 ```
 
-Teacher agent has 14 AI tools. Each tool folder contains `definition.js` (OpenAI tool schema) và `handler.js` (execution logic). Chat route: `POST /api/chat`.
+Teacher agent has 15 AI tools. Each tool folder contains `definition.js` (OpenAI tool schema) và `handler.js` (execution logic). Chat route: `POST /api/chat`.
 
 Lưu ý khi sửa phần chat:
 - **SSE phải nghe `res.on('close')`, KHÔNG phải `req.on('close')`** (`chat.controller.js`). `'close'` của `req` bắn ngay khi đọc xong body — mà `express.json()` đã tiêu thụ hết body trước khi controller chạy — nên nghe ở đó thì lượt chat nào cũng tự `abort()` ở 0ms, rồi cả hai nhánh `if (aborted) return` bỏ qua `res.end()` khiến response treo vô hạn và frontend quay loading mãi.
@@ -132,6 +136,7 @@ Lưu ý khi sửa phần chat:
 - **Thời điểm mở đề / hạn nộp đi qua `src/chat/tools/schedule.js`.** Cột DATETIME của MariaDB *bỏ qua* hậu tố múi giờ: model gửi `...T16:00:00Z` (23:00 giờ VN) thì DB lưu 16:00 — sớm 7 tiếng. `parseScheduleTime()` parse bằng `Date` rồi ghi lại giờ địa phương. `assign_exam_to_class` bắt buộc có `open_time` + `deadline` (`"now"`/`"none"` khi mở ngay / không giới hạn) — để tuỳ chọn thì model chỉ hỏi thời gian làm bài rồi giao luôn. `update_exam` sửa giao đề phải giữ nguyên trường không truyền: `updateAssignment()` ghi đè cả 3 cột, thiếu `time_limit` (NOT NULL) là lỗi SQL.
 - **Response của chatbot theo giao thức "UI Message Stream" của Vercel AI SDK** (`src/chat/ui-message.js`, header `x-vercel-ai-ui-message-stream: v1`): mỗi chunk là `data: {type: start | text-start | text-delta | text-end | tool-input-available | tool-output-available | data-<tên> | error | finish}`, kết thúc `data: [DONE]`. Request cũng theo chuẩn UIMessage: `{messages: [{role, parts: [{type:'text', text}]}]}`. Dữ liệu riêng của app đi qua part `data-*` (`data-confirmation`, `data-exam-preview`) — đừng tự chế `event:` mới. Frontend dựng tin nhắn từ chunk bằng `applyChunk()` (`src/lib/ui-message-stream.js`) và hiển thị theo `parts`.
 - **`chat_messages.parts` lưu nguyên `UIMessage.parts`** (migration `migrateChatMessageParts`), `content` vẫn giữ chữ thuần để đưa vào ngữ cảnh cho model. Nhờ vậy F5 xong vẫn còn nút "Xem đề thi" và nút xác nhận (ẩn khi quá `expiresAt`). Kết quả tool chỉ lưu tóm tắt `{success, message}`; đề thi trong `data-exam-preview` chỉ lưu `examId` — bấm nút sau F5 mới gọi `GET /api/exams/:id`. `create_exam` trả `ui: { examId }`, agent *gỡ* `ui` trước khi đưa kết quả cho model (nội dung đề không chui vào ngữ cảnh).
+- **Form giao bài dùng A2UI v0.9** (đang làm thử, `@a2ui/react` + `@a2ui/web_core` ghim 0.12.0). Thiếu thời gian/giờ mở/hạn nộp → model gọi `show_assign_exam_form`; backend tự dựng thông điệp A2UI từ dữ liệu thật (không để model sinh JSON) và gửi trong part `data-a2ui`. Frontend dựng bằng catalog riêng `chat-a2ui/catalog.jsx`: dùng nguyên schema của basic catalog nhưng hiển thị bằng shadcn — `catalogId` hai bên phải khớp. Bấm "Giao bài" → `POST /api/chat/a2ui-action` → gọi lại đúng handler `assign_exam_to_class` (chung kiểm tra múi giờ/hạn nộp), `examId` lấy từ `surfaces.js` chứ không từ `context` client gửi. Gửi xong thì part được đánh dấu `status: 'submitted'` trong DB để F5 không hiện lại form.
 - **Sắp tin nhắn chat phải kèm `id`** (`chat.repository.js`). `created_at` chỉ chính xác tới giây; câu hỏi gửi trong cùng giây với câu trả lời trước có thể xếp lên trước nó → lượt cuối gửi cho Gemini là của trợ lý → 400 `Requests ending with a model turn are not supported`.
 
 ### Key API endpoints (non-obvious ones)
@@ -142,6 +147,7 @@ Lưu ý khi sửa phần chat:
 | PUT | `/api/auth/password` | Change password (`{currentPassword, newPassword}`) |
 | POST | `/api/chat` | AI chatbot (role-aware: teacher gets tool calling) |
 | DELETE | `/api/chat/history` | Xóa phiên chat của chính mình → bắt đầu cuộc trò chuyện mới |
+| POST | `/api/chat/a2ui-action` | Thông điệp `action` A2UI khi giáo viên bấm nút trên form chatbot gửi (`{name, surfaceId, context}`) — chạy thẳng tool, không gọi model → `{surfaceId, summary, messages}` |
 | POST | `/api/chat/confirm/:actionId` | Nút Đồng ý / Không của chatbot (`{accept}`) — chạy thẳng hành động đang chờ, không gọi model → `{userText, reply}` |
 | GET | `/api/exams/:id` | Giáo viên: đề của mình, đủ đáp án + giải thích. Học sinh: chỉ đề đã giao cho lớp mình, đã tới giờ mở, chưa quá hạn — **không** có `isCorrected`/`explanation` (trước đây lộ đáp án qua DevTools) |
 | POST | `/api/exams/:id/clone` | Deep-copy exam + questions + answers |

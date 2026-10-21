@@ -46,6 +46,15 @@ export const handler = async (args, user) => {
 
   const { exam_id, class_id, time_limit = 1200 } = parsed.data;
 
+  // classService.assignExam chỉ kiểm tra lớp — đề cũng phải là của giáo viên này, không thì
+  // giao được đề (kèm đáp án) của giáo viên khác cho lớp mình.
+  if (!(await examRepo.findByIdWithTeacher(exam_id, user.id))) {
+    return {
+      success: false, data: null, metadata: {},
+      message: 'Đề thi không tồn tại hoặc không thuộc quyền quản lý của thầy/cô.',
+    };
+  }
+
   const schedule = resolveSchedule(parsed.data);
   if (schedule.error) return { success: false, data: null, metadata: {}, message: schedule.error };
   const { open_time, deadline } = schedule;

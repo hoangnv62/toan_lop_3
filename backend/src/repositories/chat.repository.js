@@ -21,6 +21,19 @@ export const saveMessage = (sessionId, role, content, parts = null) =>
     { sessionId, role, content, parts: parts && JSON.stringify(parts) }
   );
 
+// Tin nhắn trợ lý chứa form A2UI có surfaceId này — để đánh dấu form đã gửi.
+export const findAssistantMessageBySurface = (userId, surfaceId) =>
+  queryOne(
+    `SELECT m.id, m.parts FROM chat_messages m
+     JOIN chat_sessions s ON s.id = m.session_id
+     WHERE s.user_id = :userId AND m.role = 'assistant' AND m.parts LIKE :pattern
+     ORDER BY m.id DESC LIMIT 1`,
+    { userId, pattern: `%${surfaceId}%` }
+  );
+
+export const updateMessageParts = (id, parts) =>
+  query('UPDATE chat_messages SET parts = :parts WHERE id = :id', { id, parts: JSON.stringify(parts) });
+
 // Dùng khi người dùng hủy giữa chừng: câu hỏi đã lưu trước khi gọi model nên
 // phải gỡ ra, nếu không nó vẫn nằm trong ngữ cảnh của lượt hỏi kế tiếp.
 export const deleteMessage = (id) =>

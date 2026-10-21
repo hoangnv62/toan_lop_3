@@ -46,6 +46,7 @@ export const runChat = async (newUserContent, role, user, { signal, writer }) =>
     onToolDone: (tool) => writer.toolOutput(tool),
     onConfirmRequired: (confirmation) => writer.data('confirmation', confirmation),
     onExamPreview: (exam) => writer.data('exam-preview', exam, storedExamPreview(exam)),
+    onA2ui: (surface) => writer.data('a2ui', surface),
   };
 
   try {

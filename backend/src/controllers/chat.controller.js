@@ -1,4 +1,5 @@
 import { runChat, resolveConfirmation, toUiMessage } from '../services/chat.service.js';
+import { handleA2uiAction } from '../services/chat-a2ui.service.js';
 import { createUiMessageWriter, textOfParts, UI_MESSAGE_STREAM_HEADER } from '../chat/ui-message.js';
 import { getChatErrorMessage } from '../chat/fallback-messages.js';
 import * as chatRepo from '../repositories/chat.repository.js';
@@ -75,4 +76,9 @@ export const clearChatHistory = async (req, res) => {
 // Giáo viên bấm nút Đồng ý / Không dưới câu hỏi xác nhận của chatbot.
 export const confirmAction = async (req, res) => {
   success(res, await resolveConfirmation(req.params.actionId, req.body.accept, req.user));
+};
+
+// Giáo viên bấm nút trên form A2UI do chatbot gửi (vd. "Giao bài").
+export const a2uiAction = async (req, res) => {
+  success(res, await handleA2uiAction(req.body, req.user));
 };

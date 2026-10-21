@@ -1,5 +1,7 @@
 import { validate } from './validate-handler.js';
-import { chatSchema, confirmActionParamsSchema, confirmActionBodySchema } from './schema/chat.schema.js';
+import {
+  chatSchema, confirmActionParamsSchema, confirmActionBodySchema, a2uiActionSchema,
+} from './schema/chat.schema.js';
 
 export const validateChat = validate({ body: chatSchema });
 
@@ -7,3 +9,5 @@ export const validateConfirmAction = validate({
   params: confirmActionParamsSchema,
   body: confirmActionBodySchema,
 });
+
+export const validateA2uiAction = validate({ body: a2uiActionSchema });

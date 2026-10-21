@@ -9,6 +9,9 @@ export const clearChatHistory = () => api.delete('/api/chat/history');
 export const confirmChatAction = (actionId, accept) =>
   api.post(`/api/chat/confirm/${actionId}`, { accept });
 
+/** Thông điệp `action` A2UI khi giáo viên bấm nút trên form chatbot gửi → `{ surfaceId, summary, messages }`. */
+export const sendA2uiAction = (action) => api.post('/api/chat/a2ui-action', action);
+
 /**
  * Gửi câu hỏi và nhận câu trả lời theo giao thức "UI Message Stream" (Vercel AI SDK) qua XHR.
  * Mỗi chunk (`{type: 'text-delta' | 'tool-input-available' | 'data-…' | …}`) được đưa cho
